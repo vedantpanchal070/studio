@@ -27,8 +27,9 @@ async function readJsonFile(filePath: string): Promise<any[]> {
     try {
         await ensureDataDir();
         const fileContent = await fs.readFile(filePath, "utf-8");
+        // Dates are parsed as they are read, which is good practice.
+        // We will ensure they are consistently handled in filtering functions.
         const data = JSON.parse(fileContent);
-        // Ensure date fields are Date objects if they exist
         return data.map((item: any) => item.date ? { ...item, date: new Date(item.date) } : item);
     } catch (error: any) {
         if (error.code === 'ENOENT') {
@@ -314,12 +315,14 @@ export async function getVouchers(filters: { name?: string; startDate?: Date; en
         vouchers = vouchers.filter(v => v.name === filters.name);
     }
     if (filters.startDate) {
-        vouchers = vouchers.filter(v => v.date >= filters.startDate!);
+        const startDate = new Date(filters.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        vouchers = vouchers.filter(v => new Date(v.date) >= startDate);
     }
     if (filters.endDate) {
         const endDate = new Date(filters.endDate);
         endDate.setHours(23, 59, 59, 999); // Include the entire end day
-        vouchers = vouchers.filter(v => v.date <= endDate);
+        vouchers = vouchers.filter(v => new Date(v.date) <= endDate);
     }
     
     return vouchers;
@@ -413,7 +416,9 @@ export async function getProcesses(filters: { name?: string; startDate?: Date; e
         processes = processes.filter(p => p.processName === filters.name);
     }
     if (filters.startDate) {
-        processes = processes.filter(p => new Date(p.date) >= filters.startDate!);
+        const startDate = new Date(filters.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        processes = processes.filter(p => new Date(p.date) >= startDate);
     }
     if (filters.endDate) {
         const endDate = new Date(filters.endDate);
@@ -470,9 +475,10 @@ export async function getOutputLedger(filters: { name?: string; startDate?: Date
         allSales = allSales.filter(s => s.productName === filters.name);
     }
     if (filters.startDate) {
-        const start = filters.startDate;
-        allOutputs = allOutputs.filter(o => new Date(o.date) >= start!);
-        allSales = allSales.filter(s => new Date(s.date) >= start!);
+        const start = new Date(filters.startDate);
+        start.setHours(0,0,0,0);
+        allOutputs = allOutputs.filter(o => new Date(o.date) >= start);
+        allSales = allSales.filter(s => new Date(s.date) >= start);
     }
     if (filters.endDate) {
         const end = new Date(filters.endDate);
@@ -911,5 +917,3 @@ export async function updateSale(values: z.infer<typeof saleSchema>) {
         return { success: false, message: "Failed to update sale." };
     }
 }
-
-    

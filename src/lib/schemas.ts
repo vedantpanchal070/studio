@@ -8,11 +8,11 @@ export const voucherSchema = z.object({
   }),
   name: z.string().min(1, "Item name is required."),
   code: z.string().min(1, "Item code is required."),
-  quantities: z.coerce.number().gt(0, "Quantity must be a positive number."),
+  quantities: z.coerce.number().refine(val => val !== 0, "Quantity cannot be zero."),
   quantityType: z.string().min(1, "Quantity type is required."),
   pricePerNo: z.coerce
     .number()
-    .gt(0, "Price per unit must be a positive number."),
+    .min(0, "Price per unit must be a positive number."),
   totalPrice: z.coerce.number(),
   remarks: z.string().optional(),
 })
@@ -62,7 +62,7 @@ export const saleSchema = z.object({
   productName: z.string().min(1, "Product name is required."),
   clientCode: z.string().min(1, "Client code is required."),
   saleQty: z.coerce.number().gt(0, "Sale quantity must be positive."),
-  salePrice: z.coerce.number().gt(0, "Sale price must be positive."),
+  salePrice: z.coerce.number().min(0, "Sale price must be positive."),
   totalAmount: z.coerce.number(),
 });
 
