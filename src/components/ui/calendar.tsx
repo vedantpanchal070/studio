@@ -67,6 +67,10 @@ function Calendar({
           const { goToMonth, nextMonth, previousMonth } = useNavigation();
           const [year, setYearState] = React.useState(displayMonth.getFullYear());
 
+          React.useEffect(() => {
+            setYearState(displayMonth.getFullYear());
+          }, [displayMonth]);
+
           const handleYearChange = (e: React.ChangeEvent<HTMLInputElement>) => {
             const newYear = Number(e.target.value);
             if (!isNaN(newYear) && newYear > 1000) {
