@@ -11,7 +11,7 @@ import { format } from 'date-fns'
 import type { Process } from "@/lib/schemas"
 import { getProcesses, deleteProcess } from "@/lib/actions"
 import { Button } from "@/components/ui/button"
-import { DatePicker } from "@/components/date-picker"
+import { DatePicker } from "@/components/ui/date-picker"
 import {
   Table,
   TableBody,
@@ -243,11 +243,11 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
             <Table>
                 <TableHeader className="sticky top-0 bg-background">
                     <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Process Name</TableHead>
-                        <TableHead>Cost/Unit</TableHead>
-                        <TableHead>Ingred. Qty</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead className="w-[15%]">Date</TableHead>
+                        <TableHead className="w-[35%]">Process Name</TableHead>
+                        <TableHead className="w-[15%]">Cost/Unit</TableHead>
+                        <TableHead className="w-[15%]">Ingred. Qty</TableHead>
+                        <TableHead className="text-right w-[20%]">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
