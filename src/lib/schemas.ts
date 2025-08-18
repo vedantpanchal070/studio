@@ -26,3 +26,13 @@ export const processSchema = z.object({
   })).min(1, "At least one raw material is required."),
   notes: z.string().optional(),
 });
+
+export const outputSchema = z.object({
+  date: z.date({
+    required_error: "A date is required.",
+  }),
+  productName: z.string().min(1, "Product name is required."),
+  quantityProduced: z.coerce.number().gt(0, "Quantity must be a positive number."),
+  processUsed: z.string().min(1, "The process used is required."),
+  notes: z.string().optional(),
+})
