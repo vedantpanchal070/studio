@@ -59,6 +59,8 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
   const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchSchema),
   })
+  
+  const selectedName = form.watch("name");
 
   // Fetch all unique item names for the dropdown
   useEffect(() => {
@@ -69,7 +71,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
       setItemNames(Array.from(names));
     };
     fetchItemNames();
-  }, [vouchers]); // Refetch names if vouchers data changes
+  }, []);
 
   const sortedVouchers = useMemo(() => {
     let sortableItems = [...vouchers]
@@ -133,17 +135,10 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
       .reduce((sum, v) => sum + v.quantities, 0)
     const availableQty = totalInputQty + totalOutputQty
 
-    const totalInputValue = vouchers
-      .filter((v) => v.quantities > 0)
-      .reduce((sum, v) => sum + v.totalPrice, 0)
-    const averagePrice =
-      totalInputQty > 0 ? totalInputValue / totalInputQty : 0
-
     return {
       totalInputQty,
       totalOutputQty,
       availableQty,
-      averagePrice,
     }
   }, [vouchers])
 
@@ -245,7 +240,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
                 </TableHead>
                 <TableHead onClick={() => requestSort("pricePerNo")}>
                     <div className="flex items-center cursor-pointer">
-                    Rate <ArrowUpDown className="ml-2 h-4 w-4" />
+                    Price <ArrowUpDown className="ml-2 h-4 w-4" />
                     </div>
                 </TableHead>
                 <TableHead onClick={() => requestSort("totalPrice")}>
@@ -291,7 +286,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
         <CardHeader>
           <CardTitle>Summary</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="p-4 rounded-lg bg-muted">
             <p className="text-sm text-muted-foreground">Total Input Qty</p>
             <p className="text-2xl font-bold">{summary.totalInputQty.toFixed(2)}</p>
@@ -303,10 +298,6 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
           <div className="p-4 rounded-lg bg-muted">
             <p className="text-sm text-muted-foreground">Available Qty</p>
             <p className="text-2xl font-bold">{summary.availableQty.toFixed(2)}</p>
-          </div>
-          <div className="p-4 rounded-lg bg-muted">
-            <p className="text-sm text-muted-foreground">Average Price</p>
-            <p className="text-2xl font-bold">${summary.averagePrice.toFixed(2)}</p>
           </div>
         </CardContent>
       </Card>
