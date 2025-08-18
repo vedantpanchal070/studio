@@ -236,7 +236,7 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
                             : "bg-red-100/50"
                         )}
                     >
-                        <TableCell>{format(new Date(entry.date), 'yyyy-MM-dd')}</TableCell>
+                        <TableCell>{format(new Date(entry.date), 'dd/MM/yyyy')}</TableCell>
                         <TableCell>{entry.productName}</TableCell>
                         <TableCell>{entry.type}</TableCell>
                         <TableCell>{entry.clientCode || 'N/A'}</TableCell>

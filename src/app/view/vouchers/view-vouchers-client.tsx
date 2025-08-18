@@ -261,7 +261,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
                     key={voucher.id}
                     className={cn(voucher.quantities > 0 ? "bg-green-100/50" : "bg-red-100/50")}
                 >
-                    <TableCell>{format(new Date(voucher.date), 'yyyy-MM-dd')}</TableCell>
+                    <TableCell>{format(new Date(voucher.date), 'dd/MM/yyyy')}</TableCell>
                     <TableCell>{voucher.name}</TableCell>
                     <TableCell>{voucher.quantities}</TableCell>
                     <TableCell>{voucher.pricePerNo.toFixed(2)}</TableCell>
