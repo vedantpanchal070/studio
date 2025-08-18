@@ -28,8 +28,8 @@ export const processSchema = z.object({
     code: z.string().min(1, "Item code is required."),
     quantityType: z.string().min(1, "Quantity type is required."),
     quantity: z.coerce.number().gt(0, "Quantity must be a positive number."),
-    // The following fields are for frontend calculation and not part of the final submission schema
     ratio: z.coerce.number().optional(),
+    rate: z.coerce.number().optional(),
   })).min(1, "At least one raw material is required."),
   notes: z.string().optional(),
 });

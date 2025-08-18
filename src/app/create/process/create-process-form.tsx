@@ -75,6 +75,7 @@ export function CreateProcessForm() {
             };
             form.setValue(`rawMaterials.${index}.code`, data.code);
             form.setValue(`rawMaterials.${index}.quantityType`, data.quantityType);
+            form.setValue(`rawMaterials.${index}.rate`, data.averagePrice);
           } catch (error) {
             console.error(`Failed to fetch data for ${material.name}`, error);
           }
@@ -102,14 +103,15 @@ export function CreateProcessForm() {
     const material = rawMaterials[index] || {};
     const data = material.name ? materialsData[material.name] : undefined;
     const quantity = material.quantity ?? 0;
-    const amount = quantity * (data?.rate || 0);
+    const rate = data?.rate || 0;
+    const amount = quantity * rate;
     const stockIsInsufficient = quantity > (data?.availableStock || 0);
 
     return { 
         ...material, 
         output: quantity,
         availableStock: data?.availableStock || 0,
-        rate: data?.rate || 0,
+        rate: rate,
         amount, 
         stockIsInsufficient 
     };
@@ -281,7 +283,7 @@ export function CreateProcessForm() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => append({ name: "", quantity: 0, ratio: 0, code: "", quantityType: "" })}
+              onClick={() => append({ name: "", quantity: 0, ratio: 0, code: "", quantityType: "", rate: 0 })}
             >
               <PlusCircle className="mr-2" />
               Add Ingredient

@@ -54,23 +54,10 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
   const { date, processName, rawMaterials, notes } = validatedFields.data
 
   try {
-    // In a real app, we'd save the process to its own collection.
-    // For this app, we just create the negative voucher entries.
     const batch = writeBatch(db);
 
     for (const material of rawMaterials) {
-        // Fetch the average price for the raw material
-        const q = query(collection(db, "vouchers"), where("name", "==", material.name), where("quantities", ">", 0));
-        const querySnapshot = await getDocs(q);
-        
-        let totalValue = 0;
-        let totalQty = 0;
-        querySnapshot.forEach(doc => {
-            totalValue += doc.data().totalPrice;
-            totalQty += doc.data().quantities;
-        });
-
-        const rate = totalQty > 0 ? totalValue / totalQty : 0;
+        const rate = material.rate || 0; // Use rate from form, default to 0 if not provided
         
         const newVoucherRef = doc(collection(db, "vouchers"));
         batch.set(newVoucherRef, {
