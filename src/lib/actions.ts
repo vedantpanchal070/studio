@@ -302,8 +302,8 @@ export async function recordSale(values: z.infer<typeof saleSchema>) {
 export async function getVouchers(filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<any[]> {
     let vouchers = await readVouchers();
     
-    // Filter out finished goods and scrape
-    vouchers = vouchers.filter(v => !v.code.startsWith('FG-') && !v.code.startsWith('SCRAPE-'));
+    // Filter out finished goods
+    vouchers = vouchers.filter(v => !v.code.startsWith('FG-'));
 
     if (filters.name) {
         vouchers = vouchers.filter(v => v.name === filters.name);
