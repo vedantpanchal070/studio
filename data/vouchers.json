@@ -9,5 +9,27 @@
     "totalPrice": 30000,
     "remarks": "",
     "id": "2025-08-18T08:56:01.493Zt1q46zb0w"
+  },
+  {
+    "date": "2025-08-18T08:59:03.384Z",
+    "name": "BATEKA",
+    "code": "2502",
+    "quantities": 1000,
+    "quantityType": "KG",
+    "pricePerNo": 10,
+    "totalPrice": 10000,
+    "remarks": "",
+    "id": "2025-08-18T08:59:25.450Z9n0pkpq74"
+  },
+  {
+    "date": "2025-08-18T08:59:03.384Z",
+    "name": "SUGAR",
+    "code": "2503",
+    "quantities": 1000,
+    "quantityType": "KG",
+    "pricePerNo": 20,
+    "totalPrice": 20000,
+    "remarks": "",
+    "id": "2025-08-18T08:59:51.971Zwi923ny3o"
   }
 ]
