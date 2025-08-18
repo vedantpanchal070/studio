@@ -54,8 +54,6 @@ export function CreateOutputForm() {
       reduction: 0,
       processCharge: 0,
       notes: "",
-      // These are not part of the form state anymore to prevent loops
-      // but are part of the schema, so we provide default values.
       quantityProduced: 0,
       finalAveragePrice: 0,
     },
@@ -70,8 +68,11 @@ export function CreateOutputForm() {
       return
     }
 
-    const { totalProcessOutput, totalCost } = selectedProcess
-    const { scrape = 0, scrapeUnit = 'kg', reduction = 0, processCharge = 0 } = watchedValues
+    const { totalCost, totalProcessOutput } = selectedProcess
+    const { scrape = 0, scrapeUnit = 'kg', reduction = 0 } = watchedValues;
+
+    // Ensure processCharge is a valid number, default to 0 if not
+    const processCharge = Number(watchedValues.processCharge) || 0;
 
     let scrapeQty = 0
     if (scrapeUnit === '%') {
@@ -83,12 +84,13 @@ export function CreateOutputForm() {
     const currentNetQty = totalProcessOutput - scrapeQty - (reduction || 0)
     setNetAvailableQty(currentNetQty)
 
-    let avgPrice = 0
     if (currentNetQty > 0) {
       const baseAvgPrice = totalCost / currentNetQty;
-      avgPrice = baseAvgPrice + (processCharge || 0)
+      const finalPrice = baseAvgPrice + processCharge;
+      setFinalAvgPrice(finalPrice);
+    } else {
+      setFinalAvgPrice(0);
     }
-    setFinalAvgPrice(avgPrice)
 
   }, [watchedValues, selectedProcess])
 
