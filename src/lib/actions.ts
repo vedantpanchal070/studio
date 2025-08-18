@@ -753,6 +753,11 @@ export async function getOutput(id: string): Promise<Output | undefined> {
     return outputs.find(o => o.id === id);
 }
 
+export async function getSale(id: string): Promise<Sale | undefined> {
+    const sales = await readSales();
+    return sales.find(s => s.id === id);
+}
+
 export async function updateOutput(values: z.infer<typeof outputSchema>) {
     const validatedFields = outputSchema.safeParse(values)
 
@@ -844,5 +849,63 @@ export async function updateOutput(values: z.infer<typeof outputSchema>) {
     } catch (error) {
         console.error("Failed to update output:", error);
         return { success: false, message: "Failed to update output." };
+    }
+}
+
+export async function updateSale(values: z.infer<typeof saleSchema>) {
+    const validatedFields = saleSchema.safeParse(values)
+
+    if (!validatedFields.success) {
+        return { success: false, message: "Invalid sale data." }
+    }
+
+    try {
+        const { id, ...updatedData } = validatedFields.data;
+        if (!id) return { success: false, message: "Sale ID is missing." };
+        
+        let allSales = await readSales();
+        let allVouchers = await readVouchers();
+        
+        const saleIndex = allSales.findIndex(s => s.id === id);
+        if (saleIndex === -1) return { success: false, message: "Sale not found." };
+        
+        const originalSale = allSales[saleIndex];
+        
+        // Find and update the associated inventory voucher
+        const saleVoucherIndex = allVouchers.findIndex(v => 
+            v.remarks === `SOLD TO ${originalSale.clientCode}` &&
+            v.name === originalSale.productName &&
+            new Date(v.date).getTime() === new Date(originalSale.date).getTime() &&
+            v.quantities === -originalSale.saleQty
+        );
+        
+        if (saleVoucherIndex === -1) {
+            return { success: false, message: "Could not find the original inventory transaction for this sale." };
+        }
+        
+        // Update Sale Record
+        allSales[saleIndex] = { ...originalSale, ...updatedData };
+        
+        // Update Voucher Record
+        const inventoryDetails = await getInventoryItem(updatedData.productName);
+        allVouchers[saleVoucherIndex].date = updatedData.date;
+        allVouchers[saleVoucherIndex].quantities = -updatedData.saleQty;
+        allVouchers[saleVoucherIndex].remarks = `SOLD TO ${updatedData.clientCode}`;
+        // Note: Inventory cost price is used for the voucher, not the sale price
+        allVouchers[saleVoucherIndex].pricePerNo = inventoryDetails.averagePrice;
+        allVouchers[saleVoucherIndex].totalPrice = updatedData.saleQty * inventoryDetails.averagePrice;
+        
+        await writeSales(allSales);
+        await writeVouchers(allVouchers);
+        
+        revalidatePath("/view/outputs");
+        revalidatePath("/view/vouchers");
+        revalidatePath("/view/inventory");
+
+        return { success: true, message: "Sale updated successfully." };
+
+    } catch (error) {
+        console.error("Failed to update sale:", error);
+        return { success: false, message: "Failed to update sale." };
     }
 }

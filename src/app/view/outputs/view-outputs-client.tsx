@@ -8,8 +8,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { Search, Trash2, Edit } from "lucide-react"
 import { format } from 'date-fns'
 
-import type { LedgerEntry } from "@/lib/actions"
-import { getOutputLedger, deleteOutput, deleteSale } from "@/lib/actions"
+import type { LedgerEntry, Output, Sale } from "@/lib/actions"
+import { getOutputLedger, deleteOutput, deleteSale, getOutput, getSale } from "@/lib/actions"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/date-picker"
@@ -48,6 +48,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
+import { EditOutputDialog } from "./edit-output-dialog"
+import { EditSaleDialog } from "./edit-sale-dialog"
 
 const searchSchema = z.object({
   name: z.string().optional(),
@@ -67,6 +69,11 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
   const [ledger, setLedger] = useState<LedgerEntry[]>(initialData)
   const [isLoading, setIsLoading] = useState(false)
   const endDateRef = useRef<HTMLButtonElement>(null)
+  
+  const [isOutputDialogOpen, setIsOutputDialogOpen] = useState(false)
+  const [isSaleDialogOpen, setIsSaleDialogOpen] = useState(false)
+  const [selectedOutput, setSelectedOutput] = useState<Output | null>(null)
+  const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
 
 
   const form = useForm<SearchFormValues>({
@@ -104,6 +111,26 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
       fetchLedger(form.getValues());
     } else {
       toast({ title: "Error", description: result.message, variant: "destructive" });
+    }
+  };
+  
+  const handleEdit = async (entry: LedgerEntry) => {
+    if (entry.type === 'Production') {
+      const outputData = await getOutput(entry.id);
+      if (outputData) {
+        setSelectedOutput(outputData);
+        setIsOutputDialogOpen(true);
+      } else {
+        toast({ title: "Error", description: "Could not find output record to edit.", variant: "destructive" });
+      }
+    } else { // Sale
+      const saleData = await getSale(entry.id);
+       if (saleData) {
+        setSelectedSale(saleData);
+        setIsSaleDialogOpen(true);
+      } else {
+        toast({ title: "Error", description: "Could not find sale record to edit.", variant: "destructive" });
+      }
     }
   };
 
@@ -219,7 +246,7 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
                         <TableCell>{entry.quantity.toFixed(2)}</TableCell>
                         <TableCell>{entry.pricePerKg.toFixed(2)}</TableCell>
                         <TableCell className="text-right">
-                           <Button variant="ghost" size="icon" onClick={() => {}} disabled={entry.type === 'Sale'}>
+                           <Button variant="ghost" size="icon" onClick={() => handleEdit(entry)}>
                               <Edit className="h-4 w-4" />
                             </Button>
                             <AlertDialog>
@@ -272,6 +299,28 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
           </div>
         </CardContent>
       </Card>
+
+      {selectedOutput && (
+        <EditOutputDialog
+            isOpen={isOutputDialogOpen}
+            onOpenChange={setIsOutputDialogOpen}
+            output={selectedOutput}
+            onOutputUpdated={() => {
+                fetchLedger(form.getValues());
+            }}
+        />
+      )}
+      
+       {selectedSale && (
+        <EditSaleDialog
+            isOpen={isSaleDialogOpen}
+            onOpenChange={setIsSaleDialogOpen}
+            sale={selectedSale}
+            onSaleUpdated={() => {
+                fetchLedger(form.getValues());
+            }}
+        />
+      )}
 
     </div>
   )
