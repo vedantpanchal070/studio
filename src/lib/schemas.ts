@@ -4,7 +4,6 @@ export const voucherSchema = z.object({
   date: z.date({
     required_error: "A date is required.",
   }),
-  voucherNo: z.string().min(1, "Voucher No. is required."),
   name: z.string().min(1, "Item name is required."),
   code: z.string().min(1, "Item code is required."),
   quantities: z.coerce.number().gt(0, "Quantity must be a positive number."),

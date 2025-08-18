@@ -30,7 +30,6 @@ export function CreateVoucherForm() {
     resolver: zodResolver(voucherSchema),
     defaultValues: {
       date: new Date(),
-      voucherNo: "",
       name: "",
       code: "",
       quantities: 0,
@@ -86,41 +85,30 @@ export function CreateVoucherForm() {
       nextFieldRef.current?.focus()
     }
   }
+  
+  // A ref for the date picker is not directly possible, but we can focus the next element
+  // when the component mounts or resets.
+  useEffect(() => {
+    nameRef.current?.focus();
+  }, [form.formState.isSubmitSuccessful]);
+
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-           <FormField
-            control={form.control}
-            name="date"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Date</FormLabel>
-                <FormControl>
-                  <DatePicker value={field.value} onChange={field.onChange} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="voucherNo"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Voucher No.</FormLabel>
-                <FormControl>
-                  <UppercaseInput
-                    {...field}
-                    onKeyDown={(e) => handleKeyDown(e, nameRef)}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="date"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Date</FormLabel>
+              <FormControl>
+                <DatePicker value={field.value} onChange={field.onChange} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="name"
