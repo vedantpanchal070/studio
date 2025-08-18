@@ -41,3 +41,5 @@ export const outputSchema = z.object({
   processUsed: z.string().min(1, "The process used is required."),
   notes: z.string().optional(),
 })
+
+export type Voucher = z.infer<typeof voucherSchema> & { id: string }
