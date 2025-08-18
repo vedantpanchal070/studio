@@ -30,13 +30,6 @@ import {
 } from "@/components/ui/form"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -49,6 +42,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { EditVoucherDialog } from "./edit-voucher-dialog"
+import { Combobox } from "@/components/ui/combobox"
 
 const searchSchema = z.object({
   name: z.string().optional(),
@@ -189,18 +183,13 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Voucher Name</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select an item" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {itemNames.map(name => (
-                        <SelectItem key={name} value={name}>{name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                   <Combobox
+                      options={itemNames.map(name => ({ value: name, label: name }))}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select an item"
+                      searchPlaceholder="Search items..."
+                    />
                 </FormItem>
               )}
             />

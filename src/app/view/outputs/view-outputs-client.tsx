@@ -28,13 +28,6 @@ import {
   FormItem,
   FormLabel,
 } from "@/components/ui/form"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   AlertDialog,
@@ -50,6 +43,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { EditOutputDialog } from "./edit-output-dialog"
 import { EditSaleDialog } from "./edit-sale-dialog"
+import { Combobox } from "@/components/ui/combobox"
 
 const searchSchema = z.object({
   name: z.string().optional(),
@@ -162,18 +156,13 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Product Name</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a product" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {productNames.map(name => (
-                        <SelectItem key={name} value={name}>{name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                   <Combobox
+                      options={productNames.map(name => ({ value: name, label: name }))}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select a product"
+                      searchPlaceholder="Search products..."
+                    />
                 </FormItem>
               )}
             />

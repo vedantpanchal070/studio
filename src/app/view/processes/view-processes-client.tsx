@@ -28,13 +28,6 @@ import {
   FormLabel,
 } from "@/components/ui/form"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -48,6 +41,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { EditProcessDialog } from "./edit-process-dialog"
+import { Combobox } from "@/components/ui/combobox"
 
 const searchSchema = z.object({
   name: z.string().optional(),
@@ -199,18 +193,13 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Process Name</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a process" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {processNames.map(name => (
-                        <SelectItem key={name} value={name}>{name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                   <Combobox
+                      options={processNames.map(name => ({ value: name, label: name }))}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select a process"
+                      searchPlaceholder="Search processes..."
+                    />
                 </FormItem>
               )}
             />
