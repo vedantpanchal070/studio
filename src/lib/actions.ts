@@ -335,12 +335,14 @@ export async function getInventoryItem(name: string, filters?: { startDate?: Dat
 
     // Date filtering
     if (filters?.startDate) {
-        itemVouchers = itemVouchers.filter(v => v.date >= filters.startDate!);
+        const start = new Date(filters.startDate);
+        start.setHours(0, 0, 0, 0);
+        itemVouchers = itemVouchers.filter(v => new Date(v.date) >= start);
     }
     if (filters?.endDate) {
-        const endDate = new Date(filters.endDate);
-        endDate.setHours(23, 59, 59, 999);
-        itemVouchers = itemVouchers.filter(v => v.date <= endDate);
+        const end = new Date(filters.endDate);
+        end.setHours(23, 59, 59, 999);
+        itemVouchers = itemVouchers.filter(v => new Date(v.date) <= end);
     }
 
 
@@ -364,7 +366,7 @@ export async function getInventoryItem(name: string, filters?: { startDate?: Dat
 
     const averagePrice = totalInputQty > 0 ? totalInputValue / totalInputQty : 0;
     
-    const latestVoucher = itemVouchers.sort((a, b) => b.date.getTime() - a.date.getTime())[0];
+    const latestVoucher = itemVouchers.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
 
     return { 
         availableStock: availableStock || 0, 
@@ -411,15 +413,15 @@ export async function getProcesses(filters: { name?: string; startDate?: Date; e
         processes = processes.filter(p => p.processName === filters.name);
     }
     if (filters.startDate) {
-        processes = processes.filter(p => p.date >= filters.startDate!);
+        processes = processes.filter(p => new Date(p.date) >= filters.startDate!);
     }
     if (filters.endDate) {
         const endDate = new Date(filters.endDate);
         endDate.setHours(23, 59, 59, 999);
-        processes = processes.filter(p => p.date <= endDate);
+        processes = processes.filter(p => new Date(p.date) <= endDate);
     }
     
-    return processes.sort((a, b) => b.date.getTime() - a.date.getTime());
+    return processes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export async function getUniqueProcessNames(): Promise<string[]> {
@@ -469,21 +471,21 @@ export async function getOutputLedger(filters: { name?: string; startDate?: Date
     }
     if (filters.startDate) {
         const start = filters.startDate;
-        allOutputs = allOutputs.filter(o => o.date >= start!);
-        allSales = allSales.filter(s => s.date >= start!);
+        allOutputs = allOutputs.filter(o => new Date(o.date) >= start!);
+        allSales = allSales.filter(s => new Date(s.date) >= start!);
     }
     if (filters.endDate) {
         const end = new Date(filters.endDate);
         end.setHours(23, 59, 59, 999);
-        allOutputs = allOutputs.filter(o => o.date <= end);
-        allSales = allSales.filter(s => s.date <= end);
+        allOutputs = allOutputs.filter(o => new Date(o.date) <= end);
+        allSales = allSales.filter(s => new Date(s.date) <= end);
     }
     
     // Map outputs to ledger entries
     allOutputs.forEach(output => {
         ledger.push({
             type: 'Production',
-            date: output.date,
+            date: new Date(output.date),
             productName: output.productName,
             quantity: output.quantityProduced,
             pricePerKg: output.finalAveragePrice,
@@ -495,7 +497,7 @@ export async function getOutputLedger(filters: { name?: string; startDate?: Date
     allSales.forEach(sale => {
         ledger.push({
             type: 'Sale',
-            date: sale.date,
+            date: new Date(sale.date),
             productName: sale.productName,
             clientCode: sale.clientCode,
             quantity: -sale.saleQty, // Sales are negative quantity
@@ -505,7 +507,7 @@ export async function getOutputLedger(filters: { name?: string; startDate?: Date
     });
 
     // Sort by date chronologically
-    ledger.sort((a, b) => a.date.getTime() - b.date.getTime());
+    ledger.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     return ledger;
 }
