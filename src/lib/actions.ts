@@ -27,10 +27,18 @@ async function readJsonFile(filePath: string): Promise<any[]> {
     try {
         await ensureDataDir();
         const fileContent = await fs.readFile(filePath, "utf-8");
-        // Dates are parsed as they are read, which is good practice.
-        // We will ensure they are consistently handled in filtering functions.
         const data = JSON.parse(fileContent);
-        return data.map((item: any) => item.date ? { ...item, date: new Date(item.date) } : item);
+        return data.map((item: any) => {
+            if (item.date) {
+                // When parsing from JSON, assume the date string is in UTC format.
+                // Creating a new Date object from an ISO string will correctly handle it.
+                const date = new Date(item.date);
+                // To avoid timezone shifts, create a new date object with UTC values
+                const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+                return { ...item, date: utcDate };
+            }
+            return item;
+        });
     } catch (error: any) {
         if (error.code === 'ENOENT') {
             await writeJsonFile(filePath, []); // File doesn't exist, create it.
@@ -40,6 +48,7 @@ async function readJsonFile(filePath: string): Promise<any[]> {
         return [];
     }
 }
+
 
 async function writeJsonFile(filePath: string, data: any[]) {
     try {
@@ -315,14 +324,12 @@ export async function getVouchers(filters: { name?: string; startDate?: Date; en
         vouchers = vouchers.filter(v => v.name === filters.name);
     }
     if (filters.startDate) {
-        const startDate = new Date(filters.startDate);
-        startDate.setHours(0, 0, 0, 0);
-        vouchers = vouchers.filter(v => new Date(v.date) >= startDate);
+        const filterDate = new Date(Date.UTC(filters.startDate.getFullYear(), filters.startDate.getMonth(), filters.startDate.getDate()));
+        vouchers = vouchers.filter(v => v.date >= filterDate);
     }
     if (filters.endDate) {
-        const endDate = new Date(filters.endDate);
-        endDate.setHours(23, 59, 59, 999); // Include the entire end day
-        vouchers = vouchers.filter(v => new Date(v.date) <= endDate);
+        const filterDate = new Date(Date.UTC(filters.endDate.getFullYear(), filters.endDate.getMonth(), filters.endDate.getDate()));
+        vouchers = vouchers.filter(v => v.date <= filterDate);
     }
     
     return vouchers;
@@ -416,14 +423,12 @@ export async function getProcesses(filters: { name?: string; startDate?: Date; e
         processes = processes.filter(p => p.processName === filters.name);
     }
     if (filters.startDate) {
-        const startDate = new Date(filters.startDate);
-        startDate.setHours(0, 0, 0, 0);
-        processes = processes.filter(p => new Date(p.date) >= startDate);
+        const filterDate = new Date(Date.UTC(filters.startDate.getFullYear(), filters.startDate.getMonth(), filters.startDate.getDate()));
+        processes = processes.filter(p => p.date >= filterDate);
     }
     if (filters.endDate) {
-        const endDate = new Date(filters.endDate);
-        endDate.setHours(23, 59, 59, 999);
-        processes = processes.filter(p => new Date(p.date) <= endDate);
+        const filterDate = new Date(Date.UTC(filters.endDate.getFullYear(), filters.endDate.getMonth(), filters.endDate.getDate()));
+        processes = processes.filter(p => p.date <= filterDate);
     }
     
     return processes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -475,16 +480,14 @@ export async function getOutputLedger(filters: { name?: string; startDate?: Date
         allSales = allSales.filter(s => s.productName === filters.name);
     }
     if (filters.startDate) {
-        const start = new Date(filters.startDate);
-        start.setHours(0,0,0,0);
-        allOutputs = allOutputs.filter(o => new Date(o.date) >= start);
-        allSales = allSales.filter(s => new Date(s.date) >= start);
+        const filterDate = new Date(Date.UTC(filters.startDate.getFullYear(), filters.startDate.getMonth(), filters.startDate.getDate()));
+        allOutputs = allOutputs.filter(o => o.date >= filterDate);
+        allSales = allSales.filter(s => s.date >= filterDate);
     }
     if (filters.endDate) {
-        const end = new Date(filters.endDate);
-        end.setHours(23, 59, 59, 999);
-        allOutputs = allOutputs.filter(o => new Date(o.date) <= end);
-        allSales = allSales.filter(s => new Date(s.date) <= end);
+        const filterDate = new Date(Date.UTC(filters.endDate.getFullYear(), filters.endDate.getMonth(), filters.endDate.getDate()));
+        allOutputs = allOutputs.filter(o => o.date <= filterDate);
+        allSales = allSales.filter(s => s.date <= filterDate);
     }
     
     // Map outputs to ledger entries
@@ -914,3 +917,5 @@ export async function updateSale(values: z.infer<typeof saleSchema>) {
         return { success: false, message: "Failed to update sale." };
     }
 }
+
+    
