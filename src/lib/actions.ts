@@ -28,7 +28,8 @@ async function readVouchers(): Promise<any[]> {
         return vouchers.map((v: any) => ({ ...v, date: new Date(v.date) }));
     } catch (error: any) {
         if (error.code === 'ENOENT') {
-            return []; // File doesn't exist, return empty array
+            await writeVouchers([]);
+            return []; // File doesn't exist, create it and return empty array
         }
         console.error("Failed to read vouchers from file:", error);
         return [];
@@ -67,6 +68,7 @@ export async function createVoucher(values: z.infer<typeof voucherSchema>) {
     await writeVouchers(vouchers)
 
     revalidatePath("/view/vouchers")
+    revalidatePath("/create/process") // To update ingredient lists
     return { success: true, message: "Voucher saved to file successfully!" }
   } catch (error) {
     console.error("Failed to save voucher to file:", error)
@@ -91,6 +93,18 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
 
   try {
     const allVouchers = await readVouchers();
+
+    // Check for sufficient stock before proceeding
+    for (const material of rawMaterials) {
+        const inventory = await getInventoryItem(material.name);
+        if (inventory.availableStock < material.quantity) {
+            return {
+                success: false,
+                message: `Insufficient stock for ${material.name}. Available: ${inventory.availableStock}, Required: ${material.quantity}`,
+            };
+        }
+    }
+
 
     for (const material of rawMaterials) {
         // Create a new voucher for the raw material consumption
@@ -174,7 +188,8 @@ export async function getInventoryItem(name: string) {
 
     const averagePrice = totalInputQty > 0 ? totalInputValue / totalInputQty : 0;
     
-    const latestVoucher = itemVouchers[itemVouchers.length - 1];
+    // Find the latest voucher entry for this item to get the code and quantityType
+    const latestVoucher = itemVouchers.sort((a, b) => b.date.getTime() - a.date.getTime())[0];
 
     return { 
         availableStock: availableStock || 0, 
@@ -184,3 +199,9 @@ export async function getInventoryItem(name: string) {
     };
 }
 
+
+export async function getVoucherItemNames(): Promise<string[]> {
+    const vouchers = await readVouchers();
+    const names = new Set(vouchers.map(v => v.name));
+    return Array.from(names).sort();
+}

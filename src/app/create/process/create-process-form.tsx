@@ -8,7 +8,7 @@ import type { z } from "zod"
 import { PlusCircle, Trash2 } from "lucide-react"
 
 import { processSchema } from "@/lib/schemas"
-import { createProcess, getInventoryItem } from "@/lib/actions"
+import { createProcess, getInventoryItem, getVoucherItemNames } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import {
@@ -26,6 +26,7 @@ import { UppercaseInput } from "@/components/ui/uppercase-input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 type ProcessFormValues = z.infer<typeof processSchema>
 
@@ -39,6 +40,16 @@ interface MaterialData {
 export function CreateProcessForm() {
   const { toast } = useToast()
   const [materialData, setMaterialData] = useState<Record<string, MaterialData>>({});
+  const [itemNames, setItemNames] = useState<string[]>([]);
+
+
+  useEffect(() => {
+    const fetchItemNames = async () => {
+      const names = await getVoucherItemNames();
+      setItemNames(names);
+    };
+    fetchItemNames();
+  }, []);
 
   const form = useForm<ProcessFormValues>({
     resolver: zodResolver(processSchema),
@@ -209,9 +220,28 @@ export function CreateProcessForm() {
                     <TableRow key={field.id}>
                       <TableCell>
                         <FormField
-                          control={form.control}
-                          name={`rawMaterials.${index}.name`}
-                          render={({ field }) => <UppercaseInput {...field} onBlur={() => fetchMaterialData(field.value, index)} />}
+                            control={form.control}
+                            name={`rawMaterials.${index}.name`}
+                            render={({ field }) => (
+                                <Select
+                                onValueChange={(value) => {
+                                    field.onChange(value);
+                                    fetchMaterialData(value, index);
+                                }}
+                                defaultValue={field.value}
+                                >
+                                <FormControl>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder="Select an item" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {itemNames.map(name => (
+                                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                            )}
                         />
                       </TableCell>
                       <TableCell>
