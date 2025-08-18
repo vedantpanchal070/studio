@@ -18,9 +18,10 @@ type DatePickerProps = {
   value?: Date;
   onChange: (date?: Date) => void;
   disabled?: boolean;
+  nextFocusRef?: React.RefObject<HTMLElement>;
 }
 
-export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
+export function DatePicker({ value, onChange, disabled, nextFocusRef }: DatePickerProps) {
   const [isOpen, setIsOpen] = React.useState(false)
 
   return (
@@ -45,6 +46,9 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
           onSelect={(date) => {
             onChange(date)
             setIsOpen(false)
+            if (nextFocusRef?.current) {
+              nextFocusRef.current.focus();
+            }
           }}
           onCancel={() => setIsOpen(false)}
           initialFocus

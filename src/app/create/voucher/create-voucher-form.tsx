@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useRef, useState } from "react"
@@ -104,7 +105,7 @@ export function CreateVoucherForm() {
             <FormItem>
               <FormLabel>Date</FormLabel>
               <FormControl>
-                <DatePicker value={field.value} onChange={field.onChange} />
+                <DatePicker value={field.value} onChange={field.onChange} nextFocusRef={nameRef} />
               </FormControl>
               <FormMessage />
             </FormItem>
