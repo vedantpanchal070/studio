@@ -1,6 +1,8 @@
 
 "use server"
 
+import firebase from "firebase/app"
+import "firebase/firestore"
 import { z } from "zod"
 import { voucherSchema, processSchema, outputSchema, saleSchema, type Process, type Voucher, type FinishedGood, type Output, type Sale } from "./schemas"
 import { revalidatePath } from "next/cache"
@@ -12,6 +14,9 @@ const VOUCHERS_FILE = path.join(DATA_DIR, "vouchers.json")
 const PROCESSES_FILE = path.join(DATA_DIR, "processes.json")
 const OUTPUTS_FILE = path.join(DATA_DIR, "outputs.json")
 const SALES_FILE = path.join(DATA_DIR, "sales.json")
+
+// Enable offline data persistence
+firebase.firestore().enablePersistence()
 
 
 // Ensure data directory exists

@@ -21,6 +21,16 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <script>{`
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+              navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                  console.log('Service Worker registered:', registration);
+                });
+            });
+          }
+        `}</script>
       </head>
       <body className="font-body antialiased">
         <EscapeHandler />
