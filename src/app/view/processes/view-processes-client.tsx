@@ -64,7 +64,7 @@ function ProcessEntry({ process, onDelete, onEdit }: { process: Process, onDelet
     const costPerUnit = process.totalProcessOutput > 0 ? totalAmount / process.totalProcessOutput : 0;
     
     return (
-        <React.Fragment>
+        <React.Fragment key={process.id}>
             <TableRow className="hover:bg-muted/50" data-state={isOpen ? 'open' : 'closed'}>
                 <TableCell>{format(new Date(process.date), 'dd/MM/yyyy')}</TableCell>
                 <TableCell className="min-w-[400px]">{process.processName}</TableCell>
@@ -256,7 +256,7 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
                         </TableCell>
                     </TableRow>
                   ) : processes.length > 0 ? processes.map((process) => (
-                      <ProcessEntry key={process.id} process={process} onDelete={handleDelete} onEdit={handleEdit} />
+                      <ProcessEntry process={process} onDelete={handleDelete} onEdit={handleEdit} />
                   )) : (
                     <TableRow>
                         <TableCell colSpan={5} className="h-24 text-center">
