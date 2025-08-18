@@ -2,7 +2,7 @@
 "use client"
 
 import React, { useState, useMemo, useEffect, useRef } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { ArrowUpDown, Search, Edit, Trash2 } from "lucide-react"
@@ -78,14 +78,19 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
     resolver: zodResolver(searchSchema),
   })
   
-  const selectedName = form.watch("name");
+  const watchedFilters = useWatch({ control: form.control });
+  const selectedName = watchedFilters.name;
 
-  const fetchVouchers = async (filters: SearchFormValues = {}) => {
-    setIsLoading(true);
-    const results = await getVouchers(filters);
-    setVouchers(results);
-    setIsLoading(false);
-  }
+  useEffect(() => {
+    const fetchVouchers = async () => {
+      setIsLoading(true);
+      const results = await getVouchers(watchedFilters);
+      setVouchers(results);
+      setIsLoading(false);
+    }
+    fetchVouchers();
+  }, [watchedFilters]);
+
 
   // Fetch all unique item names for the dropdown
   useEffect(() => {
@@ -137,11 +142,8 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
     setSortConfig({ key, direction })
   }
 
-  const onSubmit = (values: SearchFormValues) => fetchVouchers(values)
-
   const handleClear = () => {
     form.reset({ name: "", startDate: undefined, endDate: undefined })
-    fetchVouchers({});
     setAveragePrice(0);
     setSortConfig(null)
   }
@@ -150,7 +152,8 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
     const result = await deleteVoucher(voucherId);
     if (result.success) {
       toast({ title: "Success", description: result.message });
-      fetchVouchers(form.getValues()); // Refetch data
+      const results = await getVouchers(form.getValues());
+      setVouchers(results);
     } else {
       toast({ title: "Error", description: result.message, variant: "destructive" });
     }
@@ -178,11 +181,8 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
   return (
     <div className="space-y-6">
       <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="rounded-lg border p-4 space-y-4"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <form className="rounded-lg border p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
              <FormField
               control={form.control}
               name="name"
@@ -228,15 +228,11 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
                 </FormItem>
               )}
             />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={handleClear}>
-              Clear
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              <Search className="mr-2 h-4 w-4" />
-              {isLoading ? "Searching..." : "Search"}
-            </Button>
+             <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={handleClear} className="w-full">
+                Clear
+                </Button>
+            </div>
           </div>
         </form>
       </Form>
@@ -256,7 +252,11 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {sortedVouchers.length > 0 ? sortedVouchers.map((voucher) => (
+                {isLoading ? (
+                    <TableRow>
+                        <TableCell colSpan={7} className="h-24 text-center">Loading...</TableCell>
+                    </TableRow>
+                ) : sortedVouchers.length > 0 ? sortedVouchers.map((voucher) => (
                 <TableRow
                     key={voucher.id}
                     className={cn(voucher.quantities > 0 ? "bg-green-100/50" : "bg-red-100/50")}
@@ -317,7 +317,13 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
           isOpen={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
           voucher={selectedVoucher}
-          onVoucherUpdated={() => fetchVouchers(form.getValues())}
+          onVoucherUpdated={() => {
+            const fetchVouchers = async () => {
+              const results = await getVouchers(form.getValues());
+              setVouchers(results);
+            }
+            fetchVouchers();
+          }}
         />
       )}
     </div>

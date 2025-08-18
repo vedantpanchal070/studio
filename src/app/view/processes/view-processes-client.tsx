@@ -1,8 +1,8 @@
 
 "use client"
 
-import React, { useState, useRef } from "react"
-import { useForm } from "react-hook-form"
+import React, { useState, useRef, useEffect } from "react"
+import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Search, Trash2, ChevronDown, Edit } from "lucide-react"
@@ -154,27 +154,30 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
     resolver: zodResolver(searchSchema),
   })
 
-  const fetchProcesses = async (filters: SearchFormValues = {}) => {
-    setIsLoading(true)
-    const results = await getProcesses(filters)
-    setProcesses(results)
-    setIsLoading(false)
-  }
+  const watchedFilters = useWatch({ control: form.control });
 
-  const onSubmit = (values: SearchFormValues) => {
-    fetchProcesses(values)
-  }
+  useEffect(() => {
+    const fetchProcesses = async () => {
+      setIsLoading(true)
+      const results = await getProcesses(watchedFilters)
+      setProcesses(results)
+      setIsLoading(false)
+    };
+
+    fetchProcesses();
+  }, [watchedFilters]);
+
 
   const handleClear = () => {
     form.reset({ name: "", startDate: undefined, endDate: undefined })
-    fetchProcesses()
   }
   
   const handleDelete = async (process: Process) => {
     const result = await deleteProcess(process);
     if (result.success) {
       toast({ title: "Success", description: result.message });
-      fetchProcesses(form.getValues());
+      const results = await getProcesses(form.getValues())
+      setProcesses(results)
     } else {
       toast({ title: "Error", description: result.message, variant: "destructive" });
     }
@@ -188,10 +191,7 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
   return (
     <div className="space-y-6">
       <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="rounded-lg border p-4 space-y-4"
-        >
+        <form className="rounded-lg border p-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
              <FormField
               control={form.control}
@@ -242,10 +242,6 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
                 <Button type="button" variant="outline" onClick={handleClear} className="w-full">
                 Clear
                 </Button>
-                <Button type="submit" disabled={isLoading} className="w-full">
-                <Search className="mr-2 h-4 w-4" />
-                {isLoading ? "Searching..." : "Search"}
-                </Button>
             </div>
           </div>
         </form>
@@ -264,7 +260,13 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {processes.length > 0 ? processes.map((process, pIndex) => (
+                  {isLoading ? (
+                     <TableRow>
+                        <TableCell colSpan={5} className="h-24 text-center">
+                            Loading...
+                        </TableCell>
+                    </TableRow>
+                  ) : processes.length > 0 ? processes.map((process, pIndex) => (
                       <ProcessEntry key={pIndex} process={process} onDelete={handleDelete} onEdit={handleEdit} />
                   )) : (
                     <TableRow>
@@ -283,7 +285,11 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
             onOpenChange={setIsEditDialogOpen}
             process={selectedProcess}
             onProcessUpdated={() => {
-                fetchProcesses(form.getValues());
+                const fetchProcesses = async () => {
+                    const results = await getProcesses(form.getValues())
+                    setProcesses(results)
+                }
+                fetchProcesses();
             }}
         />
       )}

@@ -1,8 +1,8 @@
 
 "use client"
 
-import React, { useState, useMemo, useRef } from "react"
-import { useForm } from "react-hook-form"
+import React, { useState, useMemo, useRef, useEffect } from "react"
+import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Search, Trash2, Edit } from "lucide-react"
@@ -80,22 +80,23 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
     resolver: zodResolver(searchSchema),
   })
 
-  const selectedName = form.watch("name");
+  const watchedFilters = useWatch({ control: form.control });
+  const selectedName = watchedFilters.name;
+  
+  useEffect(() => {
+    const fetchLedger = async () => {
+      setIsLoading(true)
+      const results = await getOutputLedger(watchedFilters)
+      setLedger(results)
+      setIsLoading(false)
+    };
 
-  const fetchLedger = async (filters: SearchFormValues = {}) => {
-    setIsLoading(true)
-    const results = await getOutputLedger(filters)
-    setLedger(results)
-    setIsLoading(false)
-  }
+    fetchLedger();
+  }, [watchedFilters]);
 
-  const onSubmit = (values: SearchFormValues) => {
-    fetchLedger(values)
-  }
 
   const handleClear = () => {
     form.reset({ name: "", startDate: undefined, endDate: undefined })
-    fetchLedger();
   }
 
   const handleDelete = async (entry: LedgerEntry) => {
@@ -108,7 +109,8 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
     
     if (result.success) {
       toast({ title: "Success", description: result.message });
-      fetchLedger(form.getValues());
+      const results = await getOutputLedger(form.getValues())
+      setLedger(results)
     } else {
       toast({ title: "Error", description: result.message, variant: "destructive" });
     }
@@ -152,11 +154,8 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
   return (
     <div className="space-y-6">
       <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="rounded-lg border p-4 space-y-4"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <form className="rounded-lg border p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
              <FormField
               control={form.control}
               name="name"
@@ -202,15 +201,11 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
                 </FormItem>
               )}
             />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={handleClear}>
-              Clear
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              <Search className="mr-2 h-4 w-4" />
-              {isLoading ? "Searching..." : "Search"}
-            </Button>
+            <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={handleClear} className="w-full">
+                Clear
+                </Button>
+            </div>
           </div>
         </form>
       </Form>
@@ -230,7 +225,9 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {ledger.length > 0 ? ledger.map((entry) => (
+                    {isLoading ? (
+                        <TableRow><TableCell colSpan={7} className="h-24 text-center">Loading...</TableCell></TableRow>
+                    ) : ledger.length > 0 ? ledger.map((entry) => (
                     <TableRow
                         key={entry.id}
                         className={cn(
@@ -306,7 +303,11 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
             onOpenChange={setIsOutputDialogOpen}
             output={selectedOutput}
             onOutputUpdated={() => {
-                fetchLedger(form.getValues());
+                const fetchLedger = async () => {
+                  const results = await getOutputLedger(form.getValues())
+                  setLedger(results)
+                }
+                fetchLedger();
             }}
         />
       )}
@@ -317,7 +318,11 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
             onOpenChange={setIsSaleDialogOpen}
             sale={selectedSale}
             onSaleUpdated={() => {
-                fetchLedger(form.getValues());
+                const fetchLedger = async () => {
+                  const results = await getOutputLedger(form.getValues())
+                  setLedger(results)
+                }
+                fetchLedger();
             }}
         />
       )}

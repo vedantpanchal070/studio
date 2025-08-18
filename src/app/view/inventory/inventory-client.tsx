@@ -1,8 +1,8 @@
 
 "use client"
 
-import React, { useState, useRef } from "react"
-import { useForm } from "react-hook-form"
+import React, { useState, useRef, useEffect } from "react"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Search } from "lucide-react"
@@ -54,31 +54,32 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
     },
   })
   
-  const onSaleSuccess = async () => {
-      await fetchInventory(form.getValues())
-  }
-  
-  const fetchInventory = async (filters: SearchFormValues = {}) => {
-    setIsLoading(true);
-    const updatedInventory = await getFinishedGoodsInventory(filters);
-    setInventory(updatedInventory);
-    setIsLoading(false)
-  }
+  const watchedFilters = useWatch({ control: form.control });
 
-  const onSubmit = (values: SearchFormValues) => {
-    fetchInventory(values)
-  }
+  useEffect(() => {
+    const fetchInventory = async () => {
+        setIsLoading(true);
+        const updatedInventory = await getFinishedGoodsInventory(watchedFilters);
+        setInventory(updatedInventory);
+        setIsLoading(false);
+    };
+
+    const handler = setTimeout(() => {
+        fetchInventory();
+    }, 300); // Debounce to avoid excessive requests while typing
+
+    return () => clearTimeout(handler);
+  }, [watchedFilters]);
   
   const handleClear = () => {
     form.reset({ name: "", startDate: undefined, endDate: undefined })
-    fetchInventory()
   }
 
   return (
     <div className="space-y-6">
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="rounded-lg border p-4 space-y-4">
+        <form className="rounded-lg border p-4 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                 <FormField
                     control={form.control}
@@ -118,11 +119,7 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
                   )}
                 />
                 <div className="flex justify-start gap-2">
-                    <Button type="submit" disabled={isLoading}>
-                        <Search className="mr-2 h-4 w-4" />
-                        {isLoading ? "Searching..." : "Search"}
-                    </Button>
-                    <Button type="button" variant="outline" onClick={handleClear}>
+                    <Button type="button" variant="outline" onClick={handleClear} className="w-full">
                         Clear
                     </Button>
                 </div>
@@ -143,7 +140,13 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {inventory.length > 0 ? (
+              {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                ) : inventory.length > 0 ? (
                 inventory.map((item) => (
                   <TableRow key={item.name}>
                     <TableCell className="font-medium">{item.name}</TableCell>
