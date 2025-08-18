@@ -5,7 +5,7 @@ import { z } from "zod"
 import { voucherSchema, processSchema, outputSchema, Voucher } from "./schemas"
 import { revalidatePath } from "next/cache"
 import { db } from "./firebase"
-import { collection, addDoc, getDocs, query, where, Timestamp, orderBy, documentId, writeBatch, getDoc, doc } from "firebase/firestore"
+import { collection, addDoc, getDocs, query, where, Timestamp, orderBy, writeBatch, doc } from "firebase/firestore"
 
 // Helper function to convert Firestore Timestamps to Dates in voucher objects
 function voucherFromDoc(doc: any): Voucher {
@@ -28,11 +28,10 @@ export async function createVoucher(values: z.infer<typeof voucherSchema>) {
   }
 
   try {
-    const docRef = await addDoc(collection(db, "vouchers"), {
+    await addDoc(collection(db, "vouchers"), {
       ...validatedFields.data,
       date: Timestamp.fromDate(validatedFields.data.date),
     });
-    console.log("Document written with ID: ", docRef.id);
     revalidatePath("/view/vouchers");
     return { success: true, message: "Voucher created successfully!" };
   } catch (e) {
@@ -53,13 +52,12 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
 
   const { date, processName, rawMaterials, notes } = validatedFields.data
 
-  // Validate that all materials have a valid rate
+  // Validate that all materials have a valid rate before starting the batch write
   for (const material of rawMaterials) {
-    const rate = material.rate ?? 0;
-    if (rate <= 0) {
+    if (!material.rate || material.rate <= 0) {
       return {
         success: false,
-        message: `Material "${material.name}" has no purchase history or a price of zero. Please create a voucher for it first.`,
+        message: `"${material.name}" has no purchase history or a price of zero. Please create a voucher for it first.`,
       };
     }
   }
@@ -68,31 +66,28 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
     const batch = writeBatch(db);
 
     for (const material of rawMaterials) {
-        const rate = material.rate!; // We can now assert that rate is not null/zero
-        
         const newVoucherRef = doc(collection(db, "vouchers"));
         batch.set(newVoucherRef, {
             date: Timestamp.fromDate(date),
             name: material.name,
             code: material.code,
-            quantities: -material.quantity, // Negative quantity
+            quantities: -material.quantity, // Negative quantity for consumption
             quantityType: material.quantityType,
-            pricePerNo: rate,
-            totalPrice: -material.quantity * rate,
+            pricePerNo: material.rate,
+            totalPrice: -material.quantity * material.rate,
             remarks: `Used in process: ${processName}. ${notes || ""}`.trim(),
         });
     }
 
     await batch.commit();
 
-    console.log("Process created and inventory updated.");
     revalidatePath("/view/processes");
     revalidatePath("/view/vouchers");
 
-    return { success: true, message: "Process saved and inventory updated!" };
+    return { success: true, message: "Process saved and inventory updated successfully!" };
   } catch (e) {
     console.error("Error creating process: ", e);
-    return { success: false, message: "Failed to create process." };
+    return { success: false, message: "Failed to create process due to a database error." };
   }
 }
 
@@ -107,11 +102,10 @@ export async function createOutput(values: z.infer<typeof outputSchema>) {
   }
 
    try {
-    const docRef = await addDoc(collection(db, "outputs"), {
+    await addDoc(collection(db, "outputs"), {
       ...validatedFields.data,
       date: Timestamp.fromDate(validatedFields.data.date),
     });
-    console.log("Document written with ID: ", docRef.id);
     revalidatePath("/view/outputs");
     return { success: true, message: "Output created successfully!" };
   } catch (e) {
@@ -123,8 +117,6 @@ export async function createOutput(values: z.infer<typeof outputSchema>) {
 export async function getVouchers(
   filters: { name?: string; startDate?: Date; endDate?: Date }
 ): Promise<Voucher[]> {
-  console.log("Fetching vouchers with filters:", filters)
-  
   const queries = [];
   if (filters.name) {
     queries.push(where("name", "==", filters.name));
@@ -140,10 +132,10 @@ export async function getVouchers(
   const querySnapshot = await getDocs(q);
   const vouchers = querySnapshot.docs.map(voucherFromDoc);
   
+  // The data from Firestore needs to be serialized to be safely passed to client components.
   return JSON.parse(JSON.stringify(vouchers));
 }
 
-// New function to get item details for the process form
 export async function getInventoryItem(name: string) {
     if (!name) {
         return { availableStock: 0, averagePrice: 0, code: '', quantityType: '' };
@@ -166,9 +158,11 @@ export async function getInventoryItem(name: string) {
         querySnapshot.forEach(doc => {
             const data = doc.data();
             totalStock += data.quantities;
+            // Set code and quantityType from the most recent entry if possible, otherwise first one.
             if (!code) code = data.code;
             if (!quantityType) quantityType = data.quantityType;
 
+            // Only consider purchases for average price calculation
             if (data.quantities > 0) {
                 totalPositiveValue += data.totalPrice;
                 totalPositiveQty += data.quantities;
@@ -180,7 +174,7 @@ export async function getInventoryItem(name: string) {
         return { availableStock: totalStock, averagePrice, code, quantityType };
     } catch (error) {
         console.error("Error fetching inventory item:", error);
-        // Return a default object structure in case of an error to prevent crashes
+        // Return a default object structure in case of an error to prevent crashes on the client
         return { availableStock: 0, averagePrice: 0, code: '', quantityType: '' };
     }
 }

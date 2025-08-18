@@ -67,15 +67,16 @@ export function CreateProcessForm() {
         if (material.name && !materialsData[material.name]) {
           try {
             const data = await getInventoryItem(material.name);
-            newMaterialsData[material.name] = { 
-              availableStock: data.availableStock, 
+            const materialInfo = {
+              availableStock: data.availableStock,
               rate: data.averagePrice,
               code: data.code,
               quantityType: data.quantityType
             };
-            form.setValue(`rawMaterials.${index}.code`, data.code);
-            form.setValue(`rawMaterials.${index}.quantityType`, data.quantityType);
-            form.setValue(`rawMaterials.${index}.rate`, data.averagePrice);
+            newMaterialsData[material.name] = materialInfo;
+            form.setValue(`rawMaterials.${index}.code`, materialInfo.code);
+            form.setValue(`rawMaterials.${index}.quantityType`, materialInfo.quantityType);
+            form.setValue(`rawMaterials.${index}.rate`, materialInfo.rate);
           } catch (error) {
             console.error(`Failed to fetch data for ${material.name}`, error);
           }
