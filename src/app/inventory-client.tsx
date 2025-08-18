@@ -2,7 +2,8 @@
 "use client"
 
 import React, { useState } from "react"
-import { ShoppingCart } from "lucide-react"
+import { ShoppingCart, PlusCircle, LayoutList } from "lucide-react"
+import Link from "next/link"
 
 import type { FinishedGoodInventoryItem } from "@/lib/actions"
 import { Button } from "@/components/ui/button"
@@ -16,6 +17,13 @@ import {
 } from "@/components/ui/table"
 import { SalesDialog } from "@/components/sales-dialog"
 import { getFinishedGoodsInventory } from "@/lib/actions"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 
 interface InventoryClientProps {
   initialData: FinishedGoodInventoryItem[];
@@ -33,6 +41,22 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
   return (
     <div className="space-y-6">
        <SalesDialog isOpen={isSalesModalOpen} onOpenChange={setIsSalesModalOpen} onSaleSuccess={onSaleSuccess}/>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl w-full mx-auto my-8">
+            <MenuCard
+            href="/create"
+            icon={<PlusCircle className="w-12 h-12 text-primary" />}
+            title="Create"
+            description="Add new vouchers, production processes, and outputs."
+            />
+            <MenuCard
+            href="/view"
+            icon={<LayoutList className="w-12 h-12 text-primary" />}
+            title="View"
+            description="Browse and manage inventory, production, and finished goods."
+            />
+        </div>
+
       <div className="rounded-md border">
         <div className="max-h-96 overflow-auto">
           <Table>
@@ -78,4 +102,19 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
       </div>
     </div>
   )
+}
+
+
+function MenuCard({ href, icon, title, description }: { href: string; icon: React.ReactNode; title: string; description: string }) {
+  return (
+    <Link href={href} className="group">
+      <Card className="h-full hover:shadow-lg hover:border-primary transition-all duration-300 transform hover:-translate-y-1">
+        <CardHeader className="flex flex-col items-center text-center gap-4 p-6">
+          {icon}
+          <CardTitle className="text-2xl">{title}</CardTitle>
+          <CardDescription className="text-base">{description}</CardDescription>
+        </CardHeader>
+      </Card>
+    </Link>
+  );
 }
