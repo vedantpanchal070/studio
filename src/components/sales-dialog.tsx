@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/select"
 import { DatePicker } from "./date-picker"
 import { UppercaseInput } from "./ui/uppercase-input"
-import { ReadOnlyInput } from "./ui/read-only-input"
+import { ReadOnlyInput } from "@/components/ui/read-only-input"
 
 type SalesFormValues = z.infer<typeof saleSchema>
 

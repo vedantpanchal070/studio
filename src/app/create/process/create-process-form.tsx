@@ -27,6 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ReadOnlyInput } from "@/components/ui/read-only-input"
 
 type ProcessFormValues = z.infer<typeof processSchema>
 
@@ -258,9 +259,9 @@ export function CreateProcessForm() {
                             render={({ field }) => <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />}
                         />
                       </TableCell>
-                      <TableCell>{material?.output?.toFixed(2) || '0.00'}</TableCell>
+                      <TableCell><ReadOnlyInput value={material?.output?.toFixed(2) || '0.00'} /></TableCell>
                       <TableCell>
-                        {material?.rate?.toFixed(2) || '0.00'}
+                        <ReadOnlyInput value={material?.rate?.toFixed(2) || '0.00'} />
                       </TableCell>
                       <TableCell>{material?.amount?.toFixed(2) || '0.00'}</TableCell>
                       <TableCell>
