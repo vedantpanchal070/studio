@@ -11,7 +11,7 @@ import { format } from 'date-fns'
 import type { Process } from "@/lib/schemas"
 import { getProcesses, deleteProcess } from "@/lib/actions"
 import { Button } from "@/components/ui/button"
-import { DatePicker } from "@/components/ui/date-picker"
+import { DatePicker } from "@/components/date-picker"
 import {
   Table,
   TableBody,
