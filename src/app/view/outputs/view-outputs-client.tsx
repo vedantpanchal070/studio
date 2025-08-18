@@ -5,7 +5,7 @@ import React, { useState, useMemo, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Search, Trash2 } from "lucide-react"
+import { Search, Trash2, Edit } from "lucide-react"
 import { format } from 'date-fns'
 
 import type { LedgerEntry } from "@/lib/actions"
@@ -219,6 +219,9 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
                         <TableCell>{entry.quantity.toFixed(2)}</TableCell>
                         <TableCell>{entry.pricePerKg.toFixed(2)}</TableCell>
                         <TableCell className="text-right">
+                           <Button variant="ghost" size="icon" onClick={() => {}} disabled={entry.type === 'Sale'}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon">

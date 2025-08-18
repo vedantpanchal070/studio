@@ -399,7 +399,7 @@ export async function getProcessNamesAndDetails(): Promise<ProcessDetails[]> {
   });
 }
 
-async function getProcessDetails(name: string): Promise<ProcessDetails | null> {
+export async function getProcessDetails(name: string): Promise<ProcessDetails | null> {
     const processes = await getProcessNamesAndDetails();
     return processes.find(p => p.processName === name) || null;
 }
@@ -745,5 +745,104 @@ export async function deleteSale(saleId: string) {
     } catch (error) {
         console.error("Failed to delete sale:", error);
         return { success: false, message: "Failed to delete sale." };
+    }
+}
+
+export async function getOutput(id: string): Promise<Output | undefined> {
+    const outputs = await readOutputs();
+    return outputs.find(o => o.id === id);
+}
+
+export async function updateOutput(values: z.infer<typeof outputSchema>) {
+    const validatedFields = outputSchema.safeParse(values)
+
+    if (!validatedFields.success) {
+        return { success: false, message: "Invalid output data." }
+    }
+
+    try {
+        const { id, ...updatedData } = validatedFields.data;
+        if (!id) return { success: false, message: "Output ID is missing." };
+
+        let allOutputs = await readOutputs();
+        let allVouchers = await readVouchers();
+        
+        const outputIndex = allOutputs.findIndex(o => o.id === id);
+        if (outputIndex === -1) return { success: false, message: "Output not found." };
+        
+        const originalOutput = allOutputs[outputIndex];
+
+        // Recalculate values based on new data
+        const processDetails = await getProcessDetails(updatedData.processUsed);
+        if (!processDetails) return { success: false, message: "Process details not found." };
+        
+        const { totalCost, totalProcessOutput } = processDetails;
+        let scrapeQty = 0;
+        if (updatedData.scrapeUnit === '%') {
+            scrapeQty = totalProcessOutput * ((updatedData.scrape || 0) / 100);
+        } else {
+            scrapeQty = updatedData.scrape || 0;
+        }
+        const currentNetQty = totalProcessOutput - scrapeQty - (updatedData.reduction || 0);
+        const finalAveragePrice = currentNetQty > 0 ? (totalCost / currentNetQty) + (updatedData.processCharge || 0) : 0;
+        
+        const finalUpdatedData = {
+            ...updatedData,
+            quantityProduced: currentNetQty,
+            finalAveragePrice: finalAveragePrice,
+        };
+
+        allOutputs[outputIndex] = { ...originalOutput, ...finalUpdatedData };
+
+        // Find and update the associated inventory vouchers
+        // Production Voucher
+        const prodVoucherIndex = allVouchers.findIndex(v => v.remarks === `PRODUCED FROM ${originalOutput.processUsed}` && new Date(v.date).getTime() === new Date(originalOutput.date).getTime());
+        if (prodVoucherIndex !== -1) {
+            allVouchers[prodVoucherIndex].date = finalUpdatedData.date;
+            allVouchers[prodVoucherIndex].name = finalUpdatedData.productName;
+            allVouchers[prodVoucherIndex].quantities = finalUpdatedData.quantityProduced;
+            allVouchers[prodVoucherIndex].pricePerNo = finalUpdatedData.finalAveragePrice;
+            allVouchers[prodVoucherIndex].totalPrice = finalUpdatedData.quantityProduced * finalUpdatedData.finalAveragePrice;
+            allVouchers[prodVoucherIndex].remarks = `PRODUCED FROM ${finalUpdatedData.processUsed}`;
+        }
+
+        // Scrape Voucher
+        const scrapeVoucherIndex = allVouchers.findIndex(v => v.remarks === `SCRAPE FROM ${originalOutput.processUsed}` && new Date(v.date).getTime() === new Date(originalOutput.date).getTime());
+        if (scrapeVoucherIndex !== -1) {
+             if (scrapeQty > 0) {
+                allVouchers[scrapeVoucherIndex].date = finalUpdatedData.date;
+                allVouchers[scrapeVoucherIndex].name = `${finalUpdatedData.productName} - SCRAPE`;
+                allVouchers[scrapeVoucherIndex].quantities = scrapeQty;
+                allVouchers[scrapeVoucherIndex].remarks = `SCRAPE FROM ${finalUpdatedData.processUsed}`;
+             } else {
+                allVouchers.splice(scrapeVoucherIndex, 1); // Remove scrape voucher if scrape is 0
+             }
+        } else if (scrapeQty > 0) { // Add new scrape voucher if it didn't exist before
+             const scrapeVoucher = {
+                id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+                date: finalUpdatedData.date,
+                name: `${finalUpdatedData.productName} - SCRAPE`,
+                code: `SCRAPE-${finalUpdatedData.productName}`,
+                quantities: scrapeQty,
+                quantityType: 'KG',
+                pricePerNo: 0,
+                totalPrice: 0,
+                remarks: `SCRAPE FROM ${finalUpdatedData.processUsed}`,
+            };
+            allVouchers.push(scrapeVoucher);
+        }
+
+        await writeOutputs(allOutputs);
+        await writeVouchers(allVouchers);
+
+        revalidatePath("/view/outputs");
+        revalidatePath("/view/vouchers");
+        revalidatePath("/view/inventory");
+
+        return { success: true, message: "Output updated successfully." };
+
+    } catch (error) {
+        console.error("Failed to update output:", error);
+        return { success: false, message: "Failed to update output." };
     }
 }
