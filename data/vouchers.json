@@ -75,5 +75,16 @@
     "totalPrice": 500,
     "remarks": "",
     "id": "2025-08-18T09:11:30.647Ze5bp1953i"
+  },
+  {
+    "date": "2025-08-18T09:20:09.455Z",
+    "name": "MILK",
+    "code": "2501",
+    "quantities": 30,
+    "quantityType": "LIT",
+    "pricePerNo": 20,
+    "totalPrice": 600,
+    "remarks": "",
+    "id": "2025-08-18T09:20:45.145Z8npqf0zg0"
   }
 ]

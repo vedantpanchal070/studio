@@ -259,11 +259,7 @@ export function CreateProcessForm() {
                       </TableCell>
                       <TableCell>{material?.output?.toFixed(2) || '0.00'}</TableCell>
                       <TableCell>
-                        <FormField
-                            control={form.control}
-                            name={`rawMaterials.${index}.rate`}
-                            render={({ field }) => <Input type="number" {...field} readOnly className="bg-muted" />}
-                        />
+                        {material?.rate?.toFixed(2) || '0.00'}
                       </TableCell>
                       <TableCell>{material?.amount?.toFixed(2) || '0.00'}</TableCell>
                       <TableCell>
