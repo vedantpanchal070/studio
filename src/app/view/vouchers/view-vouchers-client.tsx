@@ -9,7 +9,7 @@ import { ArrowUpDown, Search } from "lucide-react"
 import { format } from 'date-fns'
 
 import type { Voucher } from "@/lib/schemas"
-import { getVouchers } from "@/lib/actions"
+import { getVouchers, getInventoryItem } from "@/lib/actions"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -56,6 +56,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
     key: SortKey
     direction: SortDirection
   } | null>(null)
+  const [averagePrice, setAveragePrice] = useState(0);
 
   const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchSchema),
@@ -73,6 +74,17 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
     };
     fetchItemNames();
   }, []);
+
+  useEffect(() => {
+    const fetchAveragePrice = async () => {
+        if (selectedName) {
+            const inventoryData = await getInventoryItem(selectedName);
+            setAveragePrice(inventoryData.averagePrice);
+        }
+    };
+    fetchAveragePrice();
+  }, [selectedName]);
+
 
   const sortedVouchers = useMemo(() => {
     let sortableItems = [...vouchers]
@@ -123,6 +135,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
     setIsLoading(true);
     const results = await getVouchers({});
     setVouchers(results);
+    setAveragePrice(0);
     setIsLoading(false);
     setSortConfig(null)
   }
@@ -138,16 +151,10 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
 
     const availableQty = totalInputQty + totalOutputQty
 
-    const purchases = vouchers.filter((v) => v.quantities > 0);
-    const totalPurchaseValue = purchases.reduce((sum, v) => sum + v.totalPrice, 0);
-    const totalPurchaseQty = purchases.reduce((sum, v) => sum + v.quantities, 0);
-    const averagePrice = totalPurchaseQty > 0 ? totalPurchaseValue / totalPurchaseQty : 0;
-
     return {
       totalInputQty,
       totalOutputQty,
       availableQty,
-      averagePrice,
     }
   }, [vouchers])
 
@@ -311,7 +318,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
           {selectedName && (
              <div className="p-4 rounded-lg bg-muted">
                 <p className="text-sm text-muted-foreground">Average Price</p>
-                <p className="text-2xl font-bold">{summary.averagePrice.toFixed(2)}</p>
+                <p className="text-2xl font-bold">{averagePrice.toFixed(2)}</p>
             </div>
           )}
         </CardContent>
