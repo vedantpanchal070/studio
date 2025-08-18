@@ -12,7 +12,7 @@ export const voucherSchema = z.object({
   quantityType: z.string().min(1, "Quantity type is required."),
   pricePerNo: z.coerce
     .number()
-    .min(0, "Price per unit must be a positive number."),
+    .min(0, "Price per unit must be a non-negative number."),
   totalPrice: z.coerce.number(),
   remarks: z.string().optional(),
 })
@@ -27,6 +27,7 @@ const rawMaterialSchema = z.object({
 })
 
 export const processSchema = z.object({
+  id: z.string().optional(),
   date: z.date({
     required_error: "A date is required.",
   }),
@@ -45,10 +46,10 @@ export const outputSchema = z.object({
   }),
   productName: z.string().min(1, "Product name is required."),
   processUsed: z.string().min(1, "The process used is required."),
-  scrape: z.coerce.number().min(0, "Scrape must be a positive number.").optional(),
+  scrape: z.coerce.number().min(0, "Scrape must be a non-negative number.").optional(),
   scrapeUnit: z.enum(["kg", "%"]).optional(),
-  reduction: z.coerce.number().min(0, "Reduction must be a positive number.").optional(),
-  processCharge: z.coerce.number().min(0, "Process charge must be a positive number.").optional(),
+  reduction: z.coerce.number().min(0, "Reduction must be a non-negative number.").optional(),
+  processCharge: z.coerce.number().min(0, "Process charge must be a non-negative number.").optional(),
   quantityProduced: z.coerce.number(),
   finalAveragePrice: z.coerce.number(),
   notes: z.string().optional(),
@@ -62,12 +63,12 @@ export const saleSchema = z.object({
   productName: z.string().min(1, "Product name is required."),
   clientCode: z.string().min(1, "Client code is required."),
   saleQty: z.coerce.number().gt(0, "Sale quantity must be positive."),
-  salePrice: z.coerce.number().min(0, "Sale price must be positive."),
+  salePrice: z.coerce.number().min(0, "Sale price must be a non-negative number."),
   totalAmount: z.coerce.number(),
 });
 
 export type Voucher = z.infer<typeof voucherSchema> & { id: string }
-export type Process = z.infer<typeof processSchema>;
+export type Process = z.infer<typeof processSchema> & { id: string };
 export type Output = z.infer<typeof outputSchema> & { id: string };
 export type Sale = z.infer<typeof saleSchema> & { id: string };
 

@@ -123,6 +123,7 @@ export function EditOutputDialog({ isOpen, onOpenChange, output, onOutputUpdated
       ...values,
       quantityProduced: netAvailableQty,
       finalAveragePrice: finalAvgPrice,
+      id: output.id,
     }
     
     const result = await updateOutput(submissionData)

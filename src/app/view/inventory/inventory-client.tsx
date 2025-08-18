@@ -90,8 +90,8 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
                         </FormItem>
                     )}
                 />
-                <div className="flex justify-start gap-2">
-                    <Button type="button" variant="outline" onClick={handleClear} className="w-full">
+                <div className="flex justify-start">
+                    <Button type="button" variant="outline" onClick={handleClear} className="w-full md:w-auto">
                         Clear
                     </Button>
                 </div>

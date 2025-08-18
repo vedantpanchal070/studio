@@ -128,7 +128,10 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
         }
     }
     
-    allProcesses.push(validatedFields.data);
+    allProcesses.push({
+      ...validatedFields.data,
+      id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+    });
     await writeProcesses(allProcesses);
 
 
@@ -308,9 +311,6 @@ export async function recordSale(values: z.infer<typeof saleSchema>) {
 export async function getVouchers(filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<any[]> {
     let vouchers = await readVouchers();
     
-    // Filter out finished goods
-    vouchers = vouchers.filter(v => !v.code.startsWith('FG-'));
-
     if (filters.name) {
         vouchers = vouchers.filter(v => v.name === filters.name);
     }
@@ -528,9 +528,8 @@ export interface FinishedGoodInventoryItem {
 
 export async function getFinishedGoodsInventory(filters?: { name?: string }): Promise<FinishedGoodInventoryItem[]> {
   const vouchers = await readVouchers();
-  const finishedGoodVouchers = vouchers.filter(v => v.code.startsWith('FG-'));
   
-  let productNames = Array.from(new Set(finishedGoodVouchers.map(v => v.name)));
+  let productNames = Array.from(new Set(vouchers.filter(v => v.code.startsWith('FG-')).map(v => v.name)));
   
   // Apply the name filter if provided
   if (filters?.name) {
@@ -612,9 +611,7 @@ export async function updateProcess(originalProcess: Process, newValues: z.infer
 
     try {
         let allProcesses = await readProcesses();
-        const processIndex = allProcesses.findIndex(p => 
-            p.processName === originalProcess.processName && new Date(p.date).getTime() === new Date(originalProcess.date).getTime()
-        );
+        const processIndex = allProcesses.findIndex(p => p.id === originalProcess.id);
         
         if (processIndex === -1) {
             return { success: false, message: "Original process not found." };
@@ -662,7 +659,7 @@ export async function deleteProcess(processToDelete: Process) {
     let vouchers = await readVouchers();
 
     // 1. Remove the process record
-    processes = processes.filter(p => !(p.processName === processToDelete.processName && new Date(p.date).getTime() === new Date(processToDelete.date).getTime()));
+    processes = processes.filter(p => p.id !== processToDelete.id);
     
     // 2. Find and remove the corresponding consumption vouchers
     vouchers = vouchers.filter(v => {
@@ -805,7 +802,7 @@ export async function updateOutput(values: z.infer<typeof outputSchema>) {
             finalAveragePrice: finalAveragePrice,
         };
 
-        allOutputs[outputIndex] = { ...originalOutput, ...finalUpdatedData };
+        allOutputs[outputIndex] = { ...originalOutput, ...finalUpdatedData, id: originalOutput.id };
 
         // Find and update the associated inventory vouchers
         // Production Voucher
@@ -892,7 +889,7 @@ export async function updateSale(values: z.infer<typeof saleSchema>) {
         }
         
         // Update Sale Record
-        allSales[saleIndex] = { ...originalSale, ...updatedData };
+        allSales[saleIndex] = { ...originalSale, ...updatedData, id: originalSale.id };
         
         // Update Voucher Record
         const inventoryDetails = await getInventoryItem(updatedData.productName);

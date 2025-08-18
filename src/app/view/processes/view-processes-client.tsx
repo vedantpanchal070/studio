@@ -255,8 +255,8 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
                             Loading...
                         </TableCell>
                     </TableRow>
-                  ) : processes.length > 0 ? processes.map((process, pIndex) => (
-                      <ProcessEntry key={pIndex} process={process} onDelete={handleDelete} onEdit={handleEdit} />
+                  ) : processes.length > 0 ? processes.map((process) => (
+                      <ProcessEntry key={process.id} process={process} onDelete={handleDelete} onEdit={handleEdit} />
                   )) : (
                     <TableRow>
                         <TableCell colSpan={5} className="h-24 text-center">

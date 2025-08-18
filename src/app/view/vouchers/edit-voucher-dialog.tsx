@@ -56,7 +56,10 @@ export function EditVoucherDialog({ isOpen, onOpenChange, voucher, onVoucherUpda
   const pricePerNo = form.watch("pricePerNo")
 
   useEffect(() => {
-    form.reset(voucher) // Reset form when a new voucher is selected
+    form.reset({
+      ...voucher,
+      date: new Date(voucher.date),
+    }) // Reset form when a new voucher is selected
   }, [voucher, form])
 
   useEffect(() => {

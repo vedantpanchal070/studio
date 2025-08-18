@@ -56,7 +56,10 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
   })
 
   useEffect(() => {
-    form.reset(process) 
+    form.reset({
+        ...process,
+        date: new Date(process.date)
+    }) 
   }, [process, form])
 
 

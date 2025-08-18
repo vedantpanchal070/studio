@@ -126,7 +126,18 @@ export function CreateOutputForm() {
         title: "Success!",
         description: result.message,
       })
-      form.reset()
+      form.reset({
+        date: new Date(),
+        productName: "",
+        processUsed: "",
+        scrape: 0,
+        scrapeUnit: "kg",
+        reduction: 0,
+        processCharge: 0,
+        notes: "",
+        quantityProduced: 0,
+        finalAveragePrice: 0,
+      })
       setSelectedProcess(null)
     } else {
       toast({
@@ -161,7 +172,7 @@ export function CreateOutputForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Process Name</FormLabel>
-                <Select onValueChange={handleProcessChange} defaultValue={field.value}>
+                <Select onValueChange={handleProcessChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger ref={processSelectRef}>
                       <SelectValue placeholder="Select a process" />
