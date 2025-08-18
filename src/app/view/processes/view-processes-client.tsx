@@ -5,12 +5,11 @@ import React, { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Search, Trash2, ChevronDown } from "lucide-react"
+import { Search, Trash2 } from "lucide-react"
 import { format } from 'date-fns'
 
 import type { Process } from "@/lib/schemas"
 import { getProcesses, deleteProcess } from "@/lib/actions"
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/date-picker"
 import {
@@ -20,6 +19,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableFooter,
 } from "@/components/ui/table"
 import {
   Form,
@@ -35,8 +35,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,82 +60,6 @@ interface ViewProcessesClientProps {
   initialData: Process[];
   processNames: string[];
 }
-
-const ProcessEntry = ({ process, onDelete }: { process: Process; onDelete: (process: Process) => void }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    const totalIngredientCost = process.rawMaterials.reduce((sum, mat) => sum + (mat.rate ?? 0) * mat.quantity, 0);
-    const costPerUnit = process.totalProcessOutput > 0 ? totalIngredientCost / process.totalProcessOutput : 0;
-    const totalIngredientQty = process.rawMaterials.reduce((sum, mat) => sum + mat.quantity, 0);
-
-    return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between p-4">
-                <div className="flex items-center gap-4">
-                     <Button variant="ghost" size="icon" onClick={() => setIsExpanded(!isExpanded)}>
-                        <ChevronDown className={cn("h-5 w-5 transition-transform", isExpanded && "rotate-180")} />
-                    </Button>
-                    <Badge variant="outline">{format(new Date(process.date), 'yyyy-MM-dd')}</Badge>
-                    <span className="font-semibold text-primary">{process.processName}</span>
-                </div>
-                <div className="flex items-center gap-6">
-                    <div className="text-right">
-                        <p className="text-sm">Cost/Unit: <span className="font-semibold">{costPerUnit.toFixed(2)}</span></p>
-                        <p className="text-xs text-muted-foreground">Total Qty: {totalIngredientQty.toFixed(2)} {process.outputUnit}</p>
-                    </div>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This will delete the process and add all consumed raw materials back to your inventory. This action cannot be undone.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => onDelete(process)}>Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </div>
-            </CardHeader>
-            {isExpanded && (
-                <CardContent className="px-4 pb-4">
-                    <div className="p-4 bg-muted/50 rounded-md">
-                        <h4 className="font-semibold mb-2">Recipe Details:</h4>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Ingredient</TableHead>
-                                    <TableHead>Qty Used</TableHead>
-                                    <TableHead>Rate</TableHead>
-                                    <TableHead>Amount</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {process.rawMaterials.map((mat, matIndex) => (
-                                    <TableRow key={matIndex}>
-                                        <TableCell>{mat.name}</TableCell>
-                                        <TableCell>{mat.quantity.toFixed(2)} {mat.quantityType}</TableCell>
-                                        <TableCell>{(mat.rate ?? 0).toFixed(2)}</TableCell>
-                                        <TableCell>{((mat.rate ?? 0) * mat.quantity).toFixed(2)}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                        {process.notes && <p className="text-sm text-muted-foreground mt-4">Notes: {process.notes}</p>}
-                    </div>
-                </CardContent>
-            )}
-        </Card>
-    );
-};
-
 
 export function ViewProcessesClient({ initialData, processNames }: ViewProcessesClientProps) {
   const { toast } = useToast()
@@ -173,7 +95,6 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
       toast({ title: "Error", description: result.message, variant: "destructive" });
     }
   };
-
 
   return (
     <div className="space-y-6">
@@ -241,14 +162,81 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
         </form>
       </Form>
 
-      <div className="space-y-4">
-        {processes.length > 0 ? processes.map((process, index) => (
-            <ProcessEntry key={index} process={process} onDelete={handleDelete} />
-        )) : (
-          <div className="text-center py-10 text-muted-foreground">
-            No process history found for the selected criteria.
-          </div>
-        )}
+      <div className="rounded-md border">
+        <div className="h-96 overflow-auto">
+            <Table>
+                <TableHeader className="sticky top-0 bg-background z-10">
+                    <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Process Name</TableHead>
+                        <TableHead>Ingredient</TableHead>
+                        <TableHead>Qty Used</TableHead>
+                        <TableHead>Rate</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Notes</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {processes.length > 0 ? processes.map((process, pIndex) => {
+                      const totalAmount = process.rawMaterials.reduce((sum, mat) => sum + ((mat.rate ?? 0) * mat.quantity), 0);
+                      const costPerUnit = process.totalProcessOutput > 0 ? totalAmount / process.totalProcessOutput : 0;
+                      
+                      return (
+                        <React.Fragment key={pIndex}>
+                          {process.rawMaterials.map((material, mIndex) => (
+                            <TableRow key={`${pIndex}-${mIndex}`}>
+                              <TableCell>{format(new Date(process.date), 'yyyy-MM-dd')}</TableCell>
+                              <TableCell>{process.processName}</TableCell>
+                              <TableCell>{material.name}</TableCell>
+                              <TableCell>{material.quantity.toFixed(2)} {material.quantityType}</TableCell>
+                              <TableCell>{(material.rate ?? 0).toFixed(2)}</TableCell>
+                              <TableCell>{((material.rate ?? 0) * material.quantity).toFixed(2)}</TableCell>
+                              {mIndex === 0 && <TableCell rowSpan={process.rawMaterials.length}>{process.notes}</TableCell>}
+                              {mIndex === 0 && 
+                                <TableCell rowSpan={process.rawMaterials.length} className="text-right align-middle">
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon">
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This will delete the process and add all consumed raw materials back to your inventory. This action cannot be undone.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDelete(process)}>Delete</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </TableCell>
+                              }
+                            </TableRow>
+                          ))}
+                          <TableRow className="bg-muted/50 font-semibold">
+                            <TableCell colSpan={3}>Total</TableCell>
+                            <TableCell>{process.rawMaterials.reduce((s, m) => s + m.quantity, 0).toFixed(2)}</TableCell>
+                            <TableCell>{costPerUnit.toFixed(2)}</TableCell>
+                            <TableCell>{totalAmount.toFixed(2)}</TableCell>
+                            <TableCell colSpan={2}></TableCell>
+                          </TableRow>
+                        </React.Fragment>
+                      )
+                  }) : (
+                    <TableRow>
+                        <TableCell colSpan={8} className="h-24 text-center">
+                            No process history found for the selected criteria.
+                        </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+            </Table>
+        </div>
       </div>
     </div>
   )
