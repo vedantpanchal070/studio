@@ -9,6 +9,10 @@ import path from "path"
 
 const DATA_DIR = path.join(process.cwd(), "data")
 const VOUCHERS_FILE = path.join(DATA_DIR, "vouchers.json")
+// Assuming processes and outputs are stored similarly. Create new files for them.
+const PROCESSES_FILE = path.join(DATA_DIR, "processes.json")
+const OUTPUTS_FILE = path.join(DATA_DIR, "outputs.json")
+
 
 // Ensure data directory exists
 async function ensureDataDir() {
@@ -19,31 +23,44 @@ async function ensureDataDir() {
   }
 }
 
-async function readVouchers(): Promise<any[]> {
+async function readJsonFile(filePath: string): Promise<any[]> {
     try {
         await ensureDataDir();
-        const fileContent = await fs.readFile(VOUCHERS_FILE, "utf-8");
-        const vouchers = JSON.parse(fileContent);
-        // Ensure date fields are Date objects
-        return vouchers.map((v: any) => ({ ...v, date: new Date(v.date) }));
+        const fileContent = await fs.readFile(filePath, "utf-8");
+        const data = JSON.parse(fileContent);
+        // Ensure date fields are Date objects if they exist
+        return data.map((item: any) => item.date ? { ...item, date: new Date(item.date) } : item);
     } catch (error: any) {
         if (error.code === 'ENOENT') {
-            await writeVouchers([]);
-            return []; // File doesn't exist, create it and return empty array
+            await writeJsonFile(filePath, []); // File doesn't exist, create it.
+            return [];
         }
-        console.error("Failed to read vouchers from file:", error);
+        console.error(`Failed to read from ${path.basename(filePath)}:`, error);
         return [];
     }
 }
 
-async function writeVouchers(vouchers: any[]) {
+async function writeJsonFile(filePath: string, data: any[]) {
     try {
         await ensureDataDir();
-        await fs.writeFile(VOUCHERS_FILE, JSON.stringify(vouchers, null, 2));
+        await fs.writeFile(filePath, JSON.stringify(data, null, 2));
     } catch (error) {
-        console.error("Failed to write vouchers to file:", error);
+        console.error(`Failed to write to ${path.basename(filePath)}:`, error);
     }
 }
+
+
+// Vouchers
+const readVouchers = () => readJsonFile(VOUCHERS_FILE);
+const writeVouchers = (data: any[]) => writeJsonFile(VOUCHERS_FILE, data);
+
+// Processes
+const readProcesses = () => readJsonFile(PROCESSES_FILE);
+const writeProcesses = (data: any[]) => writeJsonFile(PROCESSES_FILE, data);
+
+// Outputs
+const readOutputs = () => readJsonFile(OUTPUTS_FILE);
+const writeOutputs = (data: any[]) => writeJsonFile(OUTPUTS_FILE, data);
 
 
 export async function createVoucher(values: z.infer<typeof voucherSchema>) {
@@ -93,6 +110,7 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
 
   try {
     const allVouchers = await readVouchers();
+    const allProcesses = await readProcesses();
 
     // Check for sufficient stock before proceeding
     for (const material of rawMaterials) {
@@ -104,6 +122,9 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
             };
         }
     }
+    
+    allProcesses.push(validatedFields.data);
+    await writeProcesses(allProcesses);
 
 
     for (const material of rawMaterials) {
@@ -126,6 +147,7 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
 
     revalidatePath("/view/vouchers");
     revalidatePath("/create/process");
+    revalidatePath("/create/output");
 
     return { success: true, message: "Process saved successfully, inventory updated." };
   } catch (error) {
@@ -138,8 +160,79 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
 }
 
 export async function createOutput(values: z.infer<typeof outputSchema>) {
-  console.log("createOutput: Received values (File storage not implemented):", values)
-  return { success: true, message: "Output creation is not implemented for file storage." }
+  const validatedFields = outputSchema.safeParse(values)
+
+  if (!validatedFields.success) {
+    return {
+      success: false,
+      message: "Invalid data. Please check the form and try again.",
+    }
+  }
+
+  try {
+    const { date, productName, quantityProduced, processCharge, scrape, scrapeUnit, notes } = validatedFields.data;
+    const allOutputs = await readOutputs();
+    const allVouchers = await readVouchers();
+
+    // 1. Save the main output record
+    const newOutput = {
+      ...validatedFields.data,
+      id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+    };
+    allOutputs.push(newOutput);
+    await writeOutputs(allOutputs);
+    
+    // 2. Add the finished good to inventory (vouchers)
+    const finishedGoodVoucher = {
+        id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+        date,
+        name: productName,
+        code: "FG-" + productName, // Simple finished good code
+        quantities: quantityProduced,
+        quantityType: "KG", // Assuming KG for now, can be made dynamic
+        pricePerNo: validatedFields.data.finalAveragePrice,
+        totalPrice: quantityProduced * validatedFields.data.finalAveragePrice,
+        remarks: `PRODUCED FROM ${validatedFields.data.processUsed}`,
+    };
+    allVouchers.push(finishedGoodVoucher);
+
+
+    // 3. Add scrape back to inventory if applicable
+    let scrapeQty = 0;
+    if (scrape && scrape > 0) {
+        const processDetails = await getProcessDetails(validatedFields.data.processUsed);
+        if (scrapeUnit === '%') {
+            scrapeQty = (processDetails?.totalProcessOutput || 0) * (scrape / 100);
+        } else {
+            scrapeQty = scrape;
+        }
+
+        if (scrapeQty > 0) {
+            const scrapeVoucher = {
+                id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+                date,
+                name: `${productName} - SCRAPE`,
+                code: `SCRAPE-${productName}`,
+                quantities: scrapeQty,
+                quantityType: 'KG',
+                pricePerNo: 0, // Scrape has no value until re-processed
+                totalPrice: 0,
+                remarks: `SCRAPE FROM ${validatedFields.data.processUsed}`,
+            };
+            allVouchers.push(scrapeVoucher);
+        }
+    }
+    
+    await writeVouchers(allVouchers);
+
+    revalidatePath("/view/vouchers");
+    revalidatePath("/view/outputs");
+
+    return { success: true, message: "Output and scrape saved to inventory." };
+  } catch (error) {
+    console.error("Failed to save output:", error);
+    return { success: false, message: "Failed to save output." };
+  }
 }
 
 export async function getVouchers(filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<any[]> {
@@ -199,9 +292,34 @@ export async function getInventoryItem(name: string) {
     };
 }
 
-
 export async function getVoucherItemNames(): Promise<string[]> {
     const vouchers = await readVouchers();
-    const names = new Set(vouchers.map(v => v.name));
+    // Only include raw materials (positive quantities initially)
+    const purchaseVouchers = vouchers.filter(v => v.quantities > 0 && !v.remarks?.includes("PRODUCED FROM"));
+    const names = new Set(purchaseVouchers.map(v => v.name));
     return Array.from(names).sort();
+}
+
+// New type for process details
+export interface ProcessDetails {
+  processName: string;
+  totalProcessOutput: number;
+  totalCost: number;
+}
+
+export async function getProcessNamesAndDetails(): Promise<ProcessDetails[]> {
+  const processes = await readProcesses();
+  return processes.map(p => {
+    const totalCost = p.rawMaterials.reduce((sum: number, mat: any) => sum + (mat.rate * mat.quantity), 0);
+    return {
+      processName: p.processName,
+      totalProcessOutput: p.totalProcessOutput,
+      totalCost,
+    };
+  });
+}
+
+async function getProcessDetails(name: string): Promise<ProcessDetails | null> {
+    const processes = await getProcessNamesAndDetails();
+    return processes.find(p => p.processName === name) || null;
 }

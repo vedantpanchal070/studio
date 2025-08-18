@@ -41,8 +41,13 @@ export const outputSchema = z.object({
     required_error: "A date is required.",
   }),
   productName: z.string().min(1, "Product name is required."),
-  quantityProduced: z.coerce.number().gt(0, "Quantity must be a positive number."),
   processUsed: z.string().min(1, "The process used is required."),
+  scrape: z.coerce.number().min(0, "Scrape must be a positive number.").optional(),
+  scrapeUnit: z.enum(["kg", "%"]).optional(),
+  reduction: z.coerce.number().min(0, "Reduction must be a positive number.").optional(),
+  processCharge: z.coerce.number().min(0, "Process charge must be a positive number.").optional(),
+  quantityProduced: z.coerce.number(),
+  finalAveragePrice: z.coerce.number(),
   notes: z.string().optional(),
 })
 

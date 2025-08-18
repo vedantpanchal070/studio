@@ -1,11 +1,13 @@
 "use client"
 
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import type { z } from "zod"
+import { useEffect, useState } from "react"
 
 import { outputSchema } from "@/lib/schemas"
-import { createOutput } from "@/lib/actions"
+import { createOutput, getProcessNamesAndDetails } from "@/lib/actions"
+import type { ProcessDetails } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,24 +21,96 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { DatePicker } from "@/components/date-picker"
-import { UppercaseInput } from "@/components/ui/uppercase-input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 type OutputFormValues = z.infer<typeof outputSchema>
 
 export function CreateOutputForm() {
   const { toast } = useToast()
+  const [processes, setProcesses] = useState<ProcessDetails[]>([])
+  const [selectedProcess, setSelectedProcess] = useState<ProcessDetails | null>(null)
+  
+  const [finalAvgPrice, setFinalAvgPrice] = useState(0)
+  const [netAvailableQty, setNetAvailableQty] = useState(0)
+
+  useEffect(() => {
+    const fetchProcesses = async () => {
+      const processData = await getProcessNamesAndDetails()
+      setProcesses(processData)
+    }
+    fetchProcesses()
+  }, [])
+  
   const form = useForm<OutputFormValues>({
     resolver: zodResolver(outputSchema),
     defaultValues: {
       date: new Date(),
       productName: "",
-      quantityProduced: 0,
       processUsed: "",
+      scrape: 0,
+      scrapeUnit: "kg",
+      reduction: 0,
+      processCharge: 0,
       notes: "",
     },
   })
 
+  const watchedValues = useWatch({ control: form.control });
+
+  useEffect(() => {
+    if (!selectedProcess) {
+      setFinalAvgPrice(0)
+      setNetAvailableQty(0)
+      return
+    }
+
+    const { totalProcessOutput, totalCost } = selectedProcess
+    const { scrape = 0, scrapeUnit = 'kg', reduction = 0, processCharge = 0 } = watchedValues
+
+    let scrapeQty = 0
+    if (scrapeUnit === '%') {
+      scrapeQty = totalProcessOutput * (scrape / 100)
+    } else {
+      scrapeQty = scrape
+    }
+
+    const currentNetQty = totalProcessOutput - scrapeQty - (reduction || 0)
+    setNetAvailableQty(currentNetQty)
+
+    if (currentNetQty > 0) {
+      const avgPrice = (totalCost / currentNetQty) + (processCharge || 0)
+      setFinalAvgPrice(avgPrice)
+    } else {
+      setFinalAvgPrice(0)
+    }
+    
+    // Set these values on the form for submission
+    form.setValue("finalAveragePrice", finalAvgPrice, { shouldValidate: true })
+    form.setValue("quantityProduced", currentNetQty, { shouldValidate: true })
+
+  }, [watchedValues, selectedProcess, finalAvgPrice, form])
+
+
+  const handleProcessChange = (processName: string) => {
+    const process = processes.find(p => p.processName === processName)
+    setSelectedProcess(process || null)
+    if(process) {
+      form.setValue("processUsed", process.processName)
+      form.setValue("productName", process.processName)
+    }
+  }
+
   const onSubmit = async (values: OutputFormValues) => {
+    if (!selectedProcess) {
+      toast({
+        title: "Error",
+        description: "Please select a process.",
+        variant: "destructive",
+      })
+      return
+    }
+    
     const result = await createOutput(values)
     if (result.success) {
       toast({
@@ -44,6 +118,7 @@ export function CreateOutputForm() {
         description: result.message,
       })
       form.reset()
+      setSelectedProcess(null)
     } else {
       toast({
         title: "Error",
@@ -69,47 +144,108 @@ export function CreateOutputForm() {
             </FormItem>
           )}
         />
+        
         <FormField
           control={form.control}
-          name="productName"
+          name="processUsed"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Product Name</FormLabel>
+              <FormLabel>Process Name</FormLabel>
+              <Select onValueChange={handleProcessChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a process" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {processes.map(p => (
+                    <SelectItem key={p.processName} value={p.processName}>
+                      {p.processName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="flex items-end gap-2">
+                <FormField
+                    control={form.control}
+                    name="scrape"
+                    render={({ field }) => (
+                    <FormItem className="flex-grow">
+                        <FormLabel>Scrape</FormLabel>
+                        <FormControl>
+                        <Input type="number" {...field} />
+                        </FormControl>
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="scrapeUnit"
+                    render={({ field }) => (
+                    <FormItem>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger className="w-[80px]">
+                                <SelectValue />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="kg">kg</SelectItem>
+                                <SelectItem value="%">%</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </FormItem>
+                    )}
+                />
+            </div>
+            <FormField
+                control={form.control}
+                name="reduction"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Reduction (optional)</FormLabel>
+                    <FormControl>
+                    <Input type="number" {...field} />
+                    </FormControl>
+                </FormItem>
+                )}
+            />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="processCharge"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Process Charge (per kg)</FormLabel>
               <FormControl>
-                <UppercaseInput {...field} />
+                <Input type="number" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="quantityProduced"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Quantity Produced</FormLabel>
-                <FormControl>
-                  <Input type="number" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="processUsed"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Process Used</FormLabel>
-                <FormControl>
-                  <UppercaseInput {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+
+        <Card>
+            <CardContent className="p-4 grid grid-cols-2 gap-4 text-center">
+                <div>
+                    <p className="text-sm text-muted-foreground">Final Average Price</p>
+                    <p className="text-2xl font-bold">{finalAvgPrice.toFixed(2)}</p>
+                </div>
+                <div>
+                    <p className="text-sm text-muted-foreground">Net Available Qty</p>
+                    <p className="text-2xl font-bold">{netAvailableQty.toFixed(2)}</p>
+                </div>
+            </CardContent>
+        </Card>
+
+
         <FormField
           control={form.control}
           name="notes"
@@ -123,9 +259,12 @@ export function CreateOutputForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? "Saving..." : "Save Output"}
-        </Button>
+        <div className="flex gap-4">
+            <Button type="submit" disabled={form.formState.isSubmitting || !selectedProcess}>
+            {form.formState.isSubmitting ? "Saving..." : "Save Output"}
+            </Button>
+            <Button type="button" variant="secondary" disabled>Sell Finished Product</Button>
+        </div>
       </form>
     </Form>
   )
