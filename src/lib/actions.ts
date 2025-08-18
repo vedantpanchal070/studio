@@ -52,7 +52,7 @@ async function readJsonFile(filePath: string): Promise<any[]> {
 }
 
 
-async function writeJsonFile(filePath: string, data: any[]) {
+async function writeJsonFile(filePath: string, data: any) {
     try {
         await ensureDataDir();
         await fs.writeFile(filePath, JSON.stringify(data, null, 2));
@@ -933,6 +933,7 @@ export async function updateSale(values: z.infer<typeof saleSchema>) {
 
 async function readSettings(): Promise<{ passwordHash: string; passwordSalt: string }> {
     try {
+        await ensureDataDir();
         const fileContent = await fs.readFile(SETTINGS_FILE, "utf-8");
         return JSON.parse(fileContent);
     } catch (error) {
@@ -975,3 +976,5 @@ export async function changePassword(currentPassword: string, newPassword: strin
         return { success: false, message: "Failed to update password." };
     }
 }
+
+    
