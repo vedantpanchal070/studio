@@ -518,7 +518,7 @@ export interface FinishedGoodInventoryItem {
   quantityType: string;
 }
 
-export async function getFinishedGoodsInventory(filters?: { name?: string, startDate?: Date, endDate?: Date }): Promise<FinishedGoodInventoryItem[]> {
+export async function getFinishedGoodsInventory(filters?: { name?: string }): Promise<FinishedGoodInventoryItem[]> {
   const vouchers = await readVouchers();
   const finishedGoodVouchers = vouchers.filter(v => v.code.startsWith('FG-'));
   
@@ -532,7 +532,7 @@ export async function getFinishedGoodsInventory(filters?: { name?: string, start
   const inventory: FinishedGoodInventoryItem[] = [];
 
   for (const name of productNames) {
-    const itemDetails = await getInventoryItem(name, { startDate: filters?.startDate, endDate: filters?.endDate });
+    const itemDetails = await getInventoryItem(name);
     if (itemDetails.availableStock > 0) {
       inventory.push({
         name: name,
