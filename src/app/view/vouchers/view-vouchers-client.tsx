@@ -1,6 +1,7 @@
+
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -57,21 +58,40 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
   const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchSchema),
   })
+  
+  // This effect will try to refresh data when the component is loaded on the client side,
+  // which might help if the server-rendered `initialData` is stale.
+  useEffect(() => {
+    const refreshData = async () => {
+        setIsLoading(true)
+        const results = await getVouchers(form.getValues())
+        setVouchers(results)
+        setIsLoading(false)
+    };
+    refreshData();
+  }, []) // Runs once on component mount
 
-  // Mock item names - in a real app, this would be fetched from the DB
   const itemNames = useMemo(() => {
-    const names = new Set(initialData.map(v => v.name));
+    // We combine names from initialData and the current state to have a complete list
+    const names = new Set(initialData.map(v => v.name).concat(vouchers.map(v => v.name)));
     return Array.from(names);
-  }, [initialData]);
+  }, [initialData, vouchers]);
 
   const sortedVouchers = useMemo(() => {
     let sortableItems = [...vouchers]
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+
+        if (aValue instanceof Date && bValue instanceof Date) {
+            return aValue.getTime() - bValue.getTime() * (sortConfig.direction === "asc" ? 1 : -1);
+        }
+
+        if (aValue < bValue) {
           return sortConfig.direction === "asc" ? -1 : 1
         }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
+        if (aValue > bValue) {
           return sortConfig.direction === "asc" ? 1 : -1
         }
         return 0
@@ -99,9 +119,12 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
     setIsLoading(false)
   }
 
-  const handleClear = () => {
+  const handleClear = async () => {
     form.reset({ name: "", startDate: undefined, endDate: undefined })
-    setVouchers(initialData)
+    setIsLoading(true);
+    const results = await getVouchers({});
+    setVouchers(results);
+    setIsLoading(false);
     setSortConfig(null)
   }
 
@@ -142,7 +165,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Voucher Name</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select an item" />
@@ -197,7 +220,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
       <div className="rounded-md border">
         <div className="h-96 overflow-auto">
             <Table>
-            <TableHeader className="sticky top-0 bg-background">
+            <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
                 <TableHead onClick={() => requestSort("date")}>
                     <div className="flex items-center cursor-pointer">
@@ -237,13 +260,13 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {sortedVouchers.map((voucher) => (
+                {sortedVouchers.length > 0 ? sortedVouchers.map((voucher) => (
                 <TableRow
                     key={voucher.id}
                     className={cn(
                     voucher.quantities > 0
-                        ? "bg-green-100/50 hover:bg-green-100/80"
-                        : "bg-red-100/50 hover:bg-red-100/80"
+                        ? "bg-green-100/50 hover:bg-green-100/80 dark:bg-green-900/50 dark:hover:bg-green-900/80"
+                        : "bg-red-100/50 hover:bg-red-100/80 dark:bg-red-900/50 dark:hover:bg-red-900/80"
                     )}
                 >
                     <TableCell>
@@ -256,7 +279,13 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
                     <TableCell>{voucher.pricePerNo.toFixed(2)}</TableCell>
                     <TableCell>{voucher.totalPrice.toFixed(2)}</TableCell>
                 </TableRow>
-                ))}
+                )) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center">
+                      No results found.
+                    </TableCell>
+                  </TableRow>
+                )}
             </TableBody>
             </Table>
         </div>

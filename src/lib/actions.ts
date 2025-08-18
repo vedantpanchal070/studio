@@ -115,6 +115,7 @@ export async function getVouchers(
   filters: { name?: string; startDate?: Date; endDate?: Date }
 ): Promise<Voucher[]> {
   console.log("Fetching vouchers with filters:", filters)
+  console.log("Current mockVouchers length:", mockVouchers.length);
   await new Promise(resolve => setTimeout(resolve, 500)) // Simulate network delay
 
   let filteredVouchers = mockVouchers
