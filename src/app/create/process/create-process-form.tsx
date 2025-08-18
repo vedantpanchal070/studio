@@ -89,21 +89,28 @@ export function CreateProcessForm() {
     fetchAllMaterialsData();
   }, [rawMaterials, materialsData]);
   
+  // Moved the calculation logic into a separate top-level useEffect hook
+  // to avoid calling hooks inside a loop.
+  useEffect(() => {
+    rawMaterials.forEach((material, index) => {
+        const output = (material.ratio ?? 0) * (totalProcessOutput ?? 0) / 100;
+        // Only set value if it has changed to avoid infinite loops
+        if (form.getValues(`rawMaterials.${index}.quantity`) !== output) {
+            form.setValue(`rawMaterials.${index}.quantity`, output, { shouldValidate: true });
+        }
+    });
+  }, [rawMaterials, totalProcessOutput, form]);
+  
   const calculatedMaterials = fields.map((field, index) => {
     const material = rawMaterials[index] || {};
-    const output = (material.ratio ?? 0) * (totalProcessOutput ?? 0) / 100;
     const data = material.name ? materialsData[material.name] : { availableStock: 0, rate: 0 };
-    
-    useEffect(() => {
-        form.setValue(`rawMaterials.${index}.quantity`, output, { shouldValidate: true });
-    }, [output, index, form]);
-
-    const amount = output * (data?.rate || 0);
-    const stockIsInsufficient = output > (data?.availableStock || 0);
+    const quantity = material.quantity ?? 0;
+    const amount = quantity * (data?.rate || 0);
+    const stockIsInsufficient = quantity > (data?.availableStock || 0);
 
     return { 
         ...material, 
-        output, 
+        output: quantity,
         availableStock: data?.availableStock || 0,
         rate: data?.rate || 0,
         amount, 
@@ -183,7 +190,7 @@ export function CreateProcessForm() {
                 <FormItem>
                     <FormLabel>Total Process Output</FormLabel>
                     <FormControl>
-                    <Input type="number" {...field} />
+                    <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />
                     </FormControl>
                     <FormMessage />
                 </FormItem>
@@ -224,7 +231,7 @@ export function CreateProcessForm() {
                 </TableHeader>
                 <TableBody>
                   {fields.map((field, index) => {
-                    const material = calculatedMaterials[index] || { availableStock: 0, ratio: 0, output: 0, rate: 0, amount: 0, stockIsInsufficient: false };
+                    const material = calculatedMaterials[index];
                     return (
                     <TableRow key={field.id}>
                       <TableCell>
@@ -235,8 +242,8 @@ export function CreateProcessForm() {
                         />
                       </TableCell>
                       <TableCell>
-                         <span className={material.stockIsInsufficient ? "text-destructive" : ""}>
-                            {material.availableStock.toFixed(2)}
+                         <span className={material?.stockIsInsufficient ? "text-destructive" : ""}>
+                            {material?.availableStock?.toFixed(2) || '0.00'}
                          </span>
                       </TableCell>
                       <TableCell>
@@ -246,9 +253,9 @@ export function CreateProcessForm() {
                             render={({ field }) => <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />}
                         />
                       </TableCell>
-                      <TableCell>{material.output.toFixed(2)}</TableCell>
-                      <TableCell>{material.rate.toFixed(2)}</TableCell>
-                      <TableCell>{material.amount.toFixed(2)}</TableCell>
+                      <TableCell>{material?.output?.toFixed(2) || '0.00'}</TableCell>
+                      <TableCell>{material?.rate?.toFixed(2) || '0.00'}</TableCell>
+                      <TableCell>{material?.amount?.toFixed(2) || '0.00'}</TableCell>
                       <TableCell>
                         <Button
                           type="button"
@@ -307,3 +314,5 @@ export function CreateProcessForm() {
     </Form>
   )
 }
+
+    
