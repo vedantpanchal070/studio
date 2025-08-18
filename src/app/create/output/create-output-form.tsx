@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useForm, useWatch } from "react-hook-form"
@@ -78,18 +79,19 @@ export function CreateOutputForm() {
     const currentNetQty = totalProcessOutput - scrapeQty - (reduction || 0)
     setNetAvailableQty(currentNetQty)
 
+    let avgPrice = 0
     if (currentNetQty > 0) {
-      const avgPrice = (totalCost / currentNetQty) + (processCharge || 0)
+      avgPrice = (totalCost / currentNetQty) + (processCharge || 0)
       setFinalAvgPrice(avgPrice)
     } else {
       setFinalAvgPrice(0)
     }
     
     // Set these values on the form for submission
-    form.setValue("finalAveragePrice", finalAvgPrice, { shouldValidate: true })
+    form.setValue("finalAveragePrice", avgPrice, { shouldValidate: true })
     form.setValue("quantityProduced", currentNetQty, { shouldValidate: true })
 
-  }, [watchedValues, selectedProcess, finalAvgPrice, form])
+  }, [watchedValues, selectedProcess, form])
 
 
   const handleProcessChange = (processName: string) => {
