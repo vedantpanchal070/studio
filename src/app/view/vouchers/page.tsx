@@ -30,7 +30,7 @@ export default async function ViewVouchersPage() {
           <CardHeader>
             <CardTitle className="text-2xl">View Vouchers</CardTitle>
             <CardDescription>
-              Search and view the transaction history for any raw material. (Database is disabled)
+              Search, view, edit, or delete the transaction history for any raw material.
             </CardDescription>
           </CardHeader>
           <CardContent>

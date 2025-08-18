@@ -2,7 +2,7 @@
 "use server"
 
 import { z } from "zod"
-import { voucherSchema, processSchema, outputSchema, saleSchema, type FinishedGood, type Output, type Sale } from "./schemas"
+import { voucherSchema, processSchema, outputSchema, saleSchema, type Process, type Voucher, type FinishedGood, type Output, type Sale } from "./schemas"
 import { revalidatePath } from "next/cache"
 import fs from "fs/promises"
 import path from "path"
@@ -51,11 +51,11 @@ async function writeJsonFile(filePath: string, data: any[]) {
 
 
 // Vouchers
-const readVouchers = () => readJsonFile(VOUCHERS_FILE);
+const readVouchers = (): Promise<Voucher[]> => readJsonFile(VOUCHERS_FILE);
 const writeVouchers = (data: any[]) => writeJsonFile(VOUCHERS_FILE, data);
 
 // Processes
-const readProcesses = () => readJsonFile(PROCESSES_FILE);
+const readProcesses = (): Promise<Process[]> => readJsonFile(PROCESSES_FILE);
 const writeProcesses = (data: any[]) => writeJsonFile(PROCESSES_FILE, data);
 
 // Outputs
@@ -489,4 +489,142 @@ export async function getOutputLedger(filters: { name?: string; startDate?: Date
     ledger.sort((a, b) => a.date.getTime() - b.date.getTime());
 
     return ledger;
+}
+
+// ============== DELETE / UPDATE ACTIONS ==============
+
+export async function deleteVoucher(voucherId: string) {
+  try {
+    let vouchers = await readVouchers();
+    vouchers = vouchers.filter(v => v.id !== voucherId);
+    await writeVouchers(vouchers);
+    revalidatePath("/view/vouchers");
+    return { success: true, message: "Voucher deleted successfully." };
+  } catch (error) {
+    console.error("Failed to delete voucher:", error);
+    return { success: false, message: "Failed to delete voucher." };
+  }
+}
+
+export async function updateVoucher(values: z.infer<typeof voucherSchema>) {
+    const validatedFields = voucherSchema.safeParse(values)
+
+    if (!validatedFields.success) {
+        return { success: false, message: "Invalid voucher data." }
+    }
+
+    try {
+        const { id, ...updatedVoucherData } = validatedFields.data;
+        let vouchers = await readVouchers();
+        const voucherIndex = vouchers.findIndex(v => v.id === id);
+
+        if (voucherIndex === -1) {
+            return { success: false, message: "Voucher not found." };
+        }
+
+        vouchers[voucherIndex] = { ...vouchers[voucherIndex], ...updatedVoucherData };
+        await writeVouchers(vouchers);
+
+        revalidatePath("/view/vouchers");
+        return { success: true, message: "Voucher updated successfully." };
+    } catch (error) {
+        console.error("Failed to update voucher:", error);
+        return { success: false, message: "Failed to update voucher." };
+    }
+}
+
+export async function deleteProcess(processToDelete: Process) {
+  try {
+    let processes = await readProcesses();
+    let vouchers = await readVouchers();
+
+    // 1. Remove the process record
+    processes = processes.filter(p => !(p.processName === processToDelete.processName && new Date(p.date).getTime() === new Date(processToDelete.date).getTime()));
+    
+    // 2. Find and remove the corresponding consumption vouchers
+    vouchers = vouchers.filter(v => {
+      const isConsumptionVoucher = v.remarks === `USED IN ${processToDelete.processName}` && new Date(v.date).getTime() === new Date(processToDelete.date).getTime();
+      return !isConsumptionVoucher;
+    });
+    
+    await writeProcesses(processes);
+    await writeVouchers(vouchers);
+
+    revalidatePath("/view/processes");
+    revalidatePath("/view/vouchers");
+    return { success: true, message: "Process deleted and raw materials returned to stock." };
+  } catch (error) {
+    console.error("Failed to delete process:", error);
+    return { success: false, message: "Failed to delete process." };
+  }
+}
+
+export async function deleteOutput(outputId: string) {
+    try {
+        let outputs = await readOutputs();
+        let vouchers = await readVouchers();
+        const outputToDelete = outputs.find(o => o.id === outputId);
+
+        if (!outputToDelete) {
+            return { success: false, message: "Output record not found." };
+        }
+
+        // 1. Remove the output record
+        outputs = outputs.filter(o => o.id !== outputId);
+
+        // 2. Find and remove the corresponding finished good and scrape vouchers
+        const productionVoucherRemark = `PRODUCED FROM ${outputToDelete.processUsed}`;
+        const scrapeVoucherRemark = `SCRAPE FROM ${outputToDelete.processUsed}`;
+        
+        vouchers = vouchers.filter(v => {
+            const isProductionVoucher = v.remarks === productionVoucherRemark && new Date(v.date).getTime() === new Date(outputToDelete.date).getTime();
+            const isScrapeVoucher = v.remarks === scrapeVoucherRemark && new Date(v.date).getTime() === new Date(outputToDelete.date).getTime();
+            return !isProductionVoucher && !isScrapeVoucher;
+        });
+
+        await writeOutputs(outputs);
+        await writeVouchers(vouchers);
+
+        revalidatePath("/view/outputs");
+        revalidatePath("/view/vouchers");
+        return { success: true, message: "Output deleted and inventory adjusted." };
+    } catch (error) {
+        console.error("Failed to delete output:", error);
+        return { success: false, message: "Failed to delete output." };
+    }
+}
+
+export async function deleteSale(saleId: string) {
+    try {
+        let sales = await readSales();
+        let vouchers = await readVouchers();
+        const saleToDelete = sales.find(s => s.id === saleId);
+
+        if (!saleToDelete) {
+            return { success: false, message: "Sale record not found." };
+        }
+
+        // 1. Remove the sale record
+        sales = sales.filter(s => s.id !== saleId);
+
+        // 2. Find and remove the corresponding negative inventory voucher
+        const saleVoucherRemark = `SOLD TO ${saleToDelete.clientCode}`;
+        vouchers = vouchers.filter(v => {
+            const isSaleVoucher = v.remarks === saleVoucherRemark && 
+                                  v.name === saleToDelete.productName && 
+                                  new Date(v.date).getTime() === new Date(saleToDelete.date).getTime() &&
+                                  v.quantities === -saleToDelete.saleQty;
+            return !isSaleVoucher;
+        });
+
+        await writeSales(sales);
+        await writeVouchers(vouchers);
+
+        revalidatePath("/view/outputs");
+        revalidatePath("/view/vouchers");
+        return { success: true, message: "Sale deleted and stock returned to inventory." };
+    } catch (error) {
+        console.error("Failed to delete sale:", error);
+        return { success: false, message: "Failed to delete sale." };
+    }
 }

@@ -1,15 +1,15 @@
 
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Search } from "lucide-react"
+import { Search, Trash2 } from "lucide-react"
 import { format } from 'date-fns'
 
 import type { Process } from "@/lib/schemas"
-import { getProcesses } from "@/lib/actions"
+import { getProcesses, deleteProcess } from "@/lib/actions"
 import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/date-picker"
 import {
@@ -41,6 +41,18 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast"
 
 const searchSchema = z.object({
   name: z.string().optional(),
@@ -56,6 +68,7 @@ interface ViewProcessesClientProps {
 }
 
 export function ViewProcessesClient({ initialData, processNames }: ViewProcessesClientProps) {
+  const { toast } = useToast()
   const [processes, setProcesses] = useState<Process[]>(initialData)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -63,20 +76,32 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
     resolver: zodResolver(searchSchema),
   })
 
-  const onSubmit = async (values: SearchFormValues) => {
+  const fetchProcesses = async (filters: SearchFormValues = {}) => {
     setIsLoading(true)
-    const results = await getProcesses(values)
+    const results = await getProcesses(filters)
     setProcesses(results)
     setIsLoading(false)
   }
 
-  const handleClear = async () => {
-    form.reset({ name: "", startDate: undefined, endDate: undefined })
-    setIsLoading(true);
-    const results = await getProcesses({});
-    setProcesses(results);
-    setIsLoading(false);
+  const onSubmit = (values: SearchFormValues) => {
+    fetchProcesses(values)
   }
+
+  const handleClear = () => {
+    form.reset({ name: "", startDate: undefined, endDate: undefined })
+    fetchProcesses()
+  }
+  
+  const handleDelete = async (process: Process) => {
+    const result = await deleteProcess(process);
+    if (result.success) {
+      toast({ title: "Success", description: result.message });
+      fetchProcesses(form.getValues());
+    } else {
+      toast({ title: "Error", description: result.message, variant: "destructive" });
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -158,10 +183,31 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
                      <Badge variant="outline">{format(new Date(process.date), 'yyyy-MM-dd')}</Badge>
                      <span className="font-semibold text-primary">{process.processName}</span>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm">Cost/Unit: <span className="font-semibold">{costPerUnit.toFixed(2)}</span></p>
-                    <p className="text-xs text-muted-foreground">Total Qty: {totalIngredientQty.toFixed(2)} {process.outputUnit}</p>
-                  </div>
+                   <div className="flex items-center gap-2">
+                    <div className="text-right">
+                        <p className="text-sm">Cost/Unit: <span className="font-semibold">{costPerUnit.toFixed(2)}</span></p>
+                        <p className="text-xs text-muted-foreground">Total Qty: {totalIngredientQty.toFixed(2)} {process.outputUnit}</p>
+                    </div>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                           <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                           </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                           <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will delete the process and add all consumed raw materials back to your inventory. This action cannot be undone.
+                              </AlertDialogDescription>
+                           </AlertDialogHeader>
+                           <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(process)}>Delete</AlertDialogAction>
+                           </AlertDialogFooter>
+                        </AlertDialogContent>
+                     </AlertDialog>
+                   </div>
                 </div>
               </AccordionTrigger>
               <AccordionContent>

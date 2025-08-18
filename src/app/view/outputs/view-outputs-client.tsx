@@ -5,11 +5,11 @@ import React, { useState, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Search } from "lucide-react"
+import { Search, Trash2 } from "lucide-react"
 import { format } from 'date-fns'
 
 import type { LedgerEntry } from "@/lib/actions"
-import { getOutputLedger } from "@/lib/actions"
+import { getOutputLedger, deleteOutput, deleteSale } from "@/lib/actions"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/date-picker"
@@ -36,6 +36,18 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast"
 
 const searchSchema = z.object({
   name: z.string().optional(),
@@ -51,6 +63,7 @@ interface ViewOutputsClientProps {
 }
 
 export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClientProps) {
+  const { toast } = useToast()
   const [ledger, setLedger] = useState<LedgerEntry[]>(initialData)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -60,20 +73,38 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
 
   const selectedName = form.watch("name");
 
-  const onSubmit = async (values: SearchFormValues) => {
+  const fetchLedger = async (filters: SearchFormValues = {}) => {
     setIsLoading(true)
-    const results = await getOutputLedger(values)
+    const results = await getOutputLedger(filters)
     setLedger(results)
     setIsLoading(false)
   }
 
-  const handleClear = async () => {
-    form.reset({ name: "", startDate: undefined, endDate: undefined })
-    setIsLoading(true);
-    const results = await getOutputLedger({});
-    setLedger(results);
-    setIsLoading(false);
+  const onSubmit = (values: SearchFormValues) => {
+    fetchLedger(values)
   }
+
+  const handleClear = () => {
+    form.reset({ name: "", startDate: undefined, endDate: undefined })
+    fetchLedger();
+  }
+
+  const handleDelete = async (entry: LedgerEntry) => {
+    let result;
+    if (entry.type === 'Production') {
+      result = await deleteOutput(entry.id);
+    } else { // Sale
+      result = await deleteSale(entry.id);
+    }
+    
+    if (result.success) {
+      toast({ title: "Success", description: result.message });
+      fetchLedger(form.getValues());
+    } else {
+      toast({ title: "Error", description: result.message, variant: "destructive" });
+    }
+  };
+
 
   const summary = useMemo(() => {
     const totalProduced = ledger
@@ -166,6 +197,7 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
                         <TableHead>Client Code</TableHead>
                         <TableHead>Quantity</TableHead>
                         <TableHead>Price/kg</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -174,8 +206,8 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
                         key={entry.id}
                         className={cn(
                         entry.type === 'Production'
-                            ? "bg-green-100/50 hover:bg-green-100/80 dark:bg-green-900/50 dark:hover:bg-green-900/80"
-                            : "bg-red-100/50 hover:bg-red-100/80 dark:bg-red-900/50 dark:hover:bg-red-900/80"
+                            ? "bg-green-100/50"
+                            : "bg-red-100/50"
                         )}
                     >
                         <TableCell>{format(new Date(entry.date), 'yyyy-MM-dd')}</TableCell>
@@ -184,10 +216,29 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
                         <TableCell>{entry.clientCode || 'N/A'}</TableCell>
                         <TableCell>{entry.quantity.toFixed(2)}</TableCell>
                         <TableCell>{entry.pricePerKg.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>This will delete the transaction and reverse its effect on inventory. This action cannot be undone.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDelete(entry)}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                        </TableCell>
                     </TableRow>
                     )) : (
                     <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center">
+                        <TableCell colSpan={7} className="h-24 text-center">
                         No results found.
                         </TableCell>
                     </TableRow>

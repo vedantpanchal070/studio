@@ -5,14 +5,13 @@ import React, { useState, useMemo, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowUpDown, Search } from "lucide-react"
+import { ArrowUpDown, Search, Edit, Trash2 } from "lucide-react"
 import { format } from 'date-fns'
 
 import type { Voucher } from "@/lib/schemas"
-import { getVouchers, getInventoryItem } from "@/lib/actions"
+import { getVouchers, getInventoryItem, deleteVoucher } from "@/lib/actions"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { DatePicker } from "@/components/date-picker"
 import {
   Table,
@@ -37,6 +36,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast"
+import { EditVoucherDialog } from "./edit-voucher-dialog"
 
 const searchSchema = z.object({
   name: z.string().optional(),
@@ -49,9 +61,12 @@ type SortKey = keyof Voucher
 type SortDirection = "asc" | "desc"
 
 export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) {
+  const { toast } = useToast()
   const [vouchers, setVouchers] = useState<Voucher[]>(initialData)
   const [itemNames, setItemNames] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null)
   const [sortConfig, setSortConfig] = useState<{
     key: SortKey
     direction: SortDirection
@@ -64,10 +79,16 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
   
   const selectedName = form.watch("name");
 
+  const fetchVouchers = async (filters: SearchFormValues = {}) => {
+    setIsLoading(true);
+    const results = await getVouchers(filters);
+    setVouchers(results);
+    setIsLoading(false);
+  }
+
   // Fetch all unique item names for the dropdown
   useEffect(() => {
     const fetchItemNames = async () => {
-      // We fetch all vouchers without filters to get all names
       const allVouchers = await getVouchers({});
       const names = new Set(allVouchers.map(v => v.name));
       setItemNames(Array.from(names));
@@ -85,7 +106,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
         }
     };
     fetchAveragePrice();
-  }, [selectedName]);
+  }, [selectedName, vouchers]);
 
 
   const sortedVouchers = useMemo(() => {
@@ -95,18 +116,12 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
         
-        // Handle date sorting
         if (aValue instanceof Date && bValue instanceof Date) {
             return (aValue.getTime() - bValue.getTime()) * (sortConfig.direction === "asc" ? 1 : -1);
         }
 
-        // Handle string/number sorting
-        if (aValue < bValue) {
-          return sortConfig.direction === "asc" ? -1 : 1
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === "asc" ? 1 : -1
-        }
+        if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1
+        if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1
         return 0
       })
     }
@@ -115,31 +130,34 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
 
   const requestSort = (key: SortKey) => {
     let direction: SortDirection = "asc"
-    if (
-      sortConfig &&
-      sortConfig.key === key &&
-      sortConfig.direction === "asc"
-    ) {
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
       direction = "desc"
     }
     setSortConfig({ key, direction })
   }
 
-  const onSubmit = async (values: SearchFormValues) => {
-    setIsLoading(true)
-    const results = await getVouchers(values)
-    setVouchers(results)
-    setIsLoading(false)
+  const onSubmit = (values: SearchFormValues) => fetchVouchers(values)
+
+  const handleClear = () => {
+    form.reset({ name: "", startDate: undefined, endDate: undefined })
+    fetchVouchers({});
+    setAveragePrice(0);
+    setSortConfig(null)
   }
 
-  const handleClear = async () => {
-    form.reset({ name: "", startDate: undefined, endDate: undefined })
-    setIsLoading(true);
-    const results = await getVouchers({});
-    setVouchers(results);
-    setAveragePrice(0);
-    setIsLoading(false);
-    setSortConfig(null)
+  const handleDelete = async (voucherId: string) => {
+    const result = await deleteVoucher(voucherId);
+    if (result.success) {
+      toast({ title: "Success", description: result.message });
+      fetchVouchers(form.getValues()); // Refetch data
+    } else {
+      toast({ title: "Error", description: result.message, variant: "destructive" });
+    }
+  }
+
+  const handleEdit = (voucher: Voucher) => {
+    setSelectedVoucher(voucher)
+    setIsEditDialogOpen(true)
   }
 
   const summary = useMemo(() => {
@@ -153,11 +171,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
 
     const availableQty = totalInputQty + totalOutputQty
 
-    return {
-      totalInputQty,
-      totalOutputQty,
-      availableQty,
-    }
+    return { totalInputQty, totalOutputQty, availableQty }
   }, [vouchers])
 
   return (
@@ -231,68 +245,53 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
             <Table>
             <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
-                <TableHead onClick={() => requestSort("date")}>
-                    <div className="flex items-center cursor-pointer">
-                    Date <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </div>
-                </TableHead>
-                <TableHead onClick={() => requestSort("name")}>
-                    <div className="flex items-center cursor-pointer">
-                    Name <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </div>
-                </TableHead>
-                <TableHead onClick={() => requestSort("code")}>
-                    <div className="flex items-center cursor-pointer">
-                    Code <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </div>
-                </TableHead>
-                <TableHead onClick={() => requestSort("quantities")}>
-                    <div className="flex items-center cursor-pointer">
-                    Qty <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </div>
-                </TableHead>
-                <TableHead onClick={() => requestSort("quantityType")}>
-                    <div className="flex items-center cursor-pointer">
-                    Unit <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </div>
-                </TableHead>
-                <TableHead onClick={() => requestSort("pricePerNo")}>
-                    <div className="flex items-center cursor-pointer">
-                    Price <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </div>
-                </TableHead>
-                <TableHead onClick={() => requestSort("totalPrice")}>
-                    <div className="flex items-center cursor-pointer">
-                    Total Price <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </div>
-                </TableHead>
+                <TableHead onClick={() => requestSort("date")}>Date <ArrowUpDown className="ml-2 h-4 w-4 inline-block" /></TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Qty</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead>Total Price</TableHead>
+                <TableHead>Remarks</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
                 {sortedVouchers.length > 0 ? sortedVouchers.map((voucher) => (
                 <TableRow
                     key={voucher.id}
-                    className={cn(
-                    voucher.quantities > 0
-                        ? "bg-green-100/50 hover:bg-green-100/80 dark:bg-green-900/50 dark:hover:bg-green-900/80"
-                        : "bg-red-100/50 hover:bg-red-100/80 dark:bg-red-900/50 dark:hover:bg-red-900/80"
-                    )}
+                    className={cn(voucher.quantities > 0 ? "bg-green-100/50" : "bg-red-100/50")}
                 >
-                    <TableCell>
-                      {format(new Date(voucher.date), 'yyyy-MM-dd')}
-                    </TableCell>
+                    <TableCell>{format(new Date(voucher.date), 'yyyy-MM-dd')}</TableCell>
                     <TableCell>{voucher.name}</TableCell>
-                    <TableCell>{voucher.code}</TableCell>
                     <TableCell>{voucher.quantities}</TableCell>
-                    <TableCell>{voucher.quantityType}</TableCell>
                     <TableCell>{voucher.pricePerNo.toFixed(2)}</TableCell>
                     <TableCell>{voucher.totalPrice.toFixed(2)}</TableCell>
+                    <TableCell>{voucher.remarks}</TableCell>
+                    <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(voucher)} disabled={voucher.quantities < 0}>
+                           <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                              <AlertDialogDescription>This action cannot be undone. This will permanently delete the voucher entry.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(voucher.id!)}>Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                    </TableCell>
                 </TableRow>
                 )) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      No results found.
-                    </TableCell>
+                    <TableCell colSpan={7} className="h-24 text-center">No results found.</TableCell>
                   </TableRow>
                 )}
             </TableBody>
@@ -305,26 +304,21 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
           <CardTitle>Summary for {selectedName || "All Items"}</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="p-4 rounded-lg bg-muted">
-            <p className="text-sm text-muted-foreground">Total Input Qty</p>
-            <p className="text-2xl font-bold">{summary.totalInputQty.toFixed(2)}</p>
-          </div>
-          <div className="p-4 rounded-lg bg-muted">
-            <p className="text-sm text-muted-foreground">Total Output Qty</p>
-            <p className="text-2xl font-bold">{Math.abs(summary.totalOutputQty).toFixed(2)}</p>
-          </div>
-          <div className="p-4 rounded-lg bg-muted">
-            <p className="text-sm text-muted-foreground">Available Qty</p>
-            <p className="text-2xl font-bold">{summary.availableQty.toFixed(2)}</p>
-          </div>
-          {selectedName && (
-             <div className="p-4 rounded-lg bg-muted">
-                <p className="text-sm text-muted-foreground">Average Price</p>
-                <p className="text-2xl font-bold">{averagePrice.toFixed(2)}</p>
-            </div>
-          )}
+          <div className="p-4 rounded-lg bg-muted"><p className="text-sm text-muted-foreground">Total Input Qty</p><p className="text-2xl font-bold">{summary.totalInputQty.toFixed(2)}</p></div>
+          <div className="p-4 rounded-lg bg-muted"><p className="text-sm text-muted-foreground">Total Output Qty</p><p className="text-2xl font-bold">{Math.abs(summary.totalOutputQty).toFixed(2)}</p></div>
+          <div className="p-4 rounded-lg bg-muted"><p className="text-sm text-muted-foreground">Available Qty</p><p className="text-2xl font-bold">{summary.availableQty.toFixed(2)}</p></div>
+          {selectedName && (<div className="p-4 rounded-lg bg-muted"><p className="text-sm text-muted-foreground">Average Price</p><p className="text-2xl font-bold">{averagePrice.toFixed(2)}</p></div>)}
         </CardContent>
       </Card>
+
+      {selectedVoucher && (
+        <EditVoucherDialog 
+          isOpen={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          voucher={selectedVoucher}
+          onVoucherUpdated={() => fetchVouchers(form.getValues())}
+        />
+      )}
     </div>
   )
 }

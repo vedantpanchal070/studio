@@ -1,5 +1,5 @@
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PlusCircle, LayoutList, FilePen } from "lucide-react";
+import { PlusCircle, LayoutList } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
@@ -9,7 +9,7 @@ export default function Home() {
         <h1 className="text-5xl font-bold text-primary tracking-tight">InventoMax</h1>
         <p className="text-muted-foreground mt-2 text-lg">Your Complete Inventory Management Solution</p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl w-full">
         <MenuCard
           href="/create"
           icon={<PlusCircle className="w-12 h-12 text-primary" />}
@@ -20,13 +20,7 @@ export default function Home() {
           href="/view"
           icon={<LayoutList className="w-12 h-12 text-primary" />}
           title="View"
-          description="Browse inventory ledgers, production history, and finished goods."
-        />
-        <MenuCard
-          href="/alt"
-          icon={<FilePen className="w-12 h-12 text-primary" />}
-          title="Alter"
-          description="Modify or delete existing records in your inventory."
+          description="Browse and manage inventory, production, and finished goods."
         />
       </div>
     </main>
