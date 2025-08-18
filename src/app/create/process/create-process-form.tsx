@@ -52,7 +52,6 @@ export function CreateProcessForm() {
     defaultValues: {
       date: new Date(),
       processName: "",
-      outputProduct: "",
       totalProcessOutput: 100,
       outputUnit: "KG",
       rawMaterials: [{ name: "", quantity: 0, ratio: 0 }],
@@ -75,8 +74,12 @@ export function CreateProcessForm() {
       const newMaterialsData: Record<string, MaterialData> = {};
       for (const material of rawMaterials) {
         if (material.name && !materialsData[material.name]) {
-          const data = await getInventoryData(material.name);
-          newMaterialsData[material.name] = data;
+          try {
+            const data = await getInventoryData(material.name);
+            newMaterialsData[material.name] = { availableStock: data.availableStock, rate: data.averagePrice };
+          } catch (error) {
+            console.error(`Failed to fetch data for ${material.name}`, error);
+          }
         }
       }
       if (Object.keys(newMaterialsData).length > 0) {
@@ -165,20 +168,6 @@ export function CreateProcessForm() {
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="outputProduct"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Output Product Name</FormLabel>
-              <FormControl>
-                <UppercaseInput {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <FormField
                 control={form.control}

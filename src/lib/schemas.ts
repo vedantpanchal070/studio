@@ -20,7 +20,6 @@ export const processSchema = z.object({
     required_error: "A date is required.",
   }),
   processName: z.string().min(1, "Process name is required."),
-  outputProduct: z.string().min(1, "Output product name is required."),
   totalProcessOutput: z.coerce.number().gt(0, "Total output must be a positive number."),
   outputUnit: z.string().min(1, "Output unit is required."),
   rawMaterials: z.array(z.object({
