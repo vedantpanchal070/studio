@@ -2,6 +2,7 @@
 import * as z from "zod"
 
 export const voucherSchema = z.object({
+  id: z.string().optional(), // Adding ID, optional as it will be created on the server
   date: z.date({
     required_error: "A date is required.",
   }),
