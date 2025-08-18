@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -42,6 +42,8 @@ interface EditVoucherDialogProps {
 
 export function EditVoucherDialog({ isOpen, onOpenChange, voucher, onVoucherUpdated }: EditVoucherDialogProps) {
   const { toast } = useToast()
+  const nameRef = useRef<HTMLInputElement>(null)
+
   
   const form = useForm<VoucherFormValues>({
     resolver: zodResolver(voucherSchema),
@@ -91,14 +93,14 @@ export function EditVoucherDialog({ isOpen, onOpenChange, voucher, onVoucherUpda
                 control={form.control}
                 name="date"
                 render={({ field }) => (
-                    <FormItem><FormLabel>Date</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Date</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} nextFocusRef={nameRef} /></FormControl><FormMessage /></FormItem>
                 )}
             />
              <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
-                    <FormItem><FormLabel>Name</FormLabel><FormControl><UppercaseInput {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Name</FormLabel><FormControl><UppercaseInput {...field} ref={nameRef} /></FormControl><FormMessage /></FormItem>
                 )}
             />
              <FormField

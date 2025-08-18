@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { useForm, useFieldArray, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import type { z } from "zod"
@@ -41,6 +41,7 @@ export function CreateProcessForm() {
   const { toast } = useToast()
   const [materialData, setMaterialData] = useState<Record<string, MaterialData>>({});
   const [itemNames, setItemNames] = useState<string[]>([]);
+  const processNameRef = useRef<HTMLInputElement>(null)
 
 
   useEffect(() => {
@@ -146,7 +147,7 @@ export function CreateProcessForm() {
               <FormItem>
                 <FormLabel>Date</FormLabel>
                 <FormControl>
-                  <DatePicker value={field.value} onChange={field.onChange} />
+                  <DatePicker value={field.value} onChange={field.onChange} nextFocusRef={processNameRef} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -159,7 +160,7 @@ export function CreateProcessForm() {
               <FormItem>
                 <FormLabel>Process Name</FormLabel>
                 <FormControl>
-                  <UppercaseInput {...field} />
+                  <UppercaseInput {...field} ref={processNameRef} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

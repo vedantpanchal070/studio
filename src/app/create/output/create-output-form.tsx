@@ -4,7 +4,7 @@
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import type { z } from "zod"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { outputSchema } from "@/lib/schemas"
 import { createOutput, getProcessNamesAndDetails } from "@/lib/actions"
@@ -36,6 +36,9 @@ export function CreateOutputForm() {
   const [finalAvgPrice, setFinalAvgPrice] = useState(0)
   const [netAvailableQty, setNetAvailableQty] = useState(0)
   const [isSalesModalOpen, setIsSalesModalOpen] = useState(false);
+
+  const processSelectRef = useRef<HTMLButtonElement>(null)
+
 
   useEffect(() => {
     const fetchProcesses = async () => {
@@ -148,7 +151,7 @@ export function CreateOutputForm() {
               <FormItem>
                 <FormLabel>Date</FormLabel>
                 <FormControl>
-                  <DatePicker value={field.value} onChange={field.onChange} />
+                  <DatePicker value={field.value} onChange={field.onChange} nextFocusRef={processSelectRef} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -163,7 +166,7 @@ export function CreateOutputForm() {
                 <FormLabel>Process Name</FormLabel>
                 <Select onValueChange={handleProcessChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger ref={processSelectRef}>
                       <SelectValue placeholder="Select a process" />
                     </SelectTrigger>
                   </FormControl>

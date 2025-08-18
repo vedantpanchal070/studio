@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -49,6 +49,8 @@ export function SalesDialog({ isOpen, onOpenChange }: SalesDialogProps) {
   const [finishedGoods, setFinishedGoods] = useState<FinishedGood[]>([])
   const [availableQty, setAvailableQty] = useState(0)
   const [totalAmount, setTotalAmount] = useState(0)
+  const dateOfSaleRef = useRef<HTMLButtonElement>(null)
+
 
   const form = useForm<SalesFormValues>({
     resolver: zodResolver(saleSchema),
@@ -141,7 +143,10 @@ export function SalesDialog({ isOpen, onOpenChange }: SalesDialogProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Product to Sell</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={(value) => {
+                    field.onChange(value);
+                    dateOfSaleRef.current?.focus();
+                  }} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a product" />
@@ -167,7 +172,7 @@ export function SalesDialog({ isOpen, onOpenChange }: SalesDialogProps) {
                 <FormItem>
                   <FormLabel>Date of Sale</FormLabel>
                   <FormControl>
-                    <DatePicker value={field.value} onChange={field.onChange} />
+                    <DatePicker value={field.value} onChange={field.onChange} ref={dateOfSaleRef} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

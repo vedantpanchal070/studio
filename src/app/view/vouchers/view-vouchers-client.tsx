@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState, useMemo, useEffect } from "react"
+import React, { useState, useMemo, useEffect, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -72,6 +72,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
     direction: SortDirection
   } | null>(null)
   const [averagePrice, setAveragePrice] = useState(0);
+  const endDateRef = useRef<HTMLButtonElement>(null)
 
   const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchSchema),
@@ -210,7 +211,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
                 <FormItem>
                   <FormLabel>Start Date</FormLabel>
                   <FormControl>
-                    <DatePicker value={field.value} onChange={field.onChange} />
+                    <DatePicker value={field.value} onChange={field.onChange} nextFocusRef={endDateRef} />
                   </FormControl>
                 </FormItem>
               )}
@@ -222,7 +223,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
                 <FormItem>
                   <FormLabel>End Date</FormLabel>
                   <FormControl>
-                    <DatePicker value={field.value} onChange={field.onChange} />
+                    <DatePicker value={field.value} onChange={field.onChange} ref={endDateRef} />
                   </FormControl>
                 </FormItem>
               )}

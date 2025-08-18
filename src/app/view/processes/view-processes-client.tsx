@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -72,7 +72,7 @@ function ProcessEntry({ process, onDelete }: { process: Process, onDelete: (proc
         <React.Fragment>
             <TableRow className="hover:bg-muted/50" data-state={isOpen ? 'open' : 'closed'}>
                 <TableCell>{format(new Date(process.date), 'dd/MM/yyyy')}</TableCell>
-                <TableCell>{process.processName}</TableCell>
+                <TableCell className="min-w-[400px]">{process.processName}</TableCell>
                 <TableCell>{costPerUnit.toFixed(2)}</TableCell>
                 <TableCell>{totalIngredients.toFixed(2)}</TableCell>
                 <TableCell className="text-right">
@@ -141,6 +141,8 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
   const { toast } = useToast()
   const [processes, setProcesses] = useState<Process[]>(initialData)
   const [isLoading, setIsLoading] = useState(false)
+  const endDateRef = useRef<HTMLButtonElement>(null)
+
 
   const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchSchema),
@@ -208,7 +210,7 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
                 <FormItem>
                   <FormLabel>Start Date</FormLabel>
                   <FormControl>
-                    <DatePicker value={field.value} onChange={field.onChange} />
+                    <DatePicker value={field.value} onChange={field.onChange} nextFocusRef={endDateRef} />
                   </FormControl>
                 </FormItem>
               )}
@@ -220,7 +222,7 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
                 <FormItem>
                   <FormLabel>End Date</FormLabel>
                   <FormControl>
-                    <DatePicker value={field.value} onChange={field.onChange} />
+                    <DatePicker value={field.value} onChange={field.onChange} ref={endDateRef} />
                   </FormControl>
                 </FormItem>
               )}
@@ -244,7 +246,7 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-[150px]">Date</TableHead>
-                        <TableHead className="min-w-[400px]">Process Name</TableHead>
+                        <TableHead>Process Name</TableHead>
                         <TableHead>Cost/Unit</TableHead>
                         <TableHead>Ingred. Qty</TableHead>
                         <TableHead className="text-right w-[100px]">Actions</TableHead>

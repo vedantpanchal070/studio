@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -66,6 +66,8 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
   const { toast } = useToast()
   const [ledger, setLedger] = useState<LedgerEntry[]>(initialData)
   const [isLoading, setIsLoading] = useState(false)
+  const endDateRef = useRef<HTMLButtonElement>(null)
+
 
   const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchSchema),
@@ -156,7 +158,7 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
                 <FormItem>
                   <FormLabel>Start Date</FormLabel>
                   <FormControl>
-                    <DatePicker value={field.value} onChange={field.onChange} />
+                    <DatePicker value={field.value} onChange={field.onChange} nextFocusRef={endDateRef} />
                   </FormControl>
                 </FormItem>
               )}
@@ -168,7 +170,7 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
                 <FormItem>
                   <FormLabel>End Date</FormLabel>
                   <FormControl>
-                    <DatePicker value={field.value} onChange={field.onChange} />
+                    <DatePicker value={field.value} onChange={field.onChange} ref={endDateRef} />
                   </FormControl>
                 </FormItem>
               )}
