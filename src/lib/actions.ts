@@ -469,8 +469,8 @@ export async function getOutputLedger(filters: { name?: string; startDate?: Date
     }
     if (filters.startDate) {
         const start = filters.startDate;
-        allOutputs = allOutputs.filter(o => o.date >= start);
-        allSales = allSales.filter(s => s.date >= start);
+        allOutputs = allOutputs.filter(o => o.date >= start!);
+        allSales = allSales.filter(s => s.date >= start!);
     }
     if (filters.endDate) {
         const end = new Date(filters.endDate);
@@ -909,3 +909,5 @@ export async function updateSale(values: z.infer<typeof saleSchema>) {
         return { success: false, message: "Failed to update sale." };
     }
 }
+
+    
