@@ -131,15 +131,23 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
     const totalInputQty = vouchers
       .filter((v) => v.quantities > 0)
       .reduce((sum, v) => sum + v.quantities, 0)
+      
     const totalOutputQty = vouchers
       .filter((v) => v.quantities < 0)
       .reduce((sum, v) => sum + v.quantities, 0)
+
     const availableQty = totalInputQty + totalOutputQty
+
+    const purchases = vouchers.filter((v) => v.quantities > 0);
+    const totalPurchaseValue = purchases.reduce((sum, v) => sum + v.totalPrice, 0);
+    const totalPurchaseQty = purchases.reduce((sum, v) => sum + v.quantities, 0);
+    const averagePrice = totalPurchaseQty > 0 ? totalPurchaseValue / totalPurchaseQty : 0;
 
     return {
       totalInputQty,
       totalOutputQty,
       availableQty,
+      averagePrice,
     }
   }, [vouchers])
 
@@ -287,7 +295,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
         <CardHeader>
           <CardTitle>Summary for {selectedName || "All Items"}</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="p-4 rounded-lg bg-muted">
             <p className="text-sm text-muted-foreground">Total Input Qty</p>
             <p className="text-2xl font-bold">{summary.totalInputQty.toFixed(2)}</p>
@@ -300,6 +308,12 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
             <p className="text-sm text-muted-foreground">Available Qty</p>
             <p className="text-2xl font-bold">{summary.availableQty.toFixed(2)}</p>
           </div>
+          {selectedName && (
+             <div className="p-4 rounded-lg bg-muted">
+                <p className="text-sm text-muted-foreground">Average Price</p>
+                <p className="text-2xl font-bold">{summary.averagePrice.toFixed(2)}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
