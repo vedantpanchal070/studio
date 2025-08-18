@@ -70,72 +70,74 @@ function ProcessEntry({ process, onDelete }: { process: Process, onDelete: (proc
     const costPerUnit = process.totalProcessOutput > 0 ? totalAmount / process.totalProcessOutput : 0;
     
     return (
-        <Collapsible open={isOpen} onOpenChange={setIsOpen} className="border-b">
-            <TableRow className="hover:bg-muted/50 data-[state=open]:bg-muted/50">
-                <TableCell>{format(new Date(process.date), 'dd/MM/yyyy')}</TableCell>
-                <TableCell>{process.processName}</TableCell>
-                <TableCell>{costPerUnit.toFixed(2)}</TableCell>
-                <TableCell>{totalIngredients.toFixed(2)}</TableCell>
-                <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
+        <Collapsible asChild open={isOpen} onOpenChange={setIsOpen}>
+            <>
+                <TableRow className="hover:bg-muted/50 data-[state=open]:bg-muted/50">
+                    <TableCell>{format(new Date(process.date), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell>{process.processName}</TableCell>
+                    <TableCell>{costPerUnit.toFixed(2)}</TableCell>
+                    <TableCell>{totalIngredients.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This will delete the process and add all consumed raw materials back to your inventory. This action cannot be undone.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => onDelete(process)}>Delete</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                            <CollapsibleTrigger asChild>
                                 <Button variant="ghost" size="icon">
-                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                    <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
+                                    <span className="sr-only">{isOpen ? "Collapse" : "Expand"}</span>
                                 </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This will delete the process and add all consumed raw materials back to your inventory. This action cannot be undone.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => onDelete(process)}>Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                        <CollapsibleTrigger asChild>
-                             <Button variant="ghost" size="icon">
-                                <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
-                                <span className="sr-only">{isOpen ? "Collapse" : "Expand"}</span>
-                            </Button>
-                        </CollapsibleTrigger>
-                    </div>
-                </TableCell>
-            </TableRow>
-            <CollapsibleContent asChild>
-                <TableRow>
-                    <TableCell colSpan={5} className="p-0">
-                        <div className="p-4 bg-background">
-                            <h4 className="font-semibold mb-2">Recipe Details:</h4>
-                             <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Ingredient</TableHead>
-                                        <TableHead>Qty Used</TableHead>
-                                        <TableHead>Rate</TableHead>
-                                        <TableHead>Amount</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {process.rawMaterials.map((material, index) => (
-                                        <TableRow key={index}>
-                                            <TableCell>{material.name}</TableCell>
-                                            <TableCell>{material.quantity.toFixed(2)} {material.quantityType}</TableCell>
-                                            <TableCell>{(material.rate ?? 0).toFixed(2)}</TableCell>
-                                            <TableCell>{((material.rate ?? 0) * material.quantity).toFixed(2)}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                             </Table>
-                             {process.notes && <p className="mt-4 text-sm text-muted-foreground">Notes: {process.notes}</p>}
+                            </CollapsibleTrigger>
                         </div>
                     </TableCell>
                 </TableRow>
-            </CollapsibleContent>
+                <CollapsibleContent asChild>
+                    <TableRow>
+                        <TableCell colSpan={5} className="p-0">
+                            <div className="p-4 bg-background">
+                                <h4 className="font-semibold mb-2">Recipe Details:</h4>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Ingredient</TableHead>
+                                            <TableHead>Qty Used</TableHead>
+                                            <TableHead>Rate</TableHead>
+                                            <TableHead>Amount</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {process.rawMaterials.map((material, index) => (
+                                            <TableRow key={index}>
+                                                <TableCell>{material.name}</TableCell>
+                                                <TableCell>{material.quantity.toFixed(2)} {material.quantityType}</TableCell>
+                                                <TableCell>{(material.rate ?? 0).toFixed(2)}</TableCell>
+                                                <TableCell>{((material.rate ?? 0) * material.quantity).toFixed(2)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                                {process.notes && <p className="mt-4 text-sm text-muted-foreground">Notes: {process.notes}</p>}
+                            </div>
+                        </TableCell>
+                    </TableRow>
+                </CollapsibleContent>
+            </>
         </Collapsible>
     )
 }
