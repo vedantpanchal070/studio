@@ -56,9 +56,9 @@ export function CreateProcessForm() {
     defaultValues: {
       date: new Date(),
       processName: "",
-      totalProcessOutput: 100,
-      outputUnit: "KG",
-      rawMaterials: [{ name: "", quantity: 0, ratio: 0, code: "", quantityType: "" }],
+      totalProcessOutput: 0,
+      outputUnit: "",
+      rawMaterials: [],
       notes: "",
     },
   })
@@ -97,7 +97,9 @@ export function CreateProcessForm() {
         setMaterialsData(prev => ({ ...prev, ...newMaterialsData }));
       }
     };
-    fetchAllMaterialsData();
+    if (rawMaterials.length > 0) {
+      fetchAllMaterialsData();
+    }
   }, [rawMaterials, materialsData, form]);
   
   useEffect(() => {
@@ -269,7 +271,6 @@ export function CreateProcessForm() {
                           variant="destructive"
                           size="icon"
                           onClick={() => remove(index)}
-                          disabled={fields.length === 1}
                         >
                           <Trash2 />
                         </Button>
