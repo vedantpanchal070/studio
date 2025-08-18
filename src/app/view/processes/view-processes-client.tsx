@@ -243,10 +243,10 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
             <Table>
                 <TableHeader className="sticky top-0 bg-background">
                     <TableRow>
-                        <TableHead className="w-[120px]">Date</TableHead>
-                        <TableHead>Process Name</TableHead>
-                        <TableHead className="w-[120px]">Cost/Unit</TableHead>
-                        <TableHead className="w-[120px]">Ingred. Qty</TableHead>
+                        <TableHead className="w-[150px]">Date</TableHead>
+                        <TableHead className="min-w-[250px]">Process Name</TableHead>
+                        <TableHead className="w-[150px]">Cost/Unit</TableHead>
+                        <TableHead className="w-[150px]">Ingred. Qty</TableHead>
                         <TableHead className="text-right w-[100px]">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
