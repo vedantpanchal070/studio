@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select"
 import { DatePicker } from "./date-picker"
 import { UppercaseInput } from "./ui/uppercase-input"
+import { ReadOnlyInput } from "./ui/read-only-input"
 
 type SalesFormValues = z.infer<typeof saleSchema>
 
@@ -233,7 +234,7 @@ export function SalesDialog({ isOpen, onOpenChange, onSaleSuccess }: SalesDialog
             <FormItem>
                 <FormLabel>Total Amount</FormLabel>
                 <FormControl>
-                    <Input readOnly value={totalAmount.toFixed(2)} className="bg-muted font-semibold" />
+                    <ReadOnlyInput value={totalAmount.toFixed(2)} />
                 </FormControl>
             </FormItem>
 

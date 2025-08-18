@@ -81,6 +81,12 @@ function Calendar({
           const handleYearBlur = () => {
              goToMonth(setYear(displayMonth, year));
           };
+          
+          const handleYearKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === 'Enter') {
+              handleYearBlur();
+            }
+          }
 
           return (
             <div className="flex justify-between items-center px-2">
@@ -96,6 +102,7 @@ function Calendar({
                 value={year}
                 onChange={handleYearChange}
                 onBlur={handleYearBlur}
+                onKeyDown={handleYearKeyDown}
               />
               <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => nextMonth && goToMonth(nextMonth)}>
                 <ChevronRight className="h-4 w-4" />

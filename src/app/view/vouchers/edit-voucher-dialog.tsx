@@ -30,6 +30,8 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { DatePicker } from "@/components/date-picker"
 import { UppercaseInput } from "@/components/ui/uppercase-input"
+import { ReadOnlyInput } from "@/components/ui/read-only-input"
+
 
 type VoucherFormValues = z.infer<typeof voucherSchema>
 
@@ -135,7 +137,7 @@ export function EditVoucherDialog({ isOpen, onOpenChange, voucher, onVoucherUpda
             />
             <FormItem>
                 <FormLabel>Total Price</FormLabel>
-                <FormControl><Input readOnly value={form.getValues("totalPrice").toFixed(2)} className="bg-muted font-semibold" /></FormControl>
+                <FormControl><ReadOnlyInput value={form.getValues("totalPrice").toFixed(2)} /></FormControl>
             </FormItem>
             <FormField
                 control={form.control}
