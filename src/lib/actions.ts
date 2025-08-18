@@ -507,11 +507,17 @@ export interface FinishedGoodInventoryItem {
   quantityType: string;
 }
 
-export async function getFinishedGoodsInventory(): Promise<FinishedGoodInventoryItem[]> {
+export async function getFinishedGoodsInventory(filters?: { name?: string }): Promise<FinishedGoodInventoryItem[]> {
   const vouchers = await readVouchers();
   const finishedGoodVouchers = vouchers.filter(v => v.code.startsWith('FG-'));
-  const productNames = Array.from(new Set(finishedGoodVouchers.map(v => v.name)));
   
+  let productNames = Array.from(new Set(finishedGoodVouchers.map(v => v.name)));
+  
+  // Apply the name filter if provided
+  if (filters?.name) {
+    productNames = productNames.filter(name => name.toLowerCase().includes(filters.name!.toLowerCase()));
+  }
+
   const inventory: FinishedGoodInventoryItem[] = [];
 
   for (const name of productNames) {

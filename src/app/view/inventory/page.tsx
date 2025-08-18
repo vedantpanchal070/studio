@@ -15,8 +15,14 @@ import { getFinishedGoodsInventory } from "@/lib/actions"
 
 export const dynamic = 'force-dynamic'
 
-export default async function ViewInventoryPage() {
-  const initialData = await getFinishedGoodsInventory()
+export default async function ViewInventoryPage({
+  searchParams,
+}: {
+  searchParams?: {
+    name?: string;
+  };
+}) {
+  const initialData = await getFinishedGoodsInventory({ name: searchParams?.name })
 
   return (
     <main className="flex min-h-screen flex-col items-center bg-background p-4 sm:p-8">
