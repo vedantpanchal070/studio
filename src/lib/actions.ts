@@ -325,13 +325,24 @@ export async function getVouchers(filters: { name?: string; startDate?: Date; en
     return vouchers;
 }
 
-export async function getInventoryItem(name: string) {
+export async function getInventoryItem(name: string, filters?: { startDate?: Date; endDate?: Date }) {
     if (!name) {
         return { availableStock: 0, averagePrice: 0, code: "", quantityType: "" };
     }
   
-    const allVouchers = await readVouchers();
-    const itemVouchers = allVouchers.filter(v => v.name === name);
+    let allVouchers = await readVouchers();
+    let itemVouchers = allVouchers.filter(v => v.name === name);
+
+    // Date filtering
+    if (filters?.startDate) {
+        itemVouchers = itemVouchers.filter(v => v.date >= filters.startDate!);
+    }
+    if (filters?.endDate) {
+        const endDate = new Date(filters.endDate);
+        endDate.setHours(23, 59, 59, 999);
+        itemVouchers = itemVouchers.filter(v => v.date <= endDate);
+    }
+
 
     if (itemVouchers.length === 0) {
         return { availableStock: 0, averagePrice: 0, code: "", quantityType: "" };
@@ -507,7 +518,7 @@ export interface FinishedGoodInventoryItem {
   quantityType: string;
 }
 
-export async function getFinishedGoodsInventory(filters?: { name?: string }): Promise<FinishedGoodInventoryItem[]> {
+export async function getFinishedGoodsInventory(filters?: { name?: string, startDate?: Date, endDate?: Date }): Promise<FinishedGoodInventoryItem[]> {
   const vouchers = await readVouchers();
   const finishedGoodVouchers = vouchers.filter(v => v.code.startsWith('FG-'));
   
@@ -521,7 +532,7 @@ export async function getFinishedGoodsInventory(filters?: { name?: string }): Pr
   const inventory: FinishedGoodInventoryItem[] = [];
 
   for (const name of productNames) {
-    const itemDetails = await getInventoryItem(name);
+    const itemDetails = await getInventoryItem(name, { startDate: filters?.startDate, endDate: filters?.endDate });
     if (itemDetails.availableStock > 0) {
       inventory.push({
         name: name,

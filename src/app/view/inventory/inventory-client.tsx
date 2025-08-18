@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -27,6 +27,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { DatePicker } from "@/components/date-picker"
 
 interface InventoryClientProps {
   initialData: FinishedGoodInventoryItem[];
@@ -34,6 +35,8 @@ interface InventoryClientProps {
 
 const searchSchema = z.object({
   name: z.string().optional(),
+  startDate: z.date().optional(),
+  endDate: z.date().optional(),
 })
 
 type SearchFormValues = z.infer<typeof searchSchema>
@@ -41,6 +44,8 @@ type SearchFormValues = z.infer<typeof searchSchema>
 export function InventoryClient({ initialData }: InventoryClientProps) {
   const [inventory, setInventory] = useState<FinishedGoodInventoryItem[]>(initialData)
   const [isLoading, setIsLoading] = useState(false)
+  const endDateRef = useRef<HTMLButtonElement>(null)
+
   
   const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchSchema),
@@ -65,7 +70,7 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
   }
   
   const handleClear = () => {
-    form.reset({ name: "" })
+    form.reset({ name: "", startDate: undefined, endDate: undefined })
     fetchInventory()
   }
 
@@ -87,6 +92,30 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
                             <FormMessage />
                         </FormItem>
                     )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Date</FormLabel>
+                      <FormControl>
+                        <DatePicker value={field.value} onChange={field.onChange} nextFocusRef={endDateRef} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End Date</FormLabel>
+                      <FormControl>
+                        <DatePicker value={field.value} onChange={field.onChange} ref={endDateRef} />
+                      </FormControl>
+                    </FormItem>
+                  )}
                 />
                 <div className="flex justify-start gap-2">
                     <Button type="submit" disabled={isLoading}>
