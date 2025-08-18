@@ -110,7 +110,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
 
 
   const sortedVouchers = useMemo(() => {
-    let sortableItems = [...vouchers]
+    let sortableItems = [...vouchers].filter(v => v.quantities !== 0);
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
         const aValue = a[sortConfig.key];
