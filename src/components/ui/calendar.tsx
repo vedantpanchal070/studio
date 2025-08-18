@@ -1,18 +1,25 @@
+
 "use client"
 
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
+import { DayPicker, useNavigation } from "react-day-picker"
+import { format, setYear } from "date-fns"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>
+export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
+  onCancel?: () => void;
+};
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  onCancel,
   ...props
 }: CalendarProps) {
   return (
@@ -46,7 +53,7 @@ function Calendar({
           "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
         day_today: "bg-accent text-accent-foreground",
         day_outside:
-          "day-outside text-muted-foreground aria-selected:bg-accent/50 aria-selected:text-muted-foreground",
+          "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground",
         day_disabled: "text-muted-foreground opacity-50",
         day_range_middle:
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
@@ -54,14 +61,65 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        IconLeft: ({ className, ...props }) => (
-          <ChevronLeft className={cn("h-4 w-4", className)} {...props} />
-        ),
-        IconRight: ({ className, ...props }) => (
-          <ChevronRight className={cn("h-4 w-4", className)} {...props} />
-        ),
+        IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" {...props} />,
+        IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" {...props} />,
+        Caption: ({ displayMonth }) => {
+          const { goToMonth, nextMonth, previousMonth } = useNavigation();
+          const [year, setYearState] = React.useState(displayMonth.getFullYear());
+
+          const handleYearChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+            const newYear = Number(e.target.value);
+            if (!isNaN(newYear) && newYear > 1000) {
+              setYearState(newYear);
+            }
+          };
+
+          const handleYearBlur = () => {
+             goToMonth(setYear(displayMonth, year));
+          };
+
+          return (
+            <div className="flex justify-between items-center px-2">
+              <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => previousMonth && goToMonth(previousMonth)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="text-sm font-medium">
+                {format(displayMonth, 'MMMM')}
+              </div>
+              <Input
+                type="number"
+                className="w-20 h-7 text-center"
+                value={year}
+                onChange={handleYearChange}
+                onBlur={handleYearBlur}
+              />
+              <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => nextMonth && goToMonth(nextMonth)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          );
+        },
       }}
       {...props}
+      footer={
+        <div className="flex justify-between pt-2 border-t mt-2">
+           <Button
+            variant="ghost"
+            onClick={() => props.onSelect?.(undefined)}
+          >
+            None
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => props.onSelect?.(new Date())}
+          >
+            Today
+          </Button>
+          <Button variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+        </div>
+      }
     />
   )
 }
