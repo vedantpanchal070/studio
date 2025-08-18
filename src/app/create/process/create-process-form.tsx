@@ -1,9 +1,10 @@
 "use client"
 
-import { useForm, useFieldArray } from "react-hook-form"
+import { useForm, useFieldArray, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import type { z } from "zod"
 import { PlusCircle, Trash2 } from "lucide-react"
+import { useEffect } from "react"
 
 import { processSchema } from "@/lib/schemas"
 import { createProcess } from "@/lib/actions"
@@ -23,8 +24,20 @@ import { DatePicker } from "@/components/date-picker"
 import { UppercaseInput } from "@/components/ui/uppercase-input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
 
 type ProcessFormValues = z.infer<typeof processSchema>
+
+// Mock function to fetch inventory data
+// In a real app, this would be a server action calling the database
+async function getInventoryData(name: string) {
+  console.log(`Fetching mock data for ${name}`);
+  // Returning mock data for demonstration
+  return {
+    availableStock: Math.floor(Math.random() * 200) + 50, // Random stock between 50 and 250
+    averagePrice: Math.random() * 10 + 5, // Random price between 5 and 15
+  };
+}
 
 export function CreateProcessForm() {
   const { toast } = useToast()
@@ -34,7 +47,9 @@ export function CreateProcessForm() {
       date: new Date(),
       processName: "",
       outputProduct: "",
-      rawMaterials: [{ name: "", quantity: 0 }],
+      totalProcessOutput: 100,
+      outputUnit: "KG",
+      rawMaterials: [{ name: "", quantity: 0, ratio: 0 }],
       notes: "",
     },
   })
@@ -44,7 +59,50 @@ export function CreateProcessForm() {
     name: "rawMaterials",
   })
 
+  const totalProcessOutput = useWatch({ control: form.control, name: "totalProcessOutput" });
+  const rawMaterials = useWatch({ control: form.control, name: "rawMaterials" });
+
+  const calculatedMaterials = rawMaterials.map((material, index) => {
+    const output = (material.ratio ?? 0) * (totalProcessOutput ?? 0) / 100;
+    const [stock, setStock] = React.useState(0);
+    const [rate, setRate] = React.useState(0);
+
+    // This effect will fetch data when material name changes.
+    useEffect(() => {
+        if(material.name) {
+            getInventoryData(material.name).then(data => {
+                setStock(data.availableStock);
+                setRate(data.averagePrice);
+            });
+        }
+    }, [material.name]);
+    
+    // This effect will update the quantity for submission
+    useEffect(() => {
+        form.setValue(`rawMaterials.${index}.quantity`, output);
+    }, [output, index, form]);
+
+    const amount = output * rate;
+    const stockIsInsufficient = output > stock;
+
+    return { ...material, output, availableStock: stock, rate, amount, stockIsInsufficient };
+  });
+
+  const totalRatio = calculatedMaterials.reduce((sum, mat) => sum + (mat.ratio ?? 0), 0);
+  const totalAmount = calculatedMaterials.reduce((sum, mat) => sum + mat.amount, 0);
+
+
   const onSubmit = async (values: ProcessFormValues) => {
+    // Check for insufficient stock before submitting
+    if (calculatedMaterials.some(m => m.stockIsInsufficient)) {
+      toast({
+        title: "Error",
+        description: "Insufficient stock for one or more materials. Please check quantities.",
+        variant: "destructive",
+      })
+      return;
+    }
+
     const result = await createProcess(values)
     if (result.success) {
       toast({
@@ -107,60 +165,112 @@ export function CreateProcessForm() {
           )}
         />
         
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <FormField
+                control={form.control}
+                name="totalProcessOutput"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Total Process Output</FormLabel>
+                    <FormControl>
+                    <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="outputUnit"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Output Unit</FormLabel>
+                    <FormControl>
+                    <UppercaseInput {...field} />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+        </div>
+
         <Card>
           <CardHeader>
-            <CardTitle>Raw Materials</CardTitle>
+            <CardTitle>Recipe Ingredients</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {fields.map((field, index) => (
-                <div key={field.id} className="flex items-end gap-4">
-                  <FormField
-                    control={form.control}
-                    name={`rawMaterials.${index}.name`}
-                    render={({ field }) => (
-                      <FormItem className="flex-grow">
-                        <FormLabel>Material Name</FormLabel>
-                        <FormControl>
-                          <UppercaseInput {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name={`rawMaterials.${index}.quantity`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Quantity</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    onClick={() => remove(index)}
-                    disabled={fields.length === 1}
-                  >
-                    <Trash2 />
-                  </Button>
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[200px]">Ingredient</TableHead>
+                    <TableHead>Avail. Stock</TableHead>
+                    <TableHead>% Ratio</TableHead>
+                    <TableHead>Output</TableHead>
+                    <TableHead>Rate</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {fields.map((field, index) => (
+                    <TableRow key={field.id}>
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`rawMaterials.${index}.name`}
+                          render={({ field }) => <UppercaseInput {...field} />}
+                        />
+                      </TableCell>
+                      <TableCell>
+                         <span className={calculatedMaterials[index].stockIsInsufficient ? "text-destructive" : ""}>
+                            {calculatedMaterials[index].availableStock.toFixed(2)}
+                         </span>
+                      </TableCell>
+                      <TableCell>
+                        <FormField
+                            control={form.control}
+                            name={`rawMaterials.${index}.ratio`}
+                            render={({ field }) => <Input type="number" {...field} />}
+                        />
+                      </TableCell>
+                      <TableCell>{calculatedMaterials[index].output.toFixed(2)}</TableCell>
+                      <TableCell>{calculatedMaterials[index].rate.toFixed(2)}</TableCell>
+                      <TableCell>{calculatedMaterials[index].amount.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          onClick={() => remove(index)}
+                          disabled={fields.length === 1}
+                        >
+                          <Trash2 />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <TableFooter>
+                    <TableRow>
+                        <TableCell colSpan={2}>Total</TableCell>
+                        <TableCell>{totalRatio.toFixed(2)}%</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell>{totalAmount.toFixed(2)}</TableCell>
+                        <TableCell></TableCell>
+                    </TableRow>
+                </TableFooter>
+              </Table>
             </div>
             <Separator className="my-4" />
             <Button
               type="button"
               variant="outline"
-              onClick={() => append({ name: "", quantity: 0 })}
+              onClick={() => append({ name: "", quantity: 0, ratio: 0 })}
             >
               <PlusCircle className="mr-2" />
-              Add Raw Material
+              Add Ingredient
             </Button>
           </CardContent>
         </Card>
@@ -179,7 +289,7 @@ export function CreateProcessForm() {
           )}
         />
         <Button type="submit" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? "Saving..." : "Save Process"}
+          {form.formState.isSubmitting ? "Saving..." : "Save and Close"}
         </Button>
       </form>
     </Form>
