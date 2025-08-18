@@ -151,32 +151,38 @@ export async function getInventoryItem(name: string) {
         return { availableStock: 0, averagePrice: 0, code: '', quantityType: '' };
     }
 
-    const q = query(collection(db, "vouchers"), where("name", "==", name));
-    const querySnapshot = await getDocs(q);
+    try {
+        const q = query(collection(db, "vouchers"), where("name", "==", name));
+        const querySnapshot = await getDocs(q);
 
-    if (querySnapshot.empty) {
+        if (querySnapshot.empty) {
+            return { availableStock: 0, averagePrice: 0, code: '', quantityType: '' };
+        }
+        
+        let totalStock = 0;
+        let totalPositiveValue = 0;
+        let totalPositiveQty = 0;
+        let code = '';
+        let quantityType = '';
+
+        querySnapshot.forEach(doc => {
+            const data = doc.data();
+            totalStock += data.quantities;
+            if (!code) code = data.code;
+            if (!quantityType) quantityType = data.quantityType;
+
+            if (data.quantities > 0) {
+                totalPositiveValue += data.totalPrice;
+                totalPositiveQty += data.quantities;
+            }
+        });
+
+        const averagePrice = totalPositiveQty > 0 ? totalPositiveValue / totalPositiveQty : 0;
+
+        return { availableStock: totalStock, averagePrice, code, quantityType };
+    } catch (error) {
+        console.error("Error fetching inventory item:", error);
+        // Return a default object structure in case of an error to prevent crashes
         return { availableStock: 0, averagePrice: 0, code: '', quantityType: '' };
     }
-    
-    let totalStock = 0;
-    let totalPositiveValue = 0;
-    let totalPositiveQty = 0;
-    let code = '';
-    let quantityType = '';
-
-    querySnapshot.forEach(doc => {
-        const data = doc.data();
-        totalStock += data.quantities;
-        if (!code) code = data.code;
-        if (!quantityType) quantityType = data.quantityType;
-
-        if (data.quantities > 0) {
-            totalPositiveValue += data.totalPrice;
-            totalPositiveQty += data.quantities;
-        }
-    });
-
-    const averagePrice = totalPositiveQty > 0 ? totalPositiveValue / totalPositiveQty : 0;
-
-    return { availableStock: totalStock, averagePrice, code, quantityType };
 }
