@@ -246,7 +246,7 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
       <div className="rounded-md border">
         <div className="max-h-96 overflow-auto">
             <Table>
-                <TableHeader className="sticky top-0 bg-background z-10">
+                <TableHeader className="sticky top-0 bg-background">
                     <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Process Name</TableHead>
