@@ -5,8 +5,8 @@ import { z } from "zod"
 import { voucherSchema, processSchema, outputSchema, Voucher } from "./schemas"
 import { revalidatePath } from "next/cache"
 
-// Mock Data
-const mockVouchers: Voucher[] = []
+// Mock Data - Moved to global scope to persist between server action calls
+let mockVouchers: Voucher[] = []
 
 export async function createVoucher(values: z.infer<typeof voucherSchema>) {
   const validatedFields = voucherSchema.safeParse(values);
