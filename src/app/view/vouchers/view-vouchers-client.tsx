@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { ArrowUpDown, Search } from "lucide-react"
+import { format } from 'date-fns'
 
 import type { Voucher } from "@/lib/schemas"
 import { getVouchers } from "@/lib/actions"
@@ -261,7 +262,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
                     )}
                 >
                     <TableCell>
-                    {new Date(voucher.date).toLocaleDateString()}
+                      {format(new Date(voucher.date), 'yyyy-MM-dd')}
                     </TableCell>
                     <TableCell>{voucher.name}</TableCell>
                     <TableCell>{voucher.code}</TableCell>
@@ -284,7 +285,7 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
 
       <Card>
         <CardHeader>
-          <CardTitle>Summary</CardTitle>
+          <CardTitle>Summary for {selectedName || "All Items"}</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="p-4 rounded-lg bg-muted">
