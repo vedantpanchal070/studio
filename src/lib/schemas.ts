@@ -1,3 +1,4 @@
+
 import * as z from "zod"
 
 export const voucherSchema = z.object({
@@ -24,6 +25,8 @@ export const processSchema = z.object({
   outputUnit: z.string().min(1, "Output unit is required."),
   rawMaterials: z.array(z.object({
     name: z.string().min(1, "Raw material name is required."),
+    code: z.string().min(1, "Item code is required."),
+    quantityType: z.string().min(1, "Quantity type is required."),
     quantity: z.coerce.number().gt(0, "Quantity must be a positive number."),
     // The following fields are for frontend calculation and not part of the final submission schema
     ratio: z.coerce.number().optional(),

@@ -1,3 +1,4 @@
+
 "use server"
 
 import { z } from "zod"
@@ -48,15 +49,52 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
     };
   }
 
+  const { date, processName, rawMaterials, notes } = validatedFields.data
+
   // Here you would insert data into the database
   console.log("Creating process with data:", validatedFields.data);
+  // This is where we would save the process recipe itself to a 'recipes' table.
+
+  // Now, create negative voucher entries for each raw material used.
+  for (const material of rawMaterials) {
+    // In a real app, this rate would be fetched securely from the DB
+    // For now, we'll simulate fetching an average price.
+    const averagePrice = mockVouchers
+      .filter(v => v.name === material.name && v.quantities > 0)
+      .reduce(
+        (acc, v) => {
+          acc.totalValue += v.totalPrice
+          acc.totalQty += v.quantities
+          return acc
+        },
+        { totalValue: 0, totalQty: 0 }
+      );
+    
+    const rate = averagePrice.totalQty > 0 ? averagePrice.totalValue / averagePrice.totalQty : 0;
+
+    const negativeVoucher = {
+      id: (mockVouchers.length + 1).toString(),
+      date,
+      name: material.name,
+      code: material.code,
+      quantities: -material.quantity, // Make it a negative quantity
+      quantityType: material.quantityType,
+      pricePerNo: rate,
+      totalPrice: -material.quantity * rate,
+      remarks: `Used in process: ${processName}. ${notes || ""}`.trim(),
+    };
+    mockVouchers.push(negativeVoucher);
+    console.log("Creating negative voucher:", negativeVoucher)
+  }
+
 
   // Simulate a database delay
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
-  revalidatePath("/view/processes"); // Example path to revalidate
+  revalidatePath("/view/processes");
+  revalidatePath("/view/vouchers"); // Revalidate vouchers page to show deductions
 
-  return { success: true, message: "Process created successfully!" };
+  return { success: true, message: "Process saved and inventory updated!" };
 }
 
 export async function createOutput(values: z.infer<typeof outputSchema>) {
@@ -92,10 +130,10 @@ export async function getVouchers(
     filteredVouchers = filteredVouchers.filter(v => v.name === filters.name)
   }
   if (filters.startDate) {
-    filteredVouchers = filteredVouchers.filter(v => v.date >= filters.startDate!)
+    filteredVouchers = filteredVouchers.filter(v => new Date(v.date) >= filters.startDate!)
   }
   if (filters.endDate) {
-    filteredVouchers = filteredVouchers.filter(v => v.date <= filters.endDate!)
+    filteredVouchers = filteredVouchers.filter(v => new Date(v.date) <= filters.endDate!)
   }
 
   return JSON.parse(JSON.stringify(filteredVouchers))

@@ -37,12 +37,16 @@ async function getInventoryData(name: string) {
   return {
     availableStock: Math.floor(Math.random() * 200) + 50, // Random stock between 50 and 250
     averagePrice: Math.random() * 10 + 5, // Random price between 5 and 15
+    code: name.substring(0, 2).toUpperCase() + '001',
+    quantityType: 'KG',
   };
 }
 
 interface MaterialData {
   availableStock: number;
   rate: number;
+  code: string;
+  quantityType: string;
 }
 
 export function CreateProcessForm() {
@@ -54,7 +58,7 @@ export function CreateProcessForm() {
       processName: "",
       totalProcessOutput: 100,
       outputUnit: "KG",
-      rawMaterials: [{ name: "", quantity: 0, ratio: 0 }],
+      rawMaterials: [{ name: "", quantity: 0, ratio: 0, code: "", quantityType: "" }],
       notes: "",
     },
   })
@@ -72,11 +76,18 @@ export function CreateProcessForm() {
   useEffect(() => {
     const fetchAllMaterialsData = async () => {
       const newMaterialsData: Record<string, MaterialData> = {};
-      for (const material of rawMaterials) {
+      for (const [index, material] of rawMaterials.entries()) {
         if (material.name && !materialsData[material.name]) {
           try {
             const data = await getInventoryData(material.name);
-            newMaterialsData[material.name] = { availableStock: data.availableStock, rate: data.averagePrice };
+            newMaterialsData[material.name] = { 
+              availableStock: data.availableStock, 
+              rate: data.averagePrice,
+              code: data.code,
+              quantityType: data.quantityType
+            };
+            form.setValue(`rawMaterials.${index}.code`, data.code);
+            form.setValue(`rawMaterials.${index}.quantityType`, data.quantityType);
           } catch (error) {
             console.error(`Failed to fetch data for ${material.name}`, error);
           }
@@ -87,14 +98,11 @@ export function CreateProcessForm() {
       }
     };
     fetchAllMaterialsData();
-  }, [rawMaterials, materialsData]);
+  }, [rawMaterials, materialsData, form]);
   
-  // Moved the calculation logic into a separate top-level useEffect hook
-  // to avoid calling hooks inside a loop.
   useEffect(() => {
     rawMaterials.forEach((material, index) => {
         const output = (material.ratio ?? 0) * (totalProcessOutput ?? 0) / 100;
-        // Only set value if it has changed to avoid infinite loops
         if (form.getValues(`rawMaterials.${index}.quantity`) !== output) {
             form.setValue(`rawMaterials.${index}.quantity`, output, { shouldValidate: true });
         }
@@ -103,7 +111,7 @@ export function CreateProcessForm() {
   
   const calculatedMaterials = fields.map((field, index) => {
     const material = rawMaterials[index] || {};
-    const data = material.name ? materialsData[material.name] : { availableStock: 0, rate: 0 };
+    const data = material.name ? materialsData[material.name] : undefined;
     const quantity = material.quantity ?? 0;
     const amount = quantity * (data?.rate || 0);
     const stockIsInsufficient = quantity > (data?.availableStock || 0);
@@ -123,7 +131,6 @@ export function CreateProcessForm() {
 
 
   const onSubmit = async (values: ProcessFormValues) => {
-    // Check for insufficient stock before submitting
     if (calculatedMaterials.some(m => m.stockIsInsufficient)) {
       toast({
         title: "Error",
@@ -286,7 +293,7 @@ export function CreateProcessForm() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => append({ name: "", quantity: 0, ratio: 0 })}
+              onClick={() => append({ name: "", quantity: 0, ratio: 0, code: "", quantityType: "" })}
             >
               <PlusCircle className="mr-2" />
               Add Ingredient
@@ -314,5 +321,3 @@ export function CreateProcessForm() {
     </Form>
   )
 }
-
-    
