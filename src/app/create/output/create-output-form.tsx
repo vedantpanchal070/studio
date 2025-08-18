@@ -54,6 +54,10 @@ export function CreateOutputForm() {
       reduction: 0,
       processCharge: 0,
       notes: "",
+      // These are not part of the form state anymore to prevent loops
+      // but are part of the schema, so we provide default values.
+      quantityProduced: 0,
+      finalAveragePrice: 0,
     },
   })
 
@@ -86,12 +90,8 @@ export function CreateOutputForm() {
     } else {
       setFinalAvgPrice(0)
     }
-    
-    // Set these values on the form for submission
-    form.setValue("finalAveragePrice", avgPrice, { shouldValidate: true })
-    form.setValue("quantityProduced", currentNetQty, { shouldValidate: true })
 
-  }, [watchedValues, selectedProcess, form])
+  }, [watchedValues, selectedProcess])
 
 
   const handleProcessChange = (processName: string) => {
@@ -112,8 +112,15 @@ export function CreateOutputForm() {
       })
       return
     }
+
+    // Manually add the calculated values to the submission data
+    const submissionData = {
+      ...values,
+      quantityProduced: netAvailableQty,
+      finalAveragePrice: finalAvgPrice,
+    }
     
-    const result = await createOutput(values)
+    const result = await createOutput(submissionData)
     if (result.success) {
       toast({
         title: "Success!",
