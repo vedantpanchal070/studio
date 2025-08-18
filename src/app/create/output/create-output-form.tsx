@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { DatePicker } from "@/components/date-picker"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Combobox } from "@/components/ui/combobox"
 
 type OutputFormValues = z.infer<typeof outputSchema>
 
@@ -172,20 +173,13 @@ export function CreateOutputForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Process Name</FormLabel>
-                <Select onValueChange={handleProcessChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger ref={processSelectRef}>
-                      <SelectValue placeholder="Select a process" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {processes.map(p => (
-                      <SelectItem key={p.processName} value={p.processName}>
-                        {p.processName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                 <Combobox
+                    options={processes.map(p => ({ value: p.processName, label: p.processName }))}
+                    value={field.value}
+                    onChange={handleProcessChange}
+                    placeholder="Select a process"
+                    searchPlaceholder="Search processes..."
+                  />
                 <FormMessage />
               </FormItem>
             )}

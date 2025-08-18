@@ -27,16 +27,10 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { DatePicker } from "./date-picker"
 import { UppercaseInput } from "./ui/uppercase-input"
 import { ReadOnlyInput } from "@/components/ui/read-only-input"
+import { Combobox } from "@/components/ui/combobox"
 
 type SalesFormValues = z.infer<typeof saleSchema>
 
@@ -155,23 +149,16 @@ export function SalesDialog({ isOpen, onOpenChange, onSaleSuccess }: SalesDialog
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Product to Sell</FormLabel>
-                  <Select onValueChange={(value) => {
-                    field.onChange(value);
-                    dateOfSaleRef.current?.focus();
-                  }} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a product" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {finishedGoods.map((good) => (
-                        <SelectItem key={good.name} value={good.name}>
-                          {good.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                   <Combobox
+                      options={finishedGoods.map((good) => ({ value: good.name, label: good.name }))}
+                      value={field.value}
+                      onChange={(value) => {
+                        field.onChange(value);
+                        dateOfSaleRef.current?.focus();
+                      }}
+                      placeholder="Select a product"
+                      searchPlaceholder="Search products..."
+                    />
                    {selectedProduct && <p className="text-sm text-muted-foreground mt-1">Available: {availableQty.toFixed(2)}</p>}
                   <FormMessage />
                 </FormItem>

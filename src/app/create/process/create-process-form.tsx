@@ -26,8 +26,8 @@ import { UppercaseInput } from "@/components/ui/uppercase-input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ReadOnlyInput } from "@/components/ui/read-only-input"
+import { Combobox } from "@/components/ui/combobox"
 
 type ProcessFormValues = z.infer<typeof processSchema>
 
@@ -226,24 +226,16 @@ export function CreateProcessForm() {
                             control={form.control}
                             name={`rawMaterials.${index}.name`}
                             render={({ field }) => (
-                                <Select
-                                onValueChange={(value) => {
-                                    field.onChange(value);
-                                    fetchMaterialData(value, index);
-                                }}
-                                defaultValue={field.value}
-                                >
-                                <FormControl>
-                                    <SelectTrigger>
-                                    <SelectValue placeholder="Select an item" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {itemNames.map(name => (
-                                    <SelectItem key={name} value={name}>{name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                                </Select>
+                                <Combobox
+                                    options={itemNames.map(name => ({ value: name, label: name }))}
+                                    value={field.value}
+                                    onChange={(value) => {
+                                        field.onChange(value);
+                                        fetchMaterialData(value, index);
+                                    }}
+                                    placeholder="Select an item"
+                                    searchPlaceholder="Search items..."
+                                />
                             )}
                         />
                       </TableCell>
