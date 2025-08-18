@@ -89,19 +89,26 @@ export function CreateProcessForm() {
     fetchAllMaterialsData();
   }, [rawMaterials, materialsData]);
   
-  const calculatedMaterials = rawMaterials.map((material, index) => {
+  const calculatedMaterials = fields.map((field, index) => {
+    const material = rawMaterials[index] || {};
     const output = (material.ratio ?? 0) * (totalProcessOutput ?? 0) / 100;
-    const data = materialsData[material.name] || { availableStock: 0, rate: 0 };
+    const data = material.name ? materialsData[material.name] : { availableStock: 0, rate: 0 };
     
-    // This effect will update the quantity for submission
     useEffect(() => {
         form.setValue(`rawMaterials.${index}.quantity`, output, { shouldValidate: true });
     }, [output, index, form]);
 
-    const amount = output * data.rate;
-    const stockIsInsufficient = output > data.availableStock;
+    const amount = output * (data?.rate || 0);
+    const stockIsInsufficient = output > (data?.availableStock || 0);
 
-    return { ...material, output, ...data, amount, stockIsInsufficient };
+    return { 
+        ...material, 
+        output, 
+        availableStock: data?.availableStock || 0,
+        rate: data?.rate || 0,
+        amount, 
+        stockIsInsufficient 
+    };
   });
 
   const totalRatio = calculatedMaterials.reduce((sum, mat) => sum + (mat.ratio ?? 0), 0);
@@ -216,7 +223,9 @@ export function CreateProcessForm() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {fields.map((field, index) => (
+                  {fields.map((field, index) => {
+                    const material = calculatedMaterials[index] || { availableStock: 0, ratio: 0, output: 0, rate: 0, amount: 0, stockIsInsufficient: false };
+                    return (
                     <TableRow key={field.id}>
                       <TableCell>
                         <FormField
@@ -226,8 +235,8 @@ export function CreateProcessForm() {
                         />
                       </TableCell>
                       <TableCell>
-                         <span className={calculatedMaterials[index].stockIsInsufficient ? "text-destructive" : ""}>
-                            {calculatedMaterials[index].availableStock.toFixed(2)}
+                         <span className={material.stockIsInsufficient ? "text-destructive" : ""}>
+                            {material.availableStock.toFixed(2)}
                          </span>
                       </TableCell>
                       <TableCell>
@@ -237,9 +246,9 @@ export function CreateProcessForm() {
                             render={({ field }) => <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />}
                         />
                       </TableCell>
-                      <TableCell>{calculatedMaterials[index].output.toFixed(2)}</TableCell>
-                      <TableCell>{calculatedMaterials[index].rate.toFixed(2)}</TableCell>
-                      <TableCell>{calculatedMaterials[index].amount.toFixed(2)}</TableCell>
+                      <TableCell>{material.output.toFixed(2)}</TableCell>
+                      <TableCell>{material.rate.toFixed(2)}</TableCell>
+                      <TableCell>{material.amount.toFixed(2)}</TableCell>
                       <TableCell>
                         <Button
                           type="button"
@@ -252,7 +261,7 @@ export function CreateProcessForm() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )})}
                 </TableBody>
                 <TableFooter>
                     <TableRow>
