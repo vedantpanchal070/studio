@@ -1,10 +1,11 @@
+
 "use client"
 
+import React, { useEffect, useState } from "react"
 import { useForm, useFieldArray, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import type { z } from "zod"
 import { PlusCircle, Trash2 } from "lucide-react"
-import { useEffect } from "react"
 
 import { processSchema } from "@/lib/schemas"
 import { createProcess } from "@/lib/actions"
@@ -39,6 +40,11 @@ async function getInventoryData(name: string) {
   };
 }
 
+interface MaterialData {
+  availableStock: number;
+  rate: number;
+}
+
 export function CreateProcessForm() {
   const { toast } = useToast()
   const form = useForm<ProcessFormValues>({
@@ -62,30 +68,37 @@ export function CreateProcessForm() {
   const totalProcessOutput = useWatch({ control: form.control, name: "totalProcessOutput" });
   const rawMaterials = useWatch({ control: form.control, name: "rawMaterials" });
 
+  const [materialsData, setMaterialsData] = useState<Record<string, MaterialData>>({});
+
+  useEffect(() => {
+    const fetchAllMaterialsData = async () => {
+      const newMaterialsData: Record<string, MaterialData> = {};
+      for (const material of rawMaterials) {
+        if (material.name && !materialsData[material.name]) {
+          const data = await getInventoryData(material.name);
+          newMaterialsData[material.name] = data;
+        }
+      }
+      if (Object.keys(newMaterialsData).length > 0) {
+        setMaterialsData(prev => ({ ...prev, ...newMaterialsData }));
+      }
+    };
+    fetchAllMaterialsData();
+  }, [rawMaterials, materialsData]);
+  
   const calculatedMaterials = rawMaterials.map((material, index) => {
     const output = (material.ratio ?? 0) * (totalProcessOutput ?? 0) / 100;
-    const [stock, setStock] = React.useState(0);
-    const [rate, setRate] = React.useState(0);
-
-    // This effect will fetch data when material name changes.
-    useEffect(() => {
-        if(material.name) {
-            getInventoryData(material.name).then(data => {
-                setStock(data.availableStock);
-                setRate(data.averagePrice);
-            });
-        }
-    }, [material.name]);
+    const data = materialsData[material.name] || { availableStock: 0, rate: 0 };
     
     // This effect will update the quantity for submission
     useEffect(() => {
-        form.setValue(`rawMaterials.${index}.quantity`, output);
+        form.setValue(`rawMaterials.${index}.quantity`, output, { shouldValidate: true });
     }, [output, index, form]);
 
-    const amount = output * rate;
-    const stockIsInsufficient = output > stock;
+    const amount = output * data.rate;
+    const stockIsInsufficient = output > data.availableStock;
 
-    return { ...material, output, availableStock: stock, rate, amount, stockIsInsufficient };
+    return { ...material, output, ...data, amount, stockIsInsufficient };
   });
 
   const totalRatio = calculatedMaterials.reduce((sum, mat) => sum + (mat.ratio ?? 0), 0);
@@ -110,6 +123,7 @@ export function CreateProcessForm() {
         description: result.message,
       })
       form.reset()
+      setMaterialsData({})
     } else {
       toast({
         title: "Error",
@@ -231,7 +245,7 @@ export function CreateProcessForm() {
                         <FormField
                             control={form.control}
                             name={`rawMaterials.${index}.ratio`}
-                            render={({ field }) => <Input type="number" {...field} />}
+                            render={({ field }) => <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />}
                         />
                       </TableCell>
                       <TableCell>{calculatedMaterials[index].output.toFixed(2)}</TableCell>
