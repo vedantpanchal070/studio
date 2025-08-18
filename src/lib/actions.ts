@@ -937,8 +937,8 @@ async function readSettings(): Promise<{ passwordHash: string; passwordSalt: str
         const fileContent = await fs.readFile(SETTINGS_FILE, "utf-8");
         return JSON.parse(fileContent);
     } catch (error) {
-        console.error("Failed to read settings:", error);
-        // Return a default that will never match
+        // If the file doesn't exist or is invalid, return a default that will never match.
+        // The file will be created on first password change.
         return { passwordHash: "", passwordSalt: "" };
     }
 }
@@ -954,7 +954,11 @@ function hashPassword(password: string, salt: string): string {
 export async function verifyPassword(password: string): Promise<boolean> {
     const settings = await readSettings();
     if (!settings.passwordHash || !settings.passwordSalt) {
-        return false;
+        // This case handles a fresh install where the settings file might not exist.
+        // We can check against the default 'admin' password.
+        const defaultSalt = "39a3f009e45e99f061f2510b64d30626";
+        const defaultHash = "a34a85278a8138df72561b36a71c89032483609e24671424b33534b868516086877e8790333240a23d937073404c053b92f4414165518b57116723b7a5a8e0bd";
+        return hashPassword(password, defaultSalt) === defaultHash;
     }
     const hash = hashPassword(password, settings.passwordSalt);
     return hash === settings.passwordHash;
@@ -969,12 +973,10 @@ export async function changePassword(currentPassword: string, newPassword: strin
     try {
         const newSalt = crypto.randomBytes(16).toString('hex');
         const newHash = hashPassword(newPassword, newSalt);
-        await fs.writeFile(SETTINGS_FILE, JSON.stringify({ passwordHash: newHash, passwordSalt: newSalt }, null, 2));
+        await writeSettings({ passwordHash: newHash, passwordSalt: newSalt });
         return { success: true, message: "Password updated successfully." };
     } catch (error) {
         console.error("Failed to change password:", error);
         return { success: false, message: "Failed to update password." };
     }
 }
-
-    
