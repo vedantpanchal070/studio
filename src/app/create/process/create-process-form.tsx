@@ -8,7 +8,7 @@ import type { z } from "zod"
 import { PlusCircle, Trash2 } from "lucide-react"
 
 import { processSchema } from "@/lib/schemas"
-import { createProcess } from "@/lib/actions"
+import { createProcess, getInventoryItem } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import {
@@ -38,6 +38,8 @@ interface MaterialData {
 
 export function CreateProcessForm() {
   const { toast } = useToast()
+  const [materialData, setMaterialData] = useState<Record<string, MaterialData>>({});
+
   const form = useForm<ProcessFormValues>({
     resolver: zodResolver(processSchema),
     defaultValues: {
@@ -58,6 +60,20 @@ export function CreateProcessForm() {
   const totalProcessOutput = useWatch({ control: form.control, name: "totalProcessOutput" });
   const rawMaterials = useWatch({ control: form.control, name: "rawMaterials" });
 
+  const fetchMaterialData = async (name: string, index: number) => {
+      if (!name) return;
+      const data = await getInventoryItem(name);
+      setMaterialData(prev => ({...prev, [name]: {
+          availableStock: data.availableStock,
+          rate: data.averagePrice,
+          code: data.code,
+          quantityType: data.quantityType,
+      }}));
+      form.setValue(`rawMaterials.${index}.rate`, data.averagePrice, { shouldValidate: true });
+      form.setValue(`rawMaterials.${index}.code`, data.code, { shouldValidate: true });
+      form.setValue(`rawMaterials.${index}.quantityType`, data.quantityType, { shouldValidate: true });
+  }
+
   useEffect(() => {
     rawMaterials.forEach((material, index) => {
         const output = (material.ratio ?? 0) * (totalProcessOutput ?? 0) / 100;
@@ -69,17 +85,19 @@ export function CreateProcessForm() {
   
   const calculatedMaterials = fields.map((field, index) => {
     const material = rawMaterials[index] || {};
+    const data = materialData[material.name] || {};
     const quantity = material.quantity ?? 0;
-    const rate = material.rate || 0;
+    const rate = material.rate || data.rate || 0;
     const amount = quantity * rate;
-    
+    const stockIsInsufficient = (data.availableStock ?? 0) < quantity;
+
     return { 
         ...material, 
         output: quantity,
-        availableStock: 999, // Mocked value
+        availableStock: data.availableStock,
         rate: rate,
         amount, 
-        stockIsInsufficient: false, // Mocked value
+        stockIsInsufficient,
     };
   });
 
@@ -95,6 +113,7 @@ export function CreateProcessForm() {
         description: result.message,
       })
       form.reset()
+      setMaterialData({})
     } else {
       toast({
         title: "Error",
@@ -192,7 +211,7 @@ export function CreateProcessForm() {
                         <FormField
                           control={form.control}
                           name={`rawMaterials.${index}.name`}
-                          render={({ field }) => <UppercaseInput {...field} />}
+                          render={({ field }) => <UppercaseInput {...field} onBlur={() => fetchMaterialData(field.value, index)} />}
                         />
                       </TableCell>
                       <TableCell>
