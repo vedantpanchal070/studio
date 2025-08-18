@@ -22,7 +22,7 @@ const parentRoutes: { [key: string]: string } = {
   "/view/vouchers": "/view",
   "/view/processes": "/view",
   "/view/outputs": "/view",
-  "/view/inventory": "/view",
+  "/view/inventory": "/",
   "/create": "/",
   "/view": "/",
 };
