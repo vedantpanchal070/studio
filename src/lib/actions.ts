@@ -31,11 +31,8 @@ async function readJsonFile(filePath: string): Promise<any[]> {
         return data.map((item: any) => {
             if (item.date) {
                 // When parsing from JSON, assume the date string is in UTC format.
-                // Creating a new Date object from an ISO string will correctly handle it.
                 const date = new Date(item.date);
-                // To avoid timezone shifts, create a new date object with UTC values
-                const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-                return { ...item, date: utcDate };
+                return { ...item, date };
             }
             return item;
         });
@@ -324,12 +321,14 @@ export async function getVouchers(filters: { name?: string; startDate?: Date; en
         vouchers = vouchers.filter(v => v.name === filters.name);
     }
     if (filters.startDate) {
-        const filterDate = new Date(Date.UTC(filters.startDate.getFullYear(), filters.startDate.getMonth(), filters.startDate.getDate()));
-        vouchers = vouchers.filter(v => v.date >= filterDate);
+        const filterDate = new Date(filters.startDate);
+        filterDate.setUTCHours(0, 0, 0, 0);
+        vouchers = vouchers.filter(v => new Date(v.date) >= filterDate);
     }
     if (filters.endDate) {
-        const filterDate = new Date(Date.UTC(filters.endDate.getFullYear(), filters.endDate.getMonth(), filters.endDate.getDate()));
-        vouchers = vouchers.filter(v => v.date <= filterDate);
+        const filterDate = new Date(filters.endDate);
+        filterDate.setUTCHours(23, 59, 59, 999);
+        vouchers = vouchers.filter(v => new Date(v.date) <= filterDate);
     }
     
     return vouchers;
@@ -346,12 +345,12 @@ export async function getInventoryItem(name: string, filters?: { startDate?: Dat
     // Date filtering
     if (filters?.startDate) {
         const start = new Date(filters.startDate);
-        start.setHours(0, 0, 0, 0);
+        start.setUTCHours(0, 0, 0, 0);
         itemVouchers = itemVouchers.filter(v => new Date(v.date) >= start);
     }
     if (filters?.endDate) {
         const end = new Date(filters.endDate);
-        end.setHours(23, 59, 59, 999);
+        end.setUTCHours(23, 59, 59, 999);
         itemVouchers = itemVouchers.filter(v => new Date(v.date) <= end);
     }
 
@@ -423,12 +422,14 @@ export async function getProcesses(filters: { name?: string; startDate?: Date; e
         processes = processes.filter(p => p.processName === filters.name);
     }
     if (filters.startDate) {
-        const filterDate = new Date(Date.UTC(filters.startDate.getFullYear(), filters.startDate.getMonth(), filters.startDate.getDate()));
-        processes = processes.filter(p => p.date >= filterDate);
+        const filterDate = new Date(filters.startDate);
+        filterDate.setUTCHours(0, 0, 0, 0);
+        processes = processes.filter(p => new Date(p.date) >= filterDate);
     }
     if (filters.endDate) {
-        const filterDate = new Date(Date.UTC(filters.endDate.getFullYear(), filters.endDate.getMonth(), filters.endDate.getDate()));
-        processes = processes.filter(p => p.date <= filterDate);
+        const filterDate = new Date(filters.endDate);
+        filterDate.setUTCHours(23, 59, 59, 999);
+        processes = processes.filter(p => new Date(p.date) <= filterDate);
     }
     
     return processes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -480,14 +481,16 @@ export async function getOutputLedger(filters: { name?: string; startDate?: Date
         allSales = allSales.filter(s => s.productName === filters.name);
     }
     if (filters.startDate) {
-        const filterDate = new Date(Date.UTC(filters.startDate.getFullYear(), filters.startDate.getMonth(), filters.startDate.getDate()));
-        allOutputs = allOutputs.filter(o => o.date >= filterDate);
-        allSales = allSales.filter(s => s.date >= filterDate);
+        const filterDate = new Date(filters.startDate);
+        filterDate.setUTCHours(0, 0, 0, 0);
+        allOutputs = allOutputs.filter(o => new Date(o.date) >= filterDate);
+        allSales = allSales.filter(s => new Date(s.date) >= filterDate);
     }
     if (filters.endDate) {
-        const filterDate = new Date(Date.UTC(filters.endDate.getFullYear(), filters.endDate.getMonth(), filters.endDate.getDate()));
-        allOutputs = allOutputs.filter(o => o.date <= filterDate);
-        allSales = allSales.filter(s => s.date <= filterDate);
+        const filterDate = new Date(filters.endDate);
+        filterDate.setUTCHours(23, 59, 59, 999);
+        allOutputs = allOutputs.filter(o => new Date(o.date) <= filterDate);
+        allSales = allSales.filter(s => new Date(s.date) <= filterDate);
     }
     
     // Map outputs to ledger entries
