@@ -49,6 +49,7 @@ type SortDirection = "asc" | "desc"
 
 export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) {
   const [vouchers, setVouchers] = useState<Voucher[]>(initialData)
+  const [itemNames, setItemNames] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [sortConfig, setSortConfig] = useState<{
     key: SortKey
@@ -58,24 +59,17 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
   const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchSchema),
   })
-  
-  // This effect will try to refresh data when the component is loaded on the client side,
-  // which might help if the server-rendered `initialData` is stale.
-  useEffect(() => {
-    const refreshData = async () => {
-        setIsLoading(true)
-        const results = await getVouchers(form.getValues())
-        setVouchers(results)
-        setIsLoading(false)
-    };
-    refreshData();
-  }, []) // Runs once on component mount
 
-  const itemNames = useMemo(() => {
-    // We combine names from initialData and the current state to have a complete list
-    const names = new Set(initialData.map(v => v.name).concat(vouchers.map(v => v.name)));
-    return Array.from(names);
-  }, [initialData, vouchers]);
+  // Fetch all unique item names for the dropdown
+  useEffect(() => {
+    const fetchItemNames = async () => {
+      // We fetch all vouchers without filters to get all names
+      const allVouchers = await getVouchers({});
+      const names = new Set(allVouchers.map(v => v.name));
+      setItemNames(Array.from(names));
+    };
+    fetchItemNames();
+  }, [vouchers]); // Refetch names if vouchers data changes
 
   const sortedVouchers = useMemo(() => {
     let sortableItems = [...vouchers]
@@ -83,11 +77,13 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
       sortableItems.sort((a, b) => {
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
-
+        
+        // Handle date sorting
         if (aValue instanceof Date && bValue instanceof Date) {
-            return aValue.getTime() - bValue.getTime() * (sortConfig.direction === "asc" ? 1 : -1);
+            return (aValue.getTime() - bValue.getTime()) * (sortConfig.direction === "asc" ? 1 : -1);
         }
 
+        // Handle string/number sorting
         if (aValue < bValue) {
           return sortConfig.direction === "asc" ? -1 : 1
         }

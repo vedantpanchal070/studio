@@ -8,7 +8,7 @@ import type { z } from "zod"
 import { PlusCircle, Trash2 } from "lucide-react"
 
 import { processSchema } from "@/lib/schemas"
-import { createProcess } from "@/lib/actions"
+import { createProcess, getInventoryItem } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,19 +28,6 @@ import { Separator } from "@/components/ui/separator"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
 
 type ProcessFormValues = z.infer<typeof processSchema>
-
-// Mock function to fetch inventory data
-// In a real app, this would be a server action calling the database
-async function getInventoryData(name: string) {
-  console.log(`Fetching mock data for ${name}`);
-  // Returning mock data for demonstration
-  return {
-    availableStock: Math.floor(Math.random() * 200) + 50, // Random stock between 50 and 250
-    averagePrice: Math.random() * 10 + 5, // Random price between 5 and 15
-    code: name.substring(0, 2).toUpperCase() + '001',
-    quantityType: 'KG',
-  };
-}
 
 interface MaterialData {
   availableStock: number;
@@ -79,7 +66,7 @@ export function CreateProcessForm() {
       for (const [index, material] of rawMaterials.entries()) {
         if (material.name && !materialsData[material.name]) {
           try {
-            const data = await getInventoryData(material.name);
+            const data = await getInventoryItem(material.name);
             newMaterialsData[material.name] = { 
               availableStock: data.availableStock, 
               rate: data.averagePrice,

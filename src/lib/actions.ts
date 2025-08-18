@@ -4,9 +4,18 @@
 import { z } from "zod"
 import { voucherSchema, processSchema, outputSchema, Voucher } from "./schemas"
 import { revalidatePath } from "next/cache"
+import { db } from "./firebase"
+import { collection, addDoc, getDocs, query, where, Timestamp, orderBy, documentId, writeBatch, getDoc, doc } from "firebase/firestore"
 
-// Mock Data - Moved to global scope to persist between server action calls
-let mockVouchers: Voucher[] = []
+// Helper function to convert Firestore Timestamps to Dates in voucher objects
+function voucherFromDoc(doc: any): Voucher {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    ...data,
+    date: (data.date as Timestamp).toDate(),
+  };
+}
 
 export async function createVoucher(values: z.infer<typeof voucherSchema>) {
   const validatedFields = voucherSchema.safeParse(values);
@@ -18,18 +27,18 @@ export async function createVoucher(values: z.infer<typeof voucherSchema>) {
     }
   }
 
-  // Here you would insert data into the database
-  console.log("Creating voucher with data:", validatedFields.data)
-  const newVoucher = { id: (mockVouchers.length + 1).toString(), ...validatedFields.data };
-  mockVouchers.push(newVoucher);
-
-
-  // Simulate a database delay
-  await new Promise((resolve) => setTimeout(resolve, 1000))
-
-  revalidatePath("/view/vouchers") // Example path to revalidate
-
-  return { success: true, message: "Voucher created successfully!" }
+  try {
+    const docRef = await addDoc(collection(db, "vouchers"), {
+      ...validatedFields.data,
+      date: Timestamp.fromDate(validatedFields.data.date),
+    });
+    console.log("Document written with ID: ", docRef.id);
+    revalidatePath("/view/vouchers");
+    return { success: true, message: "Voucher created successfully!" };
+  } catch (e) {
+    console.error("Error adding document: ", e);
+    return { success: false, message: "Failed to create voucher." };
+  }
 }
 
 export async function createProcess(values: z.infer<typeof processSchema>) {
@@ -44,50 +53,49 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
 
   const { date, processName, rawMaterials, notes } = validatedFields.data
 
-  // Here you would insert data into the database
-  console.log("Creating process with data:", validatedFields.data);
-  // This is where we would save the process recipe itself to a 'recipes' table.
+  try {
+    // In a real app, we'd save the process to its own collection.
+    // For this app, we just create the negative voucher entries.
+    const batch = writeBatch(db);
 
-  // Now, create negative voucher entries for each raw material used.
-  for (const material of rawMaterials) {
-    // In a real app, this rate would be fetched securely from the DB
-    // For now, we'll simulate fetching an average price.
-    const averagePrice = mockVouchers
-      .filter(v => v.name === material.name && v.quantities > 0)
-      .reduce(
-        (acc, v) => {
-          acc.totalValue += v.totalPrice
-          acc.totalQty += v.quantities
-          return acc
-        },
-        { totalValue: 0, totalQty: 0 }
-      );
-    
-    const rate = averagePrice.totalQty > 0 ? averagePrice.totalValue / averagePrice.totalQty : 0;
+    for (const material of rawMaterials) {
+        // Fetch the average price for the raw material
+        const q = query(collection(db, "vouchers"), where("name", "==", material.name), where("quantities", ">", 0));
+        const querySnapshot = await getDocs(q);
+        
+        let totalValue = 0;
+        let totalQty = 0;
+        querySnapshot.forEach(doc => {
+            totalValue += doc.data().totalPrice;
+            totalQty += doc.data().quantities;
+        });
 
-    const negativeVoucher = {
-      id: (mockVouchers.length + 1).toString(),
-      date,
-      name: material.name,
-      code: material.code,
-      quantities: -material.quantity, // Make it a negative quantity
-      quantityType: material.quantityType,
-      pricePerNo: rate,
-      totalPrice: -material.quantity * rate,
-      remarks: `Used in process: ${processName}. ${notes || ""}`.trim(),
-    };
-    mockVouchers.push(negativeVoucher);
-    console.log("Creating negative voucher:", negativeVoucher)
+        const rate = totalQty > 0 ? totalValue / totalQty : 0;
+        
+        const newVoucherRef = doc(collection(db, "vouchers"));
+        batch.set(newVoucherRef, {
+            date: Timestamp.fromDate(date),
+            name: material.name,
+            code: material.code,
+            quantities: -material.quantity, // Negative quantity
+            quantityType: material.quantityType,
+            pricePerNo: rate,
+            totalPrice: -material.quantity * rate,
+            remarks: `Used in process: ${processName}. ${notes || ""}`.trim(),
+        });
+    }
+
+    await batch.commit();
+
+    console.log("Process created and inventory updated.");
+    revalidatePath("/view/processes");
+    revalidatePath("/view/vouchers");
+
+    return { success: true, message: "Process saved and inventory updated!" };
+  } catch (e) {
+    console.error("Error creating process: ", e);
+    return { success: false, message: "Failed to create process." };
   }
-
-
-  // Simulate a database delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  revalidatePath("/view/processes");
-  revalidatePath("/view/vouchers"); // Revalidate vouchers page to show deductions
-
-  return { success: true, message: "Process saved and inventory updated!" };
 }
 
 export async function createOutput(values: z.infer<typeof outputSchema>) {
@@ -100,35 +108,75 @@ export async function createOutput(values: z.infer<typeof outputSchema>) {
     };
   }
 
-  // Here you would insert data into the database
-  console.log("Creating output with data:", validatedFields.data);
-
-  // Simulate a database delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  revalidatePath("/view/outputs"); // Example path to revalidate
-
-  return { success: true, message: "Output created successfully!" };
+   try {
+    const docRef = await addDoc(collection(db, "outputs"), {
+      ...validatedFields.data,
+      date: Timestamp.fromDate(validatedFields.data.date),
+    });
+    console.log("Document written with ID: ", docRef.id);
+    revalidatePath("/view/outputs");
+    return { success: true, message: "Output created successfully!" };
+  } catch (e) {
+    console.error("Error adding document: ", e);
+    return { success: false, message: "Failed to create output." };
+  }
 }
 
 export async function getVouchers(
   filters: { name?: string; startDate?: Date; endDate?: Date }
 ): Promise<Voucher[]> {
   console.log("Fetching vouchers with filters:", filters)
-  console.log("Current mockVouchers length:", mockVouchers.length);
-  await new Promise(resolve => setTimeout(resolve, 500)) // Simulate network delay
-
-  let filteredVouchers = mockVouchers
-
+  
+  const queries = [];
   if (filters.name) {
-    filteredVouchers = filteredVouchers.filter(v => v.name === filters.name)
+    queries.push(where("name", "==", filters.name));
   }
   if (filters.startDate) {
-    filteredVouchers = filteredVouchers.filter(v => new Date(v.date) >= filters.startDate!)
+    queries.push(where("date", ">=", Timestamp.fromDate(filters.startDate)));
   }
   if (filters.endDate) {
-    filteredVouchers = filteredVouchers.filter(v => new Date(v.date) <= filters.endDate!)
+    queries.push(where("date", "<=", Timestamp.fromDate(filters.endDate)));
   }
 
-  return JSON.parse(JSON.stringify(filteredVouchers))
+  const q = query(collection(db, "vouchers"), ...queries, orderBy("date", "desc"));
+  const querySnapshot = await getDocs(q);
+  const vouchers = querySnapshot.docs.map(voucherFromDoc);
+  
+  return JSON.parse(JSON.stringify(vouchers));
+}
+
+// New function to get item details for the process form
+export async function getInventoryItem(name: string) {
+    if (!name) {
+        return { availableStock: 0, averagePrice: 0, code: '', quantityType: '' };
+    }
+
+    const q = query(collection(db, "vouchers"), where("name", "==", name));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+        return { availableStock: 0, averagePrice: 0, code: '', quantityType: '' };
+    }
+    
+    let totalStock = 0;
+    let totalPositiveValue = 0;
+    let totalPositiveQty = 0;
+    let code = '';
+    let quantityType = '';
+
+    querySnapshot.forEach(doc => {
+        const data = doc.data();
+        totalStock += data.quantities;
+        if (!code) code = data.code;
+        if (!quantityType) quantityType = data.quantityType;
+
+        if (data.quantities > 0) {
+            totalPositiveValue += data.totalPrice;
+            totalPositiveQty += data.quantities;
+        }
+    });
+
+    const averagePrice = totalPositiveQty > 0 ? totalPositiveValue / totalPositiveQty : 0;
+
+    return { availableStock: totalStock, averagePrice, code, quantityType };
 }

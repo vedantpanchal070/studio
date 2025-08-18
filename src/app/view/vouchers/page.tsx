@@ -1,3 +1,4 @@
+
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
@@ -11,6 +12,8 @@ import {
 } from "@/components/ui/card"
 import { ViewVouchersClient } from "./view-vouchers-client"
 import { getVouchers } from "@/lib/actions"
+
+export const dynamic = 'force-dynamic'
 
 export default async function ViewVouchersPage() {
   const initialData = await getVouchers({})

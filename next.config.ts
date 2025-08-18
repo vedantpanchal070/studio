@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -18,6 +19,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  env: {
+    NEXT_PUBLIC_FIREBASE_CONFIG: process.env.FIREBASE_CONFIG
+  }
 };
 
 export default nextConfig;
