@@ -5,7 +5,7 @@ import React, { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { ShoppingCart, Search } from "lucide-react"
+import { Search } from "lucide-react"
 
 import type { FinishedGoodInventoryItem } from "@/lib/actions"
 import { Button } from "@/components/ui/button"
@@ -17,7 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { SalesDialog } from "@/components/sales-dialog"
 import { getFinishedGoodsInventory } from "@/lib/actions"
 import {
   Form,
@@ -41,7 +40,6 @@ type SearchFormValues = z.infer<typeof searchSchema>
 
 export function InventoryClient({ initialData }: InventoryClientProps) {
   const [inventory, setInventory] = useState<FinishedGoodInventoryItem[]>(initialData)
-  const [isSalesModalOpen, setIsSalesModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   
   const form = useForm<SearchFormValues>({
@@ -73,7 +71,6 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
 
   return (
     <div className="space-y-6">
-      <SalesDialog isOpen={isSalesModalOpen} onOpenChange={setIsSalesModalOpen} onSaleSuccess={onSaleSuccess}/>
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="rounded-lg border p-4 space-y-4">
@@ -114,7 +111,6 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
                 <TableHead>Code</TableHead>
                 <TableHead>Available Qty</TableHead>
                 <TableHead>Cost Price</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -125,21 +121,11 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
                     <TableCell>{item.code}</TableCell>
                     <TableCell>{`${item.availableStock.toFixed(2)} ${item.quantityType}`}</TableCell>
                     <TableCell>{item.averagePrice.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsSalesModalOpen(true)}
-                      >
-                        <ShoppingCart className="mr-2 h-4 w-4" />
-                        Sell
-                      </Button>
-                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={4} className="h-24 text-center">
                     No finished goods in stock.
                   </TableCell>
                 </TableRow>
