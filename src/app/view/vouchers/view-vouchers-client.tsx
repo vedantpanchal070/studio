@@ -80,6 +80,8 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
         if (selectedName) {
             const inventoryData = await getInventoryItem(selectedName);
             setAveragePrice(inventoryData.averagePrice);
+        } else {
+            setAveragePrice(0);
         }
     };
     fetchAveragePrice();
