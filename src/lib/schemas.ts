@@ -17,6 +17,15 @@ export const voucherSchema = z.object({
   remarks: z.string().optional(),
 })
 
+const rawMaterialSchema = z.object({
+  name: z.string().min(1, "Raw material name is required."),
+  code: z.string().min(1, "Item code is required."),
+  quantityType: z.string().min(1, "Quantity type is required."),
+  quantity: z.coerce.number().gt(0, "Quantity must be a positive number."),
+  ratio: z.coerce.number().optional(),
+  rate: z.coerce.number().optional(),
+})
+
 export const processSchema = z.object({
   date: z.date({
     required_error: "A date is required.",
@@ -24,14 +33,7 @@ export const processSchema = z.object({
   processName: z.string().min(1, "Process name is required."),
   totalProcessOutput: z.coerce.number().gt(0, "Total output must be a positive number."),
   outputUnit: z.string().min(1, "Output unit is required."),
-  rawMaterials: z.array(z.object({
-    name: z.string().min(1, "Raw material name is required."),
-    code: z.string().min(1, "Item code is required."),
-    quantityType: z.string().min(1, "Quantity type is required."),
-    quantity: z.coerce.number().gt(0, "Quantity must be a positive number."),
-    ratio: z.coerce.number().optional(),
-    rate: z.coerce.number().optional(),
-  })).min(1, "At least one raw material is required."),
+  rawMaterials: z.array(rawMaterialSchema).min(1, "At least one raw material is required."),
   notes: z.string().optional(),
 });
 
@@ -52,3 +54,4 @@ export const outputSchema = z.object({
 })
 
 export type Voucher = z.infer<typeof voucherSchema> & { id: string }
+export type Process = z.infer<typeof processSchema>;

@@ -86,5 +86,27 @@
     "totalPrice": 600,
     "remarks": "",
     "id": "2025-08-18T09:20:45.145Z8npqf0zg0"
+  },
+  {
+    "id": "2025-08-18T09:40:12.832Z4awmcx4ty",
+    "date": "2025-08-18T09:39:53.236Z",
+    "name": "SAK",
+    "code": "FG-SAK",
+    "quantities": 85,
+    "quantityType": "KG",
+    "pricePerNo": 31.176470588235293,
+    "totalPrice": 2650,
+    "remarks": "PRODUCED FROM SAK"
+  },
+  {
+    "id": "2025-08-18T09:40:12.838Zic38ujw7d",
+    "date": "2025-08-18T09:39:53.236Z",
+    "name": "SAK - SCRAPE",
+    "code": "SCRAPE-SAK",
+    "quantities": 10,
+    "quantityType": "KG",
+    "pricePerNo": 0,
+    "totalPrice": 0,
+    "remarks": "SCRAPE FROM SAK"
   }
 ]

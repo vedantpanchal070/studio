@@ -9,7 +9,6 @@ import path from "path"
 
 const DATA_DIR = path.join(process.cwd(), "data")
 const VOUCHERS_FILE = path.join(DATA_DIR, "vouchers.json")
-// Assuming processes and outputs are stored similarly. Create new files for them.
 const PROCESSES_FILE = path.join(DATA_DIR, "processes.json")
 const OUTPUTS_FILE = path.join(DATA_DIR, "outputs.json")
 
@@ -148,6 +147,7 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
     revalidatePath("/view/vouchers");
     revalidatePath("/create/process");
     revalidatePath("/create/output");
+    revalidatePath("/view/processes");
 
     return { success: true, message: "Process saved successfully, inventory updated." };
   } catch (error) {
@@ -281,7 +281,6 @@ export async function getInventoryItem(name: string) {
 
     const averagePrice = totalInputQty > 0 ? totalInputValue / totalInputQty : 0;
     
-    // Find the latest voucher entry for this item to get the code and quantityType
     const latestVoucher = itemVouchers.sort((a, b) => b.date.getTime() - a.date.getTime())[0];
 
     return { 
@@ -294,13 +293,11 @@ export async function getInventoryItem(name: string) {
 
 export async function getVoucherItemNames(): Promise<string[]> {
     const vouchers = await readVouchers();
-    // Only include raw materials (positive quantities initially)
     const purchaseVouchers = vouchers.filter(v => v.quantities > 0 && !v.remarks?.includes("PRODUCED FROM"));
     const names = new Set(purchaseVouchers.map(v => v.name));
     return Array.from(names).sort();
 }
 
-// New type for process details
 export interface ProcessDetails {
   processName: string;
   totalProcessOutput: number;
@@ -322,4 +319,28 @@ export async function getProcessNamesAndDetails(): Promise<ProcessDetails[]> {
 async function getProcessDetails(name: string): Promise<ProcessDetails | null> {
     const processes = await getProcessNamesAndDetails();
     return processes.find(p => p.processName === name) || null;
+}
+
+export async function getProcesses(filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<any[]> {
+    let processes = await readProcesses();
+
+    if (filters.name) {
+        processes = processes.filter(p => p.processName === filters.name);
+    }
+    if (filters.startDate) {
+        processes = processes.filter(p => p.date >= filters.startDate!);
+    }
+    if (filters.endDate) {
+        const endDate = new Date(filters.endDate);
+        endDate.setHours(23, 59, 59, 999);
+        processes = processes.filter(p => p.date <= endDate);
+    }
+    
+    return processes.sort((a, b) => b.date.getTime() - a.date.getTime());
+}
+
+export async function getUniqueProcessNames(): Promise<string[]> {
+    const processes = await readProcesses();
+    const names = new Set(processes.map(p => p.processName));
+    return Array.from(names).sort();
 }
