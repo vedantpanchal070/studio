@@ -75,10 +75,11 @@ export function CreateVoucherForm() {
   const quantityTypeRef = useRef<HTMLInputElement>(null)
   const pricePerNoRef = useRef<HTMLInputElement>(null)
   const remarksRef = useRef<HTMLTextAreaElement>(null)
+  const saveButtonRef = useRef<HTMLButtonElement>(null)
 
   const handleKeyDown = (
     e: React.KeyboardEvent,
-    nextFieldRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement>
+    nextFieldRef: React.RefObject<HTMLElement>
   ) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
@@ -211,13 +212,13 @@ export function CreateVoucherForm() {
             <FormItem>
               <FormLabel>Remarks</FormLabel>
               <FormControl>
-                <Textarea {...field} ref={remarksRef} />
+                <Textarea {...field} ref={remarksRef} onKeyDown={(e) => handleKeyDown(e, saveButtonRef)} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        <Button type="submit" disabled={form.formState.isSubmitting}>
+        <Button type="submit" disabled={form.formState.isSubmitting} ref={saveButtonRef}>
           {form.formState.isSubmitting ? "Saving..." : "Save All Entries"}
         </Button>
       </form>

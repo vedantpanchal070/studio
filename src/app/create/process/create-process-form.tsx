@@ -8,7 +8,7 @@ import type { z } from "zod"
 import { PlusCircle, Trash2 } from "lucide-react"
 
 import { processSchema } from "@/lib/schemas"
-import { createProcess, getInventoryItem } from "@/lib/actions"
+import { createProcess } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import {
@@ -58,39 +58,6 @@ export function CreateProcessForm() {
   const totalProcessOutput = useWatch({ control: form.control, name: "totalProcessOutput" });
   const rawMaterials = useWatch({ control: form.control, name: "rawMaterials" });
 
-  const [materialsData, setMaterialsData] = useState<Record<string, MaterialData>>({});
-
-  useEffect(() => {
-    const fetchAllMaterialsData = async () => {
-      const newMaterialsData: Record<string, MaterialData> = {};
-      for (const [index, material] of rawMaterials.entries()) {
-        if (material.name && !materialsData[material.name]) {
-          try {
-            const data = await getInventoryItem(material.name);
-            const materialInfo = {
-              availableStock: data.availableStock,
-              rate: data.averagePrice,
-              code: data.code,
-              quantityType: data.quantityType
-            };
-            newMaterialsData[material.name] = materialInfo;
-            form.setValue(`rawMaterials.${index}.code`, materialInfo.code);
-            form.setValue(`rawMaterials.${index}.quantityType`, materialInfo.quantityType);
-            form.setValue(`rawMaterials.${index}.rate`, materialInfo.rate);
-          } catch (error) {
-            console.error(`Failed to fetch data for ${material.name}`, error);
-          }
-        }
-      }
-      if (Object.keys(newMaterialsData).length > 0) {
-        setMaterialsData(prev => ({ ...prev, ...newMaterialsData }));
-      }
-    };
-    if (rawMaterials.length > 0) {
-      fetchAllMaterialsData();
-    }
-  }, [rawMaterials, materialsData, form]);
-  
   useEffect(() => {
     rawMaterials.forEach((material, index) => {
         const output = (material.ratio ?? 0) * (totalProcessOutput ?? 0) / 100;
@@ -102,19 +69,17 @@ export function CreateProcessForm() {
   
   const calculatedMaterials = fields.map((field, index) => {
     const material = rawMaterials[index] || {};
-    const data = material.name ? materialsData[material.name] : undefined;
     const quantity = material.quantity ?? 0;
-    const rate = data?.rate || 0;
+    const rate = material.rate || 0;
     const amount = quantity * rate;
-    const stockIsInsufficient = quantity > (data?.availableStock || 0);
-
+    
     return { 
         ...material, 
         output: quantity,
-        availableStock: data?.availableStock || 0,
+        availableStock: 999, // Mocked value
         rate: rate,
         amount, 
-        stockIsInsufficient 
+        stockIsInsufficient: false, // Mocked value
     };
   });
 
@@ -123,15 +88,6 @@ export function CreateProcessForm() {
 
 
   const onSubmit = async (values: ProcessFormValues) => {
-    if (calculatedMaterials.some(m => m.stockIsInsufficient)) {
-      toast({
-        title: "Error",
-        description: "Insufficient stock for one or more materials. Please check quantities.",
-        variant: "destructive",
-      })
-      return;
-    }
-
     const result = await createProcess(values)
     if (result.success) {
       toast({
@@ -139,7 +95,6 @@ export function CreateProcessForm() {
         description: result.message,
       })
       form.reset()
-      setMaterialsData({})
     } else {
       toast({
         title: "Error",
@@ -253,7 +208,13 @@ export function CreateProcessForm() {
                         />
                       </TableCell>
                       <TableCell>{material?.output?.toFixed(2) || '0.00'}</TableCell>
-                      <TableCell>{material?.rate?.toFixed(2) || '0.00'}</TableCell>
+                      <TableCell>
+                        <FormField
+                            control={form.control}
+                            name={`rawMaterials.${index}.rate`}
+                            render={({ field }) => <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />}
+                        />
+                      </TableCell>
                       <TableCell>{material?.amount?.toFixed(2) || '0.00'}</TableCell>
                       <TableCell>
                         <Button
