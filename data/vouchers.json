@@ -92,10 +92,10 @@
     "date": "2025-08-18T09:39:53.236Z",
     "name": "SAK",
     "code": "FG-SAK",
-    "quantities": 85,
+    "quantities": 90,
     "quantityType": "KG",
-    "pricePerNo": 31.176470588235293,
-    "totalPrice": 2650,
+    "pricePerNo": 30,
+    "totalPrice": 2700,
     "remarks": "PRODUCED FROM SAK"
   },
   {
@@ -103,7 +103,7 @@
     "date": "2025-08-18T09:39:53.236Z",
     "name": "SAK - SCRAPE",
     "code": "SCRAPE-SAK",
-    "quantities": 10,
+    "quantities": 5,
     "quantityType": "KG",
     "pricePerNo": 0,
     "totalPrice": 0,
