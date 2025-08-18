@@ -34,9 +34,14 @@ export function EscapeHandler() {
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (event.key === "Escape") {
-      // Check if any dialogs/popovers are open. If so, let them handle the ESC press.
-      const isModalOpen = document.querySelector('[data-state="open"]');
-      if (isModalOpen) {
+      // If the exit dialog is open, let it handle the ESC key (i.e., close itself) and do nothing else.
+      if (isExitDialogOpen) {
+        return; 
+      }
+      
+      // Check if any other dialogs/popovers are open. If so, let them handle the ESC press.
+      const isOtherModalOpen = document.querySelector('[data-state="open"]');
+      if (isOtherModalOpen) {
         return;
       }
       
@@ -49,7 +54,7 @@ export function EscapeHandler() {
         setIsExitDialogOpen(true);
       }
     }
-  }, [pathname, router]);
+  }, [pathname, router, isExitDialogOpen]);
 
   useEffect(() => {
     document.addEventListener("keydown", handleKeyDown);
