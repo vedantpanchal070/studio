@@ -5,7 +5,7 @@ import React, { useState, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Search, Trash2, ChevronDown } from "lucide-react"
+import { Search, Trash2, ChevronDown, Edit } from "lucide-react"
 import { format } from 'date-fns'
 
 import type { Process } from "@/lib/schemas"
@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { EditProcessDialog } from "./edit-process-dialog"
 
 const searchSchema = z.object({
   name: z.string().optional(),
@@ -61,7 +62,7 @@ interface ViewProcessesClientProps {
   processNames: string[];
 }
 
-function ProcessEntry({ process, onDelete }: { process: Process, onDelete: (process: Process) => void }) {
+function ProcessEntry({ process, onDelete, onEdit }: { process: Process, onDelete: (process: Process) => void, onEdit: (process: Process) => void }) {
     const [isOpen, setIsOpen] = useState(false)
 
     const totalAmount = process.rawMaterials.reduce((sum, mat) => sum + ((mat.rate ?? 0) * mat.quantity), 0);
@@ -77,6 +78,9 @@ function ProcessEntry({ process, onDelete }: { process: Process, onDelete: (proc
                 <TableCell>{totalIngredients.toFixed(2)}</TableCell>
                 <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => onEdit(process)}>
+                            <Edit className="h-4 w-4" />
+                        </Button>
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon">
@@ -141,6 +145,8 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
   const { toast } = useToast()
   const [processes, setProcesses] = useState<Process[]>(initialData)
   const [isLoading, setIsLoading] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [selectedProcess, setSelectedProcess] = useState<Process | null>(null)
   const endDateRef = useRef<HTMLButtonElement>(null)
 
 
@@ -173,6 +179,11 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
       toast({ title: "Error", description: result.message, variant: "destructive" });
     }
   };
+
+  const handleEdit = (process: Process) => {
+    setSelectedProcess(process);
+    setIsEditDialogOpen(true);
+  }
 
   return (
     <div className="space-y-6">
@@ -249,12 +260,12 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
                         <TableHead>Process Name</TableHead>
                         <TableHead>Cost/Unit</TableHead>
                         <TableHead>Ingred. Qty</TableHead>
-                        <TableHead className="text-right w-[100px]">Actions</TableHead>
+                        <TableHead className="text-right w-[150px]">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                   {processes.length > 0 ? processes.map((process, pIndex) => (
-                      <ProcessEntry key={pIndex} process={process} onDelete={handleDelete} />
+                      <ProcessEntry key={pIndex} process={process} onDelete={handleDelete} onEdit={handleEdit} />
                   )) : (
                     <TableRow>
                         <TableCell colSpan={5} className="h-24 text-center">
@@ -266,6 +277,16 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
             </Table>
         </div>
       </div>
+      {selectedProcess && (
+        <EditProcessDialog
+            isOpen={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+            process={selectedProcess}
+            onProcessUpdated={() => {
+                fetchProcesses(form.getValues());
+            }}
+        />
+      )}
     </div>
   )
 }

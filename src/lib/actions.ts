@@ -593,6 +593,61 @@ export async function updateVoucher(values: z.infer<typeof voucherSchema>) {
     }
 }
 
+export async function updateProcess(originalProcess: Process, newValues: z.infer<typeof processSchema>) {
+    const validatedFields = processSchema.safeParse(newValues);
+
+    if (!validatedFields.success) {
+        return { success: false, message: "Invalid process data." };
+    }
+    
+    const { date, processName, outputUnit, notes } = validatedFields.data;
+
+    try {
+        let allProcesses = await readProcesses();
+        const processIndex = allProcesses.findIndex(p => 
+            p.processName === originalProcess.processName && new Date(p.date).getTime() === new Date(originalProcess.date).getTime()
+        );
+        
+        if (processIndex === -1) {
+            return { success: false, message: "Original process not found." };
+        }
+
+        const originalProcessName = allProcesses[processIndex].processName;
+
+        // Update the process entry
+        allProcesses[processIndex] = {
+            ...allProcesses[processIndex],
+            date,
+            processName,
+            outputUnit,
+            notes,
+        };
+        await writeProcesses(allProcesses);
+
+        // Also update the associated vouchers' remarks if process name changed
+        if(originalProcessName !== processName) {
+            let allVouchers = await readVouchers();
+            const originalRemark = `USED IN ${originalProcessName}`;
+            const newRemark = `USED IN ${processName}`;
+
+            allVouchers.forEach(voucher => {
+                if (voucher.remarks === originalRemark && new Date(voucher.date).getTime() === new Date(date).getTime()) {
+                    voucher.remarks = newRemark;
+                }
+            });
+            await writeVouchers(allVouchers);
+        }
+        
+        revalidatePath("/view/processes");
+        revalidatePath("/view/vouchers");
+        return { success: true, message: "Process updated successfully." };
+
+    } catch (error) {
+        console.error("Failed to update process:", error);
+        return { success: false, message: "Failed to update process." };
+    }
+}
+
 export async function deleteProcess(processToDelete: Process) {
   try {
     let processes = await readProcesses();
