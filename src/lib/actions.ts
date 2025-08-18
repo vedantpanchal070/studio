@@ -6,14 +6,12 @@ import { voucherSchema, processSchema, outputSchema, saleSchema, type Process, t
 import { revalidatePath } from "next/cache"
 import fs from "fs/promises"
 import path from "path"
-import crypto from "crypto"
 
 const DATA_DIR = path.join(process.cwd(), "data")
 const VOUCHERS_FILE = path.join(DATA_DIR, "vouchers.json")
 const PROCESSES_FILE = path.join(DATA_DIR, "processes.json")
 const OUTPUTS_FILE = path.join(DATA_DIR, "outputs.json")
 const SALES_FILE = path.join(DATA_DIR, "sales.json")
-const SETTINGS_FILE = path.join(DATA_DIR, "settings.json")
 
 
 // Ensure data directory exists
@@ -925,58 +923,5 @@ export async function updateSale(values: z.infer<typeof saleSchema>) {
     } catch (error) {
         console.error("Failed to update sale:", error);
         return { success: false, message: "Failed to update sale." };
-    }
-}
-
-
-// ============== PASSWORD ACTIONS ==============
-
-async function readSettings(): Promise<{ passwordHash: string; passwordSalt: string }> {
-    try {
-        await ensureDataDir();
-        const fileContent = await fs.readFile(SETTINGS_FILE, "utf-8");
-        return JSON.parse(fileContent);
-    } catch (error) {
-        // If the file doesn't exist or is invalid, return a default that will never match.
-        // The file will be created on first password change.
-        return { passwordHash: "", passwordSalt: "" };
-    }
-}
-
-async function writeSettings(settings: { passwordHash: string; passwordSalt: string }) {
-    await writeJsonFile(SETTINGS_FILE, settings);
-}
-
-function hashPassword(password: string, salt: string): string {
-    return crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-}
-
-export async function verifyPassword(password: string): Promise<boolean> {
-    const settings = await readSettings();
-    if (!settings.passwordHash || !settings.passwordSalt) {
-        // This case handles a fresh install where the settings file might not exist.
-        // We can check against the default 'admin' password.
-        const defaultSalt = "39a3f009e45e99f061f2510b64d30626";
-        const defaultHash = "a34a85278a8138df72561b36a71c89032483609e24671424b33534b868516086877e8790333240a23d937073404c053b92f4414165518b57116723b7a5a8e0bd";
-        return hashPassword(password, defaultSalt) === defaultHash;
-    }
-    const hash = hashPassword(password, settings.passwordSalt);
-    return hash === settings.passwordHash;
-}
-
-export async function changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
-    const isCorrect = await verifyPassword(currentPassword);
-    if (!isCorrect) {
-        return { success: false, message: "Incorrect current password." };
-    }
-
-    try {
-        const newSalt = crypto.randomBytes(16).toString('hex');
-        const newHash = hashPassword(newPassword, newSalt);
-        await writeSettings({ passwordHash: newHash, passwordSalt: newSalt });
-        return { success: true, message: "Password updated successfully." };
-    } catch (error) {
-        console.error("Failed to change password:", error);
-        return { success: false, message: "Failed to update password." };
     }
 }

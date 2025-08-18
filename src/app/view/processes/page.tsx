@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/card"
 import { ViewProcessesClient } from "./view-processes-client"
 import { getProcesses, getUniqueProcessNames } from "@/lib/actions"
-import { PasswordProtect } from "@/components/password-protect"
 
 export const dynamic = 'force-dynamic'
 
@@ -36,12 +35,10 @@ export default async function ViewProcessesPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <PasswordProtect>
-                <ViewProcessesClient 
-                initialData={initialData}
-                processNames={processNames} 
-                />
-            </PasswordProtect>
+            <ViewProcessesClient 
+              initialData={initialData}
+              processNames={processNames} 
+            />
           </CardContent>
         </Card>
       </div>

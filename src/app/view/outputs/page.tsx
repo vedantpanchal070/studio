@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/card"
 import { ViewOutputsClient } from "./view-outputs-client"
 import { getOutputLedger, getFinishedGoods } from "@/lib/actions"
-import { PasswordProtect } from "@/components/password-protect"
 
 export const dynamic = 'force-dynamic'
 
@@ -36,12 +35,10 @@ export default async function ViewOutputsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <PasswordProtect>
-              <ViewOutputsClient 
-                initialData={initialData}
-                productNames={finishedGoods.map(g => g.name)}
-              />
-            </PasswordProtect>
+            <ViewOutputsClient 
+              initialData={initialData}
+              productNames={finishedGoods.map(g => g.name)}
+            />
           </CardContent>
         </Card>
       </div>
