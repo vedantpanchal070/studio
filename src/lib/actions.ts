@@ -53,11 +53,22 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
 
   const { date, processName, rawMaterials, notes } = validatedFields.data
 
+  // Validate that all materials have a valid rate
+  for (const material of rawMaterials) {
+    const rate = material.rate ?? 0;
+    if (rate <= 0) {
+      return {
+        success: false,
+        message: `Material "${material.name}" has no purchase history or a price of zero. Please create a voucher for it first.`,
+      };
+    }
+  }
+
   try {
     const batch = writeBatch(db);
 
     for (const material of rawMaterials) {
-        const rate = material.rate || 0; // Use rate from form, default to 0 if not provided
+        const rate = material.rate!; // We can now assert that rate is not null/zero
         
         const newVoucherRef = doc(collection(db, "vouchers"));
         batch.set(newVoucherRef, {
