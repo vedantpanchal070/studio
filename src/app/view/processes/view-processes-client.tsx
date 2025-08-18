@@ -177,39 +177,41 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
 
           return (
             <AccordionItem value={`item-${index}`} key={index}>
-              <AccordionTrigger>
-                <div className="flex justify-between items-center w-full pr-4">
-                  <div className="flex gap-4 items-center">
-                     <Badge variant="outline">{format(new Date(process.date), 'yyyy-MM-dd')}</Badge>
-                     <span className="font-semibold text-primary">{process.processName}</span>
-                  </div>
-                   <div className="flex items-center gap-2">
-                    <div className="text-right">
-                        <p className="text-sm">Cost/Unit: <span className="font-semibold">{costPerUnit.toFixed(2)}</span></p>
-                        <p className="text-xs text-muted-foreground">Total Qty: {totalIngredientQty.toFixed(2)} {process.outputUnit}</p>
+                <div className="flex items-center w-full">
+                    <AccordionTrigger className="flex-grow">
+                        <div className="flex justify-between items-center w-full pr-4">
+                        <div className="flex gap-4 items-center">
+                            <Badge variant="outline">{format(new Date(process.date), 'yyyy-MM-dd')}</Badge>
+                            <span className="font-semibold text-primary">{process.processName}</span>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-sm">Cost/Unit: <span className="font-semibold">{costPerUnit.toFixed(2)}</span></p>
+                            <p className="text-xs text-muted-foreground">Total Qty: {totalIngredientQty.toFixed(2)} {process.outputUnit}</p>
+                        </div>
+                        </div>
+                    </AccordionTrigger>
+                    <div className="flex items-center gap-2 pl-2">
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will delete the process and add all consumed raw materials back to your inventory. This action cannot be undone.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(process)}>Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </div>
-                     <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                           <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                           <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will delete the process and add all consumed raw materials back to your inventory. This action cannot be undone.
-                              </AlertDialogDescription>
-                           </AlertDialogHeader>
-                           <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(process)}>Delete</AlertDialogAction>
-                           </AlertDialogFooter>
-                        </AlertDialogContent>
-                     </AlertDialog>
-                   </div>
                 </div>
-              </AccordionTrigger>
               <AccordionContent>
                 <div className="p-4 bg-muted/50 rounded-md">
                     <Table>
