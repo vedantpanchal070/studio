@@ -15,12 +15,18 @@ export default function ViewPage() {
           <h1 className="text-4xl font-bold tracking-tight">View Data</h1>
           <p className="text-muted-foreground mt-2 text-lg">Browse ledgers and historical records.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <MenuCard
             href="/view/vouchers"
             icon={<ScrollText className="w-12 h-12 text-primary" />}
             title="View Vouchers"
             description="See the inventory ledger for raw materials."
+          />
+           <MenuCard
+            href="/view/inventory"
+            icon={<Warehouse className="w-12 h-12 text-primary" />}
+            title="Inventory"
+            description="View and sell finished goods stock on hand."
           />
           <MenuCard
             href="/view/processes"
