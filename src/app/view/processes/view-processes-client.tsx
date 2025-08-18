@@ -70,7 +70,7 @@ function ProcessEntry({ process, onDelete }: { process: Process, onDelete: (proc
     
     return (
         <React.Fragment>
-            <TableRow className="hover:bg-muted/50 data-[state=open]:bg-muted/50" data-state={isOpen ? 'open' : 'closed'}>
+            <TableRow className="hover:bg-muted/50" data-state={isOpen ? 'open' : 'closed'}>
                 <TableCell>{format(new Date(process.date), 'dd/MM/yyyy')}</TableCell>
                 <TableCell>{process.processName}</TableCell>
                 <TableCell>{costPerUnit.toFixed(2)}</TableCell>
@@ -243,10 +243,10 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
             <Table>
                 <TableHeader className="sticky top-0 bg-background">
                     <TableRow>
-                        <TableHead className="w-[400px]">Date</TableHead>
-                        <TableHead className="w-[600px]">Process Name</TableHead>
-                        <TableHead className="w-[400px]">Cost/Unit</TableHead>
-                        <TableHead className="w-[400px]">Ingred. Qty</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Process Name</TableHead>
+                        <TableHead>Cost/Unit</TableHead>
+                        <TableHead>Ingred. Qty</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
