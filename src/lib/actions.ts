@@ -6,14 +6,7 @@ import { voucherSchema, processSchema, outputSchema, Voucher } from "./schemas"
 import { revalidatePath } from "next/cache"
 
 // Mock Data
-const mockVouchers: Voucher[] = [
-  { id: '1', date: new Date('2023-10-01'), name: 'MUSTARD OIL', code: 'MO001', quantities: 100, quantityType: 'KG', pricePerNo: 150, totalPrice: 15000, remarks: 'Purchase from supplier A' },
-  { id: '2', date: new Date('2023-10-02'), name: 'FLOUR', code: 'FL001', quantities: 500, quantityType: 'KG', pricePerNo: 40, totalPrice: 20000, remarks: 'Purchase from supplier B' },
-  { id: '3', date: new Date('2023-10-03'), name: 'MUSTARD OIL', code: 'MO001', quantities: -20, quantityType: 'KG', pricePerNo: 150, totalPrice: -3000, remarks: 'Used in Spicy Oil Blend' },
-  { id: '4', date: new Date('2023-10-04'), name: 'SUGAR', code: 'SU001', quantities: 200, quantityType: 'KG', pricePerNo: 50, totalPrice: 10000, remarks: 'Purchase from supplier A' },
-  { id: '5', date: new Date('2023-10-05'), name: 'FLOUR', code: 'FL001', quantities: -100, quantityType: 'KG', pricePerNo: 40, totalPrice: -4000, remarks: 'Used in Biscuits' },
-  { id: '6', date: new Date('2023-10-06'), name: 'MUSTARD OIL', code: 'MO001', quantities: 50, quantityType: 'KG', pricePerNo: 155, totalPrice: 7750, remarks: 'Purchase from supplier C' },
-]
+const mockVouchers: Voucher[] = []
 
 export async function createVoucher(values: z.infer<typeof voucherSchema>) {
   const validatedFields = voucherSchema.safeParse(values);
