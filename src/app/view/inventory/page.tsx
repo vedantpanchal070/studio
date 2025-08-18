@@ -40,9 +40,9 @@ export default function ViewInventoryPage() {
     <main className="flex min-h-screen flex-col items-center bg-background p-4 sm:p-8">
       <SalesDialog isOpen={isSalesModalOpen} onOpenChange={setIsSalesModalOpen} onSaleSuccess={onSaleSuccess}/>
       <div className="w-full max-w-5xl">
-        <Link href="/view" className="mb-6 inline-block">
+        <Link href="/" className="mb-6 inline-block">
           <Button variant="outline">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to View Menu
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
           </Button>
         </Link>
         <Card className="shadow-lg">
