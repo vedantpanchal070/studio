@@ -6,12 +6,14 @@ import { voucherSchema, processSchema, outputSchema, saleSchema, type Process, t
 import { revalidatePath } from "next/cache"
 import fs from "fs/promises"
 import path from "path"
+import crypto from "crypto"
 
 const DATA_DIR = path.join(process.cwd(), "data")
 const VOUCHERS_FILE = path.join(DATA_DIR, "vouchers.json")
 const PROCESSES_FILE = path.join(DATA_DIR, "processes.json")
 const OUTPUTS_FILE = path.join(DATA_DIR, "outputs.json")
 const SALES_FILE = path.join(DATA_DIR, "sales.json")
+const SETTINGS_FILE = path.join(DATA_DIR, "settings.json")
 
 
 // Ensure data directory exists
@@ -28,11 +30,14 @@ async function readJsonFile(filePath: string): Promise<any[]> {
         await ensureDataDir();
         const fileContent = await fs.readFile(filePath, "utf-8");
         const data = JSON.parse(fileContent);
+        // When parsing from JSON, assume the date string is in UTC format.
+        // The 'Z' at the end of an ISO string signifies UTC. If it's not present,
+        // new Date() might interpret it in the server's local timezone.
+        // We manually ensure we treat it as a UTC date string.
         return data.map((item: any) => {
-            if (item.date) {
-                // When parsing from JSON, assume the date string is in UTC format.
-                const date = new Date(item.date);
-                return { ...item, date };
+            if (item.date && typeof item.date === 'string') {
+                const dateStr = item.date.endsWith('Z') ? item.date : `${item.date}Z`;
+                return { ...item, date: new Date(dateStr) };
             }
             return item;
         });
@@ -322,13 +327,15 @@ export async function getVouchers(filters: { name?: string; startDate?: Date; en
     }
     if (filters.startDate) {
         const filterDate = new Date(filters.startDate);
-        filterDate.setUTCHours(0, 0, 0, 0);
-        vouchers = vouchers.filter(v => new Date(v.date) >= filterDate);
+        // Important: Create a new Date object based on UTC values to avoid timezone shifts
+        const startOfDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate()));
+        vouchers = vouchers.filter(v => new Date(v.date) >= startOfDay);
     }
     if (filters.endDate) {
         const filterDate = new Date(filters.endDate);
-        filterDate.setUTCHours(23, 59, 59, 999);
-        vouchers = vouchers.filter(v => new Date(v.date) <= filterDate);
+         // Important: Set to the very end of the UTC day
+        const endOfDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate(), 23, 59, 59, 999));
+        vouchers = vouchers.filter(v => new Date(v.date) <= endOfDay);
     }
     
     return vouchers;
@@ -345,13 +352,13 @@ export async function getInventoryItem(name: string, filters?: { startDate?: Dat
     // Date filtering
     if (filters?.startDate) {
         const start = new Date(filters.startDate);
-        start.setUTCHours(0, 0, 0, 0);
-        itemVouchers = itemVouchers.filter(v => new Date(v.date) >= start);
+        const startOfDay = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+        itemVouchers = itemVouchers.filter(v => new Date(v.date) >= startOfDay);
     }
     if (filters?.endDate) {
         const end = new Date(filters.endDate);
-        end.setUTCHours(23, 59, 59, 999);
-        itemVouchers = itemVouchers.filter(v => new Date(v.date) <= end);
+        const endOfDay = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate(), 23, 59, 59, 999));
+        itemVouchers = itemVouchers.filter(v => new Date(v.date) <= endOfDay);
     }
 
 
@@ -423,13 +430,13 @@ export async function getProcesses(filters: { name?: string; startDate?: Date; e
     }
     if (filters.startDate) {
         const filterDate = new Date(filters.startDate);
-        filterDate.setUTCHours(0, 0, 0, 0);
-        processes = processes.filter(p => new Date(p.date) >= filterDate);
+        const startOfDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate()));
+        processes = processes.filter(p => new Date(p.date) >= startOfDay);
     }
     if (filters.endDate) {
         const filterDate = new Date(filters.endDate);
-        filterDate.setUTCHours(23, 59, 59, 999);
-        processes = processes.filter(p => new Date(p.date) <= filterDate);
+        const endOfDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate(), 23, 59, 59, 999));
+        processes = processes.filter(p => new Date(p.date) <= endOfDay);
     }
     
     return processes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -482,15 +489,15 @@ export async function getOutputLedger(filters: { name?: string; startDate?: Date
     }
     if (filters.startDate) {
         const filterDate = new Date(filters.startDate);
-        filterDate.setUTCHours(0, 0, 0, 0);
-        allOutputs = allOutputs.filter(o => new Date(o.date) >= filterDate);
-        allSales = allSales.filter(s => new Date(s.date) >= filterDate);
+        const startOfDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate()));
+        allOutputs = allOutputs.filter(o => new Date(o.date) >= startOfDay);
+        allSales = allSales.filter(s => new Date(s.date) >= startOfDay);
     }
     if (filters.endDate) {
         const filterDate = new Date(filters.endDate);
-        filterDate.setUTCHours(23, 59, 59, 999);
-        allOutputs = allOutputs.filter(o => new Date(o.date) <= filterDate);
-        allSales = allSales.filter(s => new Date(s.date) <= filterDate);
+        const endOfDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate(), 23, 59, 59, 999));
+        allOutputs = allOutputs.filter(o => new Date(o.date) <= endOfDay);
+        allSales = allSales.filter(s => new Date(s.date) <= endOfDay);
     }
     
     // Map outputs to ledger entries
@@ -921,4 +928,50 @@ export async function updateSale(values: z.infer<typeof saleSchema>) {
     }
 }
 
-    
+
+// ============== PASSWORD ACTIONS ==============
+
+async function readSettings(): Promise<{ passwordHash: string; passwordSalt: string }> {
+    try {
+        const fileContent = await fs.readFile(SETTINGS_FILE, "utf-8");
+        return JSON.parse(fileContent);
+    } catch (error) {
+        console.error("Failed to read settings:", error);
+        // Return a default that will never match
+        return { passwordHash: "", passwordSalt: "" };
+    }
+}
+
+async function writeSettings(settings: { passwordHash: string; passwordSalt: string }) {
+    await writeJsonFile(SETTINGS_FILE, settings);
+}
+
+function hashPassword(password: string, salt: string): string {
+    return crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+}
+
+export async function verifyPassword(password: string): Promise<boolean> {
+    const settings = await readSettings();
+    if (!settings.passwordHash || !settings.passwordSalt) {
+        return false;
+    }
+    const hash = hashPassword(password, settings.passwordSalt);
+    return hash === settings.passwordHash;
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    const isCorrect = await verifyPassword(currentPassword);
+    if (!isCorrect) {
+        return { success: false, message: "Incorrect current password." };
+    }
+
+    try {
+        const newSalt = crypto.randomBytes(16).toString('hex');
+        const newHash = hashPassword(newPassword, newSalt);
+        await fs.writeFile(SETTINGS_FILE, JSON.stringify({ passwordHash: newHash, passwordSalt: newSalt }, null, 2));
+        return { success: true, message: "Password updated successfully." };
+    } catch (error) {
+        console.error("Failed to change password:", error);
+        return { success: false, message: "Failed to update password." };
+    }
+}
