@@ -288,11 +288,6 @@ export function CreateProcessForm() {
                         <TableCell className="font-semibold">{averageRate.toFixed(2)}</TableCell>
                         <TableCell></TableCell>
                     </TableRow>
-                     <TableRow>
-                        <TableCell colSpan={5} className="font-semibold text-right">Total Amount:</TableCell>
-                        <TableCell className="font-semibold">{totalAmount.toFixed(2)}</TableCell>
-                        <TableCell></TableCell>
-                    </TableRow>
                 </TableFooter>
               </Table>
             </div>
