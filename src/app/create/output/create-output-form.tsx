@@ -85,12 +85,10 @@ export function CreateOutputForm() {
 
     let avgPrice = 0
     if (currentNetQty > 0) {
-      const avgRate = totalCost / totalProcessOutput;
-      avgPrice = (totalProcessOutput * avgRate) / currentNetQty + (processCharge || 0)
-      setFinalAvgPrice(avgPrice)
-    } else {
-      setFinalAvgPrice(0)
+      const baseAvgPrice = totalCost / currentNetQty;
+      avgPrice = baseAvgPrice + (processCharge || 0)
     }
+    setFinalAvgPrice(avgPrice)
 
   }, [watchedValues, selectedProcess])
 
