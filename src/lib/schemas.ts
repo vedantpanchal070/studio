@@ -39,6 +39,7 @@ export const processSchema = z.object({
 
 
 export const outputSchema = z.object({
+  id: z.string().optional(),
   date: z.date({
     required_error: "A date is required.",
   }),
@@ -54,6 +55,7 @@ export const outputSchema = z.object({
 })
 
 export const saleSchema = z.object({
+  id: z.string().optional(),
   date: z.date({
     required_error: "A date is required.",
   }),
@@ -66,7 +68,9 @@ export const saleSchema = z.object({
 
 export type Voucher = z.infer<typeof voucherSchema> & { id: string }
 export type Process = z.infer<typeof processSchema>;
-export type Sale = z.infer<typeof saleSchema>;
+export type Output = z.infer<typeof outputSchema> & { id: string };
+export type Sale = z.infer<typeof saleSchema> & { id: string };
+
 
 export interface FinishedGood {
   name: string;

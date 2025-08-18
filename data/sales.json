@@ -1,2 +1,11 @@
-
-[]
+[
+  {
+    "date": "2025-08-18T09:44:34.468Z",
+    "productName": "SAK",
+    "clientCode": "3030",
+    "saleQty": 5,
+    "salePrice": 30,
+    "totalAmount": 150,
+    "id": "2025-08-18T09:45:17.601Z8vvbiepp9"
+  }
+]

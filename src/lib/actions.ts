@@ -2,7 +2,7 @@
 "use server"
 
 import { z } from "zod"
-import { voucherSchema, processSchema, outputSchema, saleSchema, type FinishedGood } from "./schemas"
+import { voucherSchema, processSchema, outputSchema, saleSchema, type FinishedGood, type Output, type Sale } from "./schemas"
 import { revalidatePath } from "next/cache"
 import fs from "fs/promises"
 import path from "path"
@@ -59,11 +59,11 @@ const readProcesses = () => readJsonFile(PROCESSES_FILE);
 const writeProcesses = (data: any[]) => writeJsonFile(PROCESSES_FILE, data);
 
 // Outputs
-const readOutputs = () => readJsonFile(OUTPUTS_FILE);
+const readOutputs = (): Promise<Output[]> => readJsonFile(OUTPUTS_FILE);
 const writeOutputs = (data: any[]) => writeJsonFile(OUTPUTS_FILE, data);
 
 // Sales
-const readSales = () => readJsonFile(SALES_FILE);
+const readSales = (): Promise<Sale[]> => readJsonFile(SALES_FILE);
 const writeSales = (data: any[]) => writeJsonFile(SALES_FILE, data);
 
 
@@ -290,6 +290,7 @@ export async function recordSale(values: z.infer<typeof saleSchema>) {
 
     revalidatePath("/view/vouchers");
     revalidatePath("/create/output"); // To refresh finished goods list
+    revalidatePath("/view/outputs");
 
     return { success: true, message: "Sale recorded and inventory updated." };
   } catch (error) {
@@ -412,15 +413,80 @@ export async function getFinishedGoods(): Promise<FinishedGood[]> {
   const vouchers = await readVouchers();
   const finishedGoodsMap = new Map<string, FinishedGood>();
 
-  vouchers.forEach(v => {
-    // Finished goods are identified by the 'FG-' prefix or if they are scrape
-    if (v.code?.startsWith('FG-') || v.code?.startsWith('SCRAPE-')) {
-      const existing = finishedGoodsMap.get(v.name) || { name: v.name, availableStock: 0 };
-      existing.availableStock += v.quantities;
-      finishedGoodsMap.set(v.name, existing);
-    }
-  });
+  // Use outputs file to get the list of all possible finished goods
+  const outputs = await readOutputs();
+  const productNames = new Set(outputs.map(o => o.productName));
 
-  // Filter out items with no stock
-  return Array.from(finishedGoodsMap.values()).filter(g => g.availableStock > 0);
+  for (const name of Array.from(productNames)) {
+    const { availableStock } = await getInventoryItem(name);
+    if(availableStock > 0) {
+      finishedGoodsMap.set(name, { name, availableStock });
+    }
+  }
+
+  return Array.from(finishedGoodsMap.values());
+}
+
+
+export interface LedgerEntry {
+  type: 'Production' | 'Sale';
+  date: Date;
+  productName: string;
+  clientCode?: string;
+  quantity: number;
+  pricePerKg: number;
+  id: string;
+}
+
+export async function getOutputLedger(filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<LedgerEntry[]> {
+    let allOutputs = await readOutputs();
+    let allSales = await readSales();
+    let ledger: LedgerEntry[] = [];
+
+    // Apply filters
+    if (filters.name) {
+        allOutputs = allOutputs.filter(o => o.productName === filters.name);
+        allSales = allSales.filter(s => s.productName === filters.name);
+    }
+    if (filters.startDate) {
+        const start = filters.startDate;
+        allOutputs = allOutputs.filter(o => o.date >= start);
+        allSales = allSales.filter(s => s.date >= start);
+    }
+    if (filters.endDate) {
+        const end = new Date(filters.endDate);
+        end.setHours(23, 59, 59, 999);
+        allOutputs = allOutputs.filter(o => o.date <= end);
+        allSales = allSales.filter(s => s.date <= end);
+    }
+    
+    // Map outputs to ledger entries
+    allOutputs.forEach(output => {
+        ledger.push({
+            type: 'Production',
+            date: output.date,
+            productName: output.productName,
+            quantity: output.quantityProduced,
+            pricePerKg: output.finalAveragePrice,
+            id: output.id!,
+        });
+    });
+
+    // Map sales to ledger entries
+    allSales.forEach(sale => {
+        ledger.push({
+            type: 'Sale',
+            date: sale.date,
+            productName: sale.productName,
+            clientCode: sale.clientCode,
+            quantity: -sale.saleQty, // Sales are negative quantity
+            pricePerKg: sale.salePrice,
+            id: sale.id!,
+        });
+    });
+
+    // Sort by date chronologically
+    ledger.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    return ledger;
 }

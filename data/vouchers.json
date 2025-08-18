@@ -108,5 +108,16 @@
     "pricePerNo": 0,
     "totalPrice": 0,
     "remarks": "SCRAPE FROM SAK"
+  },
+  {
+    "id": "2025-08-18T09:45:17.603Zfz78mnvc6",
+    "date": "2025-08-18T09:44:34.468Z",
+    "name": "SAK",
+    "code": "FG-SAK",
+    "quantities": -5,
+    "quantityType": "KG",
+    "pricePerNo": 31.176470588235293,
+    "totalPrice": 155.88235294117646,
+    "remarks": "SOLD TO 3030"
   }
 ]
