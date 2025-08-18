@@ -5,7 +5,15 @@ import { voucherSchema, processSchema, outputSchema } from "./schemas"
 import { revalidatePath } from "next/cache"
 
 export async function createVoucher(values: z.infer<typeof voucherSchema>) {
-  const validatedFields = voucherSchema.safeParse(values)
+  // The user schema includes fields that are not in the old schema.
+  // We need to handle this to avoid errors.
+  const legacySchema = voucherSchema.omit({ name: true, code: true, quantities: true, quantityType: true, pricePerNo: true }).extend({
+    rawMaterial: z.string().min(1),
+    quantity: z.coerce.number().gt(0),
+    pricePerUnit: z.coerce.number().gt(0),
+  });
+
+  const validatedFields = voucherSchema.safeParse(values);
 
   if (!validatedFields.success) {
     return {

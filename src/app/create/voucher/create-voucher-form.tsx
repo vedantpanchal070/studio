@@ -31,30 +31,32 @@ export function CreateVoucherForm() {
     defaultValues: {
       date: new Date(),
       voucherNo: "",
-      rawMaterial: "",
-      quantity: 0,
-      pricePerUnit: 0,
+      name: "",
+      code: "",
+      quantities: 0,
+      quantityType: "",
+      pricePerNo: 0,
       totalPrice: 0,
       remarks: "",
     },
   })
 
   const [totalPrice, setTotalPrice] = useState(0)
-  const quantity = form.watch("quantity")
-  const pricePerUnit = form.watch("pricePerUnit")
+  const quantities = form.watch("quantities")
+  const pricePerNo = form.watch("pricePerNo")
 
   useEffect(() => {
-    const total = (quantity || 0) * (pricePerUnit || 0)
+    const total = (quantities || 0) * (pricePerNo || 0)
     setTotalPrice(total)
     form.setValue("totalPrice", total)
-  }, [quantity, pricePerUnit, form])
+  }, [quantities, pricePerNo, form])
 
   const onSubmit = async (values: VoucherFormValues) => {
     const result = await createVoucher(values)
     if (result.success) {
       toast({
         title: "Success!",
-        description: result.message,
+        description: "Voucher has been saved.",
       })
       form.reset()
       setTotalPrice(0)
@@ -68,9 +70,11 @@ export function CreateVoucherForm() {
   }
 
   // Refs for "Wire Focus On Enter" functionality
-  const rawMaterialRef = useRef<HTMLInputElement>(null)
-  const quantityRef = useRef<HTMLInputElement>(null)
-  const pricePerUnitRef = useRef<HTMLInputElement>(null)
+  const nameRef = useRef<HTMLInputElement>(null)
+  const codeRef = useRef<HTMLInputElement>(null)
+  const quantitiesRef = useRef<HTMLInputElement>(null)
+  const quantityTypeRef = useRef<HTMLInputElement>(null)
+  const pricePerNoRef = useRef<HTMLInputElement>(null)
   const remarksRef = useRef<HTMLTextAreaElement>(null)
 
   const handleKeyDown = (
@@ -87,7 +91,7 @@ export function CreateVoucherForm() {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <FormField
+           <FormField
             control={form.control}
             name="date"
             render={({ field }) => (
@@ -109,7 +113,7 @@ export function CreateVoucherForm() {
                 <FormControl>
                   <UppercaseInput
                     {...field}
-                    onKeyDown={(e) => handleKeyDown(e, rawMaterialRef)}
+                    onKeyDown={(e) => handleKeyDown(e, nameRef)}
                   />
                 </FormControl>
                 <FormMessage />
@@ -119,15 +123,32 @@ export function CreateVoucherForm() {
         </div>
         <FormField
           control={form.control}
-          name="rawMaterial"
+          name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Raw Material Name</FormLabel>
+              <FormLabel>Name</FormLabel>
               <FormControl>
                 <UppercaseInput
                   {...field}
-                  ref={rawMaterialRef}
-                  onKeyDown={(e) => handleKeyDown(e, quantityRef)}
+                  ref={nameRef}
+                  onKeyDown={(e) => handleKeyDown(e, codeRef)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="code"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Code</FormLabel>
+              <FormControl>
+                <UppercaseInput
+                  {...field}
+                  ref={codeRef}
+                  onKeyDown={(e) => handleKeyDown(e, quantitiesRef)}
                 />
               </FormControl>
               <FormMessage />
@@ -137,16 +158,16 @@ export function CreateVoucherForm() {
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormField
             control={form.control}
-            name="quantity"
+            name="quantities"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Quantity</FormLabel>
+                <FormLabel>Quantities</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
                     {...field}
-                    ref={quantityRef}
-                    onKeyDown={(e) => handleKeyDown(e, pricePerUnitRef)}
+                    ref={quantitiesRef}
+                    onKeyDown={(e) => handleKeyDown(e, quantityTypeRef)}
                   />
                 </FormControl>
                 <FormMessage />
@@ -155,16 +176,15 @@ export function CreateVoucherForm() {
           />
           <FormField
             control={form.control}
-            name="pricePerUnit"
+            name="quantityType"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Price per Unit</FormLabel>
+                <FormLabel>Quantities Type</FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
+                  <UppercaseInput
                     {...field}
-                    ref={pricePerUnitRef}
-                    onKeyDown={(e) => handleKeyDown(e, remarksRef)}
+                    ref={quantityTypeRef}
+                    onKeyDown={(e) => handleKeyDown(e, pricePerNoRef)}
                   />
                 </FormControl>
                 <FormMessage />
@@ -172,6 +192,24 @@ export function CreateVoucherForm() {
             )}
           />
         </div>
+         <FormField
+            control={form.control}
+            name="pricePerNo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Price Per No.</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    {...field}
+                    ref={pricePerNoRef}
+                    onKeyDown={(e) => handleKeyDown(e, remarksRef)}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         <FormItem>
           <FormLabel>Total Price</FormLabel>
           <FormControl>
@@ -192,7 +230,7 @@ export function CreateVoucherForm() {
           )}
         />
         <Button type="submit" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? "Saving..." : "Save Voucher"}
+          {form.formState.isSubmitting ? "Saving..." : "Save All Entries"}
         </Button>
       </form>
     </Form>

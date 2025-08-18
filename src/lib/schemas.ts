@@ -5,9 +5,11 @@ export const voucherSchema = z.object({
     required_error: "A date is required.",
   }),
   voucherNo: z.string().min(1, "Voucher No. is required."),
-  rawMaterial: z.string().min(1, "Raw Material name is required."),
-  quantity: z.coerce.number().gt(0, "Quantity must be a positive number."),
-  pricePerUnit: z.coerce
+  name: z.string().min(1, "Item name is required."),
+  code: z.string().min(1, "Item code is required."),
+  quantities: z.coerce.number().gt(0, "Quantity must be a positive number."),
+  quantityType: z.string().min(1, "Quantity type is required."),
+  pricePerNo: z.coerce
     .number()
     .gt(0, "Price per unit must be a positive number."),
   totalPrice: z.coerce.number(),
