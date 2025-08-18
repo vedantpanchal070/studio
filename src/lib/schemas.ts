@@ -53,5 +53,22 @@ export const outputSchema = z.object({
   notes: z.string().optional(),
 })
 
+export const saleSchema = z.object({
+  date: z.date({
+    required_error: "A date is required.",
+  }),
+  productName: z.string().min(1, "Product name is required."),
+  clientCode: z.string().min(1, "Client code is required."),
+  saleQty: z.coerce.number().gt(0, "Sale quantity must be positive."),
+  salePrice: z.coerce.number().gt(0, "Sale price must be positive."),
+  totalAmount: z.coerce.number(),
+});
+
 export type Voucher = z.infer<typeof voucherSchema> & { id: string }
 export type Process = z.infer<typeof processSchema>;
+export type Sale = z.infer<typeof saleSchema>;
+
+export interface FinishedGood {
+  name: string;
+  availableStock: number;
+}

@@ -2,7 +2,7 @@
 "use server"
 
 import { z } from "zod"
-import { voucherSchema, processSchema, outputSchema } from "./schemas"
+import { voucherSchema, processSchema, outputSchema, saleSchema, type FinishedGood } from "./schemas"
 import { revalidatePath } from "next/cache"
 import fs from "fs/promises"
 import path from "path"
@@ -11,6 +11,7 @@ const DATA_DIR = path.join(process.cwd(), "data")
 const VOUCHERS_FILE = path.join(DATA_DIR, "vouchers.json")
 const PROCESSES_FILE = path.join(DATA_DIR, "processes.json")
 const OUTPUTS_FILE = path.join(DATA_DIR, "outputs.json")
+const SALES_FILE = path.join(DATA_DIR, "sales.json")
 
 
 // Ensure data directory exists
@@ -60,6 +61,10 @@ const writeProcesses = (data: any[]) => writeJsonFile(PROCESSES_FILE, data);
 // Outputs
 const readOutputs = () => readJsonFile(OUTPUTS_FILE);
 const writeOutputs = (data: any[]) => writeJsonFile(OUTPUTS_FILE, data);
+
+// Sales
+const readSales = () => readJsonFile(SALES_FILE);
+const writeSales = (data: any[]) => writeJsonFile(SALES_FILE, data);
 
 
 export async function createVoucher(values: z.infer<typeof voucherSchema>) {
@@ -235,6 +240,64 @@ export async function createOutput(values: z.infer<typeof outputSchema>) {
   }
 }
 
+export async function recordSale(values: z.infer<typeof saleSchema>) {
+  const validatedFields = saleSchema.safeParse(values)
+
+  if (!validatedFields.success) {
+    return {
+      success: false,
+      message: "Invalid sale data.",
+    }
+  }
+
+  const { productName, saleQty, date, clientCode } = validatedFields.data;
+
+  try {
+    const allVouchers = await readVouchers();
+    const allSales = await readSales();
+    
+    // Final stock check
+    const inventory = await getInventoryItem(productName);
+    if (inventory.availableStock < saleQty) {
+        return {
+            success: false,
+            message: `Insufficient stock for ${productName}. Available: ${inventory.availableStock}`,
+        };
+    }
+
+    // 1. Save the sales record
+    const newSale = {
+        ...validatedFields.data,
+        id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+    }
+    allSales.push(newSale);
+    await writeSales(allSales);
+
+    // 2. Create a negative voucher to deduct from inventory
+    const saleVoucher = {
+        id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+        date: date,
+        name: productName,
+        code: inventory.code,
+        quantities: -saleQty,
+        quantityType: inventory.quantityType,
+        pricePerNo: inventory.averagePrice, // Use cost price for inventory value deduction
+        totalPrice: saleQty * inventory.averagePrice,
+        remarks: `SOLD TO ${clientCode}`,
+    };
+    allVouchers.push(saleVoucher);
+    await writeVouchers(allVouchers);
+
+    revalidatePath("/view/vouchers");
+    revalidatePath("/create/output"); // To refresh finished goods list
+
+    return { success: true, message: "Sale recorded and inventory updated." };
+  } catch (error) {
+      console.error("Failed to record sale:", error);
+      return { success: false, message: "Failed to record sale." };
+  }
+}
+
 export async function getVouchers(filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<any[]> {
     let vouchers = await readVouchers();
 
@@ -343,4 +406,21 @@ export async function getUniqueProcessNames(): Promise<string[]> {
     const processes = await readProcesses();
     const names = new Set(processes.map(p => p.processName));
     return Array.from(names).sort();
+}
+
+export async function getFinishedGoods(): Promise<FinishedGood[]> {
+  const vouchers = await readVouchers();
+  const finishedGoodsMap = new Map<string, FinishedGood>();
+
+  vouchers.forEach(v => {
+    // Finished goods are identified by the 'FG-' prefix or if they are scrape
+    if (v.code?.startsWith('FG-') || v.code?.startsWith('SCRAPE-')) {
+      const existing = finishedGoodsMap.get(v.name) || { name: v.name, availableStock: 0 };
+      existing.availableStock += v.quantities;
+      finishedGoodsMap.set(v.name, existing);
+    }
+  });
+
+  // Filter out items with no stock
+  return Array.from(finishedGoodsMap.values()).filter(g => g.availableStock > 0);
 }
