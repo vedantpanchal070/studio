@@ -41,10 +41,11 @@ type SalesFormValues = z.infer<typeof saleSchema>
 
 interface SalesDialogProps {
   isOpen: boolean
-  onOpenChange: (open: boolean) => void
+  onOpenChange: (open: boolean) => void;
+  onSaleSuccess?: () => void;
 }
 
-export function SalesDialog({ isOpen, onOpenChange }: SalesDialogProps) {
+export function SalesDialog({ isOpen, onOpenChange, onSaleSuccess }: SalesDialogProps) {
   const { toast } = useToast()
   const [finishedGoods, setFinishedGoods] = useState<FinishedGood[]>([])
   const [availableQty, setAvailableQty] = useState(0)
@@ -73,8 +74,10 @@ export function SalesDialog({ isOpen, onOpenChange }: SalesDialogProps) {
       const goods = await getFinishedGoods()
       setFinishedGoods(goods)
     }
-    fetchGoods()
-  }, [])
+    if (isOpen) {
+      fetchGoods()
+    }
+  }, [isOpen])
   
   useEffect(() => {
     const fetchStock = async () => {
@@ -96,7 +99,14 @@ export function SalesDialog({ isOpen, onOpenChange }: SalesDialogProps) {
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
-      form.reset()
+      form.reset({
+          date: new Date(),
+          productName: "",
+          clientCode: "",
+          saleQty: 0,
+          salePrice: 0,
+          totalAmount: 0,
+      })
       setAvailableQty(0)
       setTotalAmount(0)
     }
@@ -119,6 +129,7 @@ export function SalesDialog({ isOpen, onOpenChange }: SalesDialogProps) {
         title: "Success!",
         description: "Sale has been recorded.",
       })
+      onSaleSuccess?.();
       handleOpenChange(false)
     } else {
       toast({

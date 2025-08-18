@@ -153,6 +153,8 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
     revalidatePath("/create/process");
     revalidatePath("/create/output");
     revalidatePath("/view/processes");
+    revalidatePath("/view/inventory");
+
 
     return { success: true, message: "Process saved successfully, inventory updated." };
   } catch (error) {
@@ -232,6 +234,8 @@ export async function createOutput(values: z.infer<typeof outputSchema>) {
 
     revalidatePath("/view/vouchers");
     revalidatePath("/view/outputs");
+    revalidatePath("/view/inventory");
+
 
     return { success: true, message: "Output and scrape saved to inventory." };
   } catch (error) {
@@ -291,6 +295,7 @@ export async function recordSale(values: z.infer<typeof saleSchema>) {
     revalidatePath("/view/vouchers");
     revalidatePath("/create/output"); // To refresh finished goods list
     revalidatePath("/view/outputs");
+    revalidatePath("/view/inventory");
 
     return { success: true, message: "Sale recorded and inventory updated." };
   } catch (error) {
@@ -494,6 +499,38 @@ export async function getOutputLedger(filters: { name?: string; startDate?: Date
     return ledger;
 }
 
+export interface FinishedGoodInventoryItem {
+  name: string;
+  code: string;
+  availableStock: number;
+  averagePrice: number;
+  quantityType: string;
+}
+
+export async function getFinishedGoodsInventory(): Promise<FinishedGoodInventoryItem[]> {
+  const vouchers = await readVouchers();
+  const finishedGoodVouchers = vouchers.filter(v => v.code.startsWith('FG-'));
+  const productNames = Array.from(new Set(finishedGoodVouchers.map(v => v.name)));
+  
+  const inventory: FinishedGoodInventoryItem[] = [];
+
+  for (const name of productNames) {
+    const itemDetails = await getInventoryItem(name);
+    if (itemDetails.availableStock > 0) {
+      inventory.push({
+        name: name,
+        code: itemDetails.code,
+        availableStock: itemDetails.availableStock,
+        averagePrice: itemDetails.averagePrice,
+        quantityType: itemDetails.quantityType,
+      });
+    }
+  }
+
+  return inventory.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+
 // ============== DELETE / UPDATE ACTIONS ==============
 
 export async function deleteVoucher(voucherId: string) {
@@ -502,6 +539,8 @@ export async function deleteVoucher(voucherId: string) {
     vouchers = vouchers.filter(v => v.id !== voucherId);
     await writeVouchers(vouchers);
     revalidatePath("/view/vouchers");
+    revalidatePath("/view/inventory");
+
     return { success: true, message: "Voucher deleted successfully." };
   } catch (error) {
     console.error("Failed to delete voucher:", error);
@@ -529,6 +568,7 @@ export async function updateVoucher(values: z.infer<typeof voucherSchema>) {
         await writeVouchers(vouchers);
 
         revalidatePath("/view/vouchers");
+        revalidatePath("/view/inventory");
         return { success: true, message: "Voucher updated successfully." };
     } catch (error) {
         console.error("Failed to update voucher:", error);
@@ -555,6 +595,7 @@ export async function deleteProcess(processToDelete: Process) {
 
     revalidatePath("/view/processes");
     revalidatePath("/view/vouchers");
+    revalidatePath("/view/inventory");
     return { success: true, message: "Process deleted and raw materials returned to stock." };
   } catch (error) {
     console.error("Failed to delete process:", error);
@@ -590,6 +631,8 @@ export async function deleteOutput(outputId: string) {
 
         revalidatePath("/view/outputs");
         revalidatePath("/view/vouchers");
+        revalidatePath("/view/inventory");
+
         return { success: true, message: "Output deleted and inventory adjusted." };
     } catch (error) {
         console.error("Failed to delete output:", error);
@@ -625,6 +668,7 @@ export async function deleteSale(saleId: string) {
 
         revalidatePath("/view/outputs");
         revalidatePath("/view/vouchers");
+        revalidatePath("/view/inventory");
         return { success: true, message: "Sale deleted and stock returned to inventory." };
     } catch (error) {
         console.error("Failed to delete sale:", error);

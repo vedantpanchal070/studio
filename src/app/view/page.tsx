@@ -1,5 +1,6 @@
+
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ScrollText, ClipboardList, Package, ArrowLeft } from "lucide-react";
+import { ScrollText, ClipboardList, Package, ArrowLeft, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -14,7 +15,13 @@ export default function ViewPage() {
           <h1 className="text-4xl font-bold tracking-tight">View Data</h1>
           <p className="text-muted-foreground mt-2 text-lg">Browse ledgers and historical records.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+           <MenuCard
+            href="/view/inventory"
+            icon={<Warehouse className="w-12 h-12 text-primary" />}
+            title="Inventory"
+            description="View and sell finished goods stock."
+          />
           <MenuCard
             href="/view/vouchers"
             icon={<ScrollText className="w-12 h-12 text-primary" />}

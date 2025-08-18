@@ -24,7 +24,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { DatePicker } from "@/components/date-picker"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { SalesDialog } from "@/components/sales-dialog"
 
 type OutputFormValues = z.infer<typeof outputSchema>
 
@@ -35,7 +34,6 @@ export function CreateOutputForm() {
   
   const [finalAvgPrice, setFinalAvgPrice] = useState(0)
   const [netAvailableQty, setNetAvailableQty] = useState(0)
-  const [isSalesModalOpen, setIsSalesModalOpen] = useState(false);
 
   const processSelectRef = useRef<HTMLButtonElement>(null)
 
@@ -141,7 +139,6 @@ export function CreateOutputForm() {
 
   return (
     <>
-      <SalesDialog isOpen={isSalesModalOpen} onOpenChange={setIsSalesModalOpen} />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
@@ -276,7 +273,6 @@ export function CreateOutputForm() {
               <Button type="submit" disabled={form.formState.isSubmitting || !selectedProcess}>
               {form.formState.isSubmitting ? "Saving..." : "Save Output"}
               </Button>
-              <Button type="button" variant="secondary" onClick={() => setIsSalesModalOpen(true)}>Sell Finished Product</Button>
           </div>
         </form>
       </Form>
