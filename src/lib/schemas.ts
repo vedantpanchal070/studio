@@ -13,3 +13,16 @@ export const voucherSchema = z.object({
   totalPrice: z.coerce.number(),
   remarks: z.string().optional(),
 })
+
+export const processSchema = z.object({
+  date: z.date({
+    required_error: "A date is required.",
+  }),
+  processName: z.string().min(1, "Process name is required."),
+  outputProduct: z.string().min(1, "Output product name is required."),
+  rawMaterials: z.array(z.object({
+    name: z.string().min(1, "Raw material name is required."),
+    quantity: z.coerce.number().gt(0, "Quantity must be a positive number."),
+  })).min(1, "At least one raw material is required."),
+  notes: z.string().optional(),
+});
