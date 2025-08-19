@@ -426,35 +426,44 @@ export async function getVouchers(username: string, filters: { name?: string; st
 
     // Filter out finished goods production and sales from the raw material ledger view
     vouchers = vouchers.filter(v => 
-        !v.remarks?.startsWith("PRODUCED FROM") &&
-        !v.remarks?.startsWith("SOLD TO")
+      !(v.remarks?.startsWith("PRODUCED FROM") || v.remarks?.startsWith("SOLD TO"))
+      || v.remarks?.startsWith("SCRAPE FROM")
     );
     
-    if (filters.name) {
-        vouchers = vouchers.filter(v => v.name === filters.name);
-    }
-    
-    // More robust date filtering by comparing timestamps
-    let startTimestamp = 0;
-    let endTimestamp = Infinity;
+    // Default timestamps that will include all dates
+    let startTimestamp = 0; // The beginning of time
+    let endTimestamp = Infinity; // The far future
 
     if (filters.startDate) {
         const date = new Date(filters.startDate);
         const startOfDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        // Convert the start boundary to a number
         startTimestamp = startOfDay.getTime();
     }
 
     if (filters.endDate) {
         const date = new Date(filters.endDate);
         const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
+        // Convert the end boundary to a number
         endTimestamp = startOfNextDay.getTime();
     }
-
-    const filteredVouchers = vouchers.filter(v => {
-        if (!v.date) return false;
+    
+    let filteredVouchers = vouchers.filter(v => {
+        // Skip any voucher that doesn't have a date
+        if (!v.date) {
+            return false;
+        }
+        
+        // Convert the voucher's date to a number
         const voucherTimestamp = new Date(v.date).getTime();
+
+        // Compare the numbers
         return voucherTimestamp >= startTimestamp && voucherTimestamp < endTimestamp;
     });
+
+    if (filters.name) {
+        filteredVouchers = filteredVouchers.filter(v => v.name === filters.name);
+    }
     
     return filteredVouchers;
 }
@@ -557,14 +566,10 @@ export async function getProcessDetails(username: string, name: string): Promise
 
 export async function getProcesses(username: string, filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<any[]> {
     let processes = await readProcesses(username);
-
-    if (filters.name) {
-        processes = processes.filter(p => p.processName === filters.name);
-    }
     
-    // More robust date filtering by comparing timestamps
-    let startTimestamp = 0;
-    let endTimestamp = Infinity;
+    // Default timestamps that will include all dates
+    let startTimestamp = 0; // The beginning of time
+    let endTimestamp = Infinity; // The far future
 
     if (filters.startDate) {
         const date = new Date(filters.startDate);
@@ -577,12 +582,16 @@ export async function getProcesses(username: string, filters: { name?: string; s
         const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
         endTimestamp = startOfNextDay.getTime();
     }
-    
-    const filteredProcesses = processes.filter(p => {
+
+    let filteredProcesses = processes.filter(p => {
         if (!p.date) return false;
         const processTimestamp = new Date(p.date).getTime();
         return processTimestamp >= startTimestamp && processTimestamp < endTimestamp;
     });
+
+    if (filters.name) {
+        filteredProcesses = filteredProcesses.filter(p => p.processName === filters.name);
+    }
 
     return filteredProcesses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
@@ -1087,3 +1096,6 @@ export async function updateSale(username: string, values: z.infer<typeof saleSc
 
     
 
+
+
+    
