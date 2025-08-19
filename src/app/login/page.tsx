@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
+import { Separator } from "@/components/ui/separator";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -70,6 +72,15 @@ export default function LoginPage() {
               {isLoggingIn ? "Logging in..." : "Login"}
             </Button>
           </form>
+           <Separator className="my-4" />
+           <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Don&apos;t have an account?{' '}
+              <Link href="/signup" className="font-semibold text-primary hover:underline">
+                Sign Up
+              </Link>
+            </p>
+          </div>
         </CardContent>
       </Card>
     </main>

@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { getUser, updateUser } from '@/lib/actions';
+import { getUser, updateUser, createUser } from '@/lib/actions';
 import type { User } from '@/lib/schemas';
 
 interface AuthContextType {
@@ -12,6 +12,7 @@ interface AuthContextType {
   login: (username: string, pass: string) => Promise<boolean>;
   logout: () => void;
   changePassword: (currentPass: string, newPass: string) => Promise<boolean>;
+  signup: (username: string, pass: string) => Promise<{ success: boolean, message?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,13 +38,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
     }
   }, []);
+  
+  const signup = useCallback(async (username: string, pass: string) => {
+    const result = await createUser({ username, password: pass });
+    return result;
+  }, []);
 
   const login = useCallback(async (username: string, pass: string): Promise<boolean> => {
     const foundUser = await getUser(username);
     
     if (foundUser && foundUser.password === pass) {
-      setUser(foundUser); 
-      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(foundUser));
+      const userToStore = { username: foundUser.username, password: foundUser.password };
+      setUser(userToStore); 
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(userToStore));
       return true;
     }
     return false;
@@ -56,12 +63,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const changePassword = useCallback(async (currentPass: string, newPass: string): Promise<boolean> => {
-    if (!user) return false;
+    // We get the user from session storage to ensure we have the most recent data client-side
+    const storedUserStr = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!storedUserStr) return false;
+    const storedUser = JSON.parse(storedUserStr);
 
-    // Verify current password again just in case
-    const userData = await getUser(user.username);
-    if (userData && userData.password === currentPass) {
-      const updatedUser = { ...userData, password: newPass };
+    if (storedUser.password === currentPass) {
+      const updatedUser = { ...storedUser, password: newPass };
       const success = await updateUser(updatedUser);
       if (success) {
         setUser(updatedUser); // Keep the local state in sync
@@ -70,10 +78,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     return false;
-  }, [user]);
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, changePassword }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, changePassword, signup }}>
       {children}
     </AuthContext.Provider>
   );

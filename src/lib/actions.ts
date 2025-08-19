@@ -107,6 +107,31 @@ export async function getUser(username: string): Promise<User | undefined> {
     return users.find(u => u.username === username);
 }
 
+export async function createUser(userData: User) {
+    const validatedFields = userSchema.safeParse(userData);
+    if (!validatedFields.success) {
+        return { success: false, message: "Invalid user data." };
+    }
+
+    try {
+        const users = await readUsers();
+        const existingUser = users.find(u => u.username === validatedFields.data.username);
+        if (existingUser) {
+            return { success: false, message: "Username already exists." };
+        }
+
+        users.push(validatedFields.data);
+        await writeUsers(users);
+        await ensureUserDataDir(validatedFields.data.username); // Create user's data directory
+
+        return { success: true, message: "User created successfully." };
+    } catch (error) {
+        console.error("Failed to create user:", error);
+        return { success: false, message: "Failed to create user on the server." };
+    }
+}
+
+
 export async function updateUser(updatedUser: User): Promise<boolean> {
     const validatedFields = userSchema.safeParse(updatedUser);
     if (!validatedFields.success) {
@@ -118,8 +143,8 @@ export async function updateUser(updatedUser: User): Promise<boolean> {
         let users = await readUsers();
         const userIndex = users.findIndex(u => u.username === updatedUser.username);
         if (userIndex === -1) {
-            // If user doesn't exist, create one (useful for first-time run)
-            users.push(validatedFields.data);
+            // This case should ideally not happen in an update scenario
+            return false;
         } else {
             users[userIndex] = validatedFields.data;
         }
@@ -967,5 +992,3 @@ export async function updateSale(username: string, values: z.infer<typeof saleSc
         return { success: false, message: "Failed to update sale." };
     }
 }
-
-    
