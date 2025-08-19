@@ -422,27 +422,25 @@ export async function recordSale(username: string, values: z.infer<typeof saleSc
 }
 
 export async function getVouchers(username: string, filters: { name?: string, startDate?: Date, endDate?: Date }): Promise<any[]> {
+    const { name, startDate, endDate } = filters;
     let vouchers = await readVouchers(username);
 
-    if (filters.name) {
-        vouchers = vouchers.filter(v => v.name === filters.name);
+    if (name) {
+        vouchers = vouchers.filter(v => v.name === name);
     }
     
-    if (filters.startDate || filters.endDate) {
-        // If one date is provided, treat it as a single-day filter
-        const startDate = filters.startDate ? new Date(filters.startDate) : null;
-        const endDate = filters.endDate ? new Date(filters.endDate) : null;
+    if (startDate) {
+        const start = new Date(startDate);
+        const end = endDate ? new Date(endDate) : new Date(startDate);
 
-        if (startDate && endDate) {
-             const startTimestamp = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())).getTime();
-             const endTimestamp = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1)).getTime();
-
-             vouchers = vouchers.filter(v => {
-                if (!v.date) return false;
-                const voucherTimestamp = new Date(v.date).getTime();
-                return voucherTimestamp >= startTimestamp && voucherTimestamp < endTimestamp;
-            });
-        }
+        const startTimestamp = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())).getTime();
+        const endTimestamp = new Date(Date.UTC(end.getFullYear(), end.getMonth(), end.getDate() + 1)).getTime();
+        
+        vouchers = vouchers.filter(v => {
+            if (!v.date) return false;
+            const voucherTimestamp = new Date(v.date).getTime();
+            return voucherTimestamp >= startTimestamp && voucherTimestamp < endTimestamp;
+        });
     }
 
     return vouchers.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -490,11 +488,9 @@ export async function getVoucherItemNames(username: string): Promise<string[]> {
     const vouchers = await readVouchers(username);
     // Correctly filter out finished goods, but keep scrape items
     const relevantVouchers = vouchers.filter(v => {
-        const isProduced = v.remarks?.startsWith("PRODUCED FROM");
-        const isSold = v.remarks?.startsWith("SOLD TO");
-        const isScrape = v.remarks?.startsWith("SCRAPE FROM");
-        // Keep if it's scrape, or if it's neither produced nor sold
-        return isScrape || (!isProduced && !isSold);
+      const isUsed = v.remarks?.startsWith("USED IN");
+      const isPurePurchase = !v.remarks;
+      return isUsed || isPurePurchase;
     });
     const names = new Set(relevantVouchers.map(v => v.name));
     return Array.from(names).sort();
@@ -525,26 +521,25 @@ export async function getProcessDetails(username: string, name: string): Promise
 }
 
 export async function getProcesses(username: string, filters: { name?: string, startDate?: Date, endDate?: Date }): Promise<any[]> {
+    const { name, startDate, endDate } = filters;
     let processes = await readProcesses(username);
 
-    if (filters.name) {
-        processes = processes.filter(p => p.processName === filters.name);
+    if (name) {
+        processes = processes.filter(p => p.processName === name);
     }
     
-    if (filters.startDate || filters.endDate) {
-        const startDate = filters.startDate ? new Date(filters.startDate) : null;
-        const endDate = filters.endDate ? new Date(filters.endDate) : null;
+    if (startDate) {
+        const start = new Date(startDate);
+        const end = endDate ? new Date(endDate) : new Date(startDate);
 
-        if (startDate && endDate) {
-             const startTimestamp = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())).getTime();
-             const endTimestamp = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1)).getTime();
+        const startTimestamp = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())).getTime();
+        const endTimestamp = new Date(Date.UTC(end.getFullYear(), end.getMonth(), end.getDate() + 1)).getTime();
 
-             processes = processes.filter(p => {
-                if (!p.date) return false;
-                const processTimestamp = new Date(p.date).getTime();
-                return processTimestamp >= startTimestamp && processTimestamp < endTimestamp;
-            });
-        }
+        processes = processes.filter(p => {
+            if (!p.date) return false;
+            const processTimestamp = new Date(p.date).getTime();
+            return processTimestamp >= startTimestamp && processTimestamp < endTimestamp;
+        });
     }
 
     return processes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -586,6 +581,7 @@ export interface LedgerEntry {
 }
 
 export async function getOutputLedger(username: string, filters: { name?: string, startDate?: Date, endDate?: Date }): Promise<LedgerEntry[]> {
+    const { name, startDate, endDate } = filters;
     let allOutputs = await readOutputs(username);
     let allSales = await readSales(username);
     let ledger: LedgerEntry[] = [];
@@ -616,25 +612,23 @@ export async function getOutputLedger(username: string, filters: { name?: string
     });
     
     // Name filter
-    if (filters.name) {
-        ledger = ledger.filter(o => o.productName === filters.name);
+    if (name) {
+        ledger = ledger.filter(o => o.productName === name);
     }
     
     // Date filter
-    if (filters.startDate || filters.endDate) {
-        const startDate = filters.startDate ? new Date(filters.startDate) : null;
-        const endDate = filters.endDate ? new Date(filters.endDate) : null;
+    if (startDate) {
+        const start = new Date(startDate);
+        const end = endDate ? new Date(endDate) : new Date(startDate);
 
-        if (startDate && endDate) {
-             const startTimestamp = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())).getTime();
-             const endTimestamp = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1)).getTime();
+        const startTimestamp = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())).getTime();
+        const endTimestamp = new Date(Date.UTC(end.getFullYear(), end.getMonth(), end.getDate() + 1)).getTime();
 
-             ledger = ledger.filter(entry => {
-                if (!entry.date) return false;
-                const entryTimestamp = new Date(entry.date).getTime();
-                return entryTimestamp >= startTimestamp && entryTimestamp < endTimestamp;
-            });
-        }
+        ledger = ledger.filter(entry => {
+            if (!entry.date) return false;
+            const entryTimestamp = new Date(entry.date).getTime();
+            return entryTimestamp >= startTimestamp && entryTimestamp < endTimestamp;
+        });
     }
 
     // Sort by date chronologically
@@ -1051,7 +1045,5 @@ export async function updateSale(username: string, values: z.infer<typeof saleSc
         return { success: false, message: "Failed to update sale." };
     }
 }
-
-
 
     
