@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
+import { useRouter } from "next/navigation"
 
 import { saleSchema, type FinishedGood } from "@/lib/schemas"
 import { getFinishedGoods, getInventoryItem, recordSale } from "@/lib/actions"
@@ -37,12 +38,12 @@ type SalesFormValues = z.infer<typeof saleSchema>
 interface SalesDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void;
-  onSaleSuccess?: () => void;
+  finishedGoods: FinishedGood[];
 }
 
-export function SalesDialog({ isOpen, onOpenChange, onSaleSuccess }: SalesDialogProps) {
+export function SalesDialog({ isOpen, onOpenChange, finishedGoods }: SalesDialogProps) {
   const { toast } = useToast()
-  const [finishedGoods, setFinishedGoods] = useState<FinishedGood[]>([])
+  const router = useRouter()
   const [availableQty, setAvailableQty] = useState(0)
   const [totalAmount, setTotalAmount] = useState(0)
   const dateOfSaleRef = useRef<HTMLButtonElement>(null)
@@ -64,16 +65,6 @@ export function SalesDialog({ isOpen, onOpenChange, onSaleSuccess }: SalesDialog
   const salePrice = form.watch("salePrice")
   const selectedProduct = form.watch("productName")
 
-  useEffect(() => {
-    const fetchGoods = async () => {
-      const goods = await getFinishedGoods()
-      setFinishedGoods(goods)
-    }
-    if (isOpen) {
-      fetchGoods()
-    }
-  }, [isOpen])
-  
   useEffect(() => {
     const fetchStock = async () => {
       if (selectedProduct) {
@@ -124,8 +115,9 @@ export function SalesDialog({ isOpen, onOpenChange, onSaleSuccess }: SalesDialog
         title: "Success!",
         description: "Sale has been recorded.",
       })
-      onSaleSuccess?.();
       handleOpenChange(false)
+      // Instead of a callback, we just refresh the router to refetch data on the page.
+      router.refresh() 
     } else {
       toast({
         title: "Error",

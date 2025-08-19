@@ -1,9 +1,6 @@
 
-"use client"
-
-import React, { useState } from "react";
 import Link from "next/link"
-import { ArrowLeft, ShoppingCart } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -15,52 +12,30 @@ import {
 } from "@/components/ui/card"
 import { InventoryClient } from "./inventory-client"
 import { getFinishedGoodsInventory } from "@/lib/actions"
-import { SalesDialog } from "@/components/sales-dialog";
+import { SalesDialogWrapper } from "./sales-dialog-wrapper"
 
+export const dynamic = 'force-dynamic'
 
-export default function ViewInventoryPage() {
-  const [initialData, setInitialData] = useState<any[]>([]);
-  const [isSalesModalOpen, setIsSalesModalOpen] = useState(false)
-
-  React.useEffect(() => {
-    fetchInventory();
-  }, []);
-
-  const fetchInventory = async (filters = {}) => {
-    const data = await getFinishedGoodsInventory(filters);
-    setInitialData(data);
-  };
-  
-  const onSaleSuccess = async () => {
-    await fetchInventory();
-  }
-
+export default async function ViewInventoryPage() {
+  const initialData = await getFinishedGoodsInventory({});
 
   return (
     <main className="flex min-h-screen flex-col items-center bg-background p-4 sm:p-8">
-      <SalesDialog isOpen={isSalesModalOpen} onOpenChange={setIsSalesModalOpen} onSaleSuccess={onSaleSuccess}/>
       <div className="w-full max-w-5xl">
-        <Link href="/" className="mb-6 inline-block">
-          <Button variant="outline">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
-          </Button>
-        </Link>
+        <div className="flex justify-between items-center mb-6">
+            <Link href="/" className="inline-block">
+            <Button variant="outline">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
+            </Button>
+            </Link>
+            <SalesDialogWrapper />
+        </div>
         <Card className="shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+          <CardHeader>
               <CardTitle className="text-2xl">Finished Goods Inventory</CardTitle>
               <CardDescription>
                 View and sell your current stock of finished products.
               </CardDescription>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsSalesModalOpen(true)}
-            >
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Sell
-            </Button>
           </CardHeader>
           <CardContent>
             <InventoryClient initialData={initialData} />

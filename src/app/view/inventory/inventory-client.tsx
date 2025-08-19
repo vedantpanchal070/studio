@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState, useRef, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -53,6 +53,7 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
   const watchedFilters = useWatch({ control: form.control });
 
   useEffect(() => {
+    // We update based on filters, but the initial load is server-side.
     const fetchInventory = async () => {
         setIsLoading(true);
         const updatedInventory = await getFinishedGoodsInventory(watchedFilters);
@@ -60,12 +61,19 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
         setIsLoading(false);
     };
 
+    // Debounce to avoid excessive requests while typing
     const handler = setTimeout(() => {
-        fetchInventory();
-    }, 300); // Debounce to avoid excessive requests while typing
+        // We only refetch if filters are applied. Initial data is a prop.
+        if (watchedFilters.name !== "" || initialData.length === 0) {
+           fetchInventory();
+        } else {
+           // if filters are cleared, just reset to the initial server-fetched data
+           setInventory(initialData); 
+        }
+    }, 300); 
 
     return () => clearTimeout(handler);
-  }, [watchedFilters]);
+  }, [watchedFilters, initialData]);
   
   const handleClear = () => {
     form.reset({ name: "" })
