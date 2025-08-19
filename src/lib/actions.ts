@@ -431,7 +431,7 @@ export async function recordSale(username: string, values: z.infer<typeof saleSc
 export async function getVouchers(username: string, filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<any[]> {
     let vouchers = await readVouchers(username);
 
-    // Filter out finished goods production and sales from the raw material ledger view
+    // Filter out finished goods production and sales from the raw material ledger view, but keep scrape
     vouchers = vouchers.filter(v => 
         !v.remarks?.startsWith("PRODUCED FROM") &&
         !v.remarks?.startsWith("SOLD TO")
@@ -447,8 +447,8 @@ export async function getVouchers(username: string, filters: { name?: string; st
     }
     if (filters.endDate) {
         const filterDate = new Date(filters.endDate);
-        const endOfDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate(), 23, 59, 59, 999));
-        vouchers = vouchers.filter(v => new Date(v.date) <= endOfDay);
+        const nextDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate() + 1));
+        vouchers = vouchers.filter(v => new Date(v.date) < nextDay);
     }
     
     return vouchers;
@@ -470,8 +470,8 @@ export async function getInventoryItem(username: string, name: string, filters?:
     }
     if (filters?.endDate) {
         const end = new Date(filters.endDate);
-        const endOfDay = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate(), 23, 59, 59, 999));
-        itemVouchers = itemVouchers.filter(v => new Date(v.date) <= endOfDay);
+        const nextDay = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate() + 1));
+        itemVouchers = itemVouchers.filter(v => new Date(v.date) < nextDay);
     }
 
 
@@ -549,8 +549,8 @@ export async function getProcesses(username: string, filters: { name?: string; s
     }
     if (filters.endDate) {
         const filterDate = new Date(filters.endDate);
-        const endOfDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate(), 23, 59, 59, 999));
-        processes = processes.filter(p => new Date(p.date) <= endOfDay);
+        const nextDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate() + 1));
+        processes = processes.filter(p => new Date(p.date) < nextDay);
     }
     
     return processes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -609,9 +609,9 @@ export async function getOutputLedger(username: string, filters: { name?: string
     }
     if (filters.endDate) {
         const filterDate = new Date(filters.endDate);
-        const endOfDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate(), 23, 59, 59, 999));
-        allOutputs = allOutputs.filter(o => new Date(o.date) <= endOfDay);
-        allSales = allSales.filter(s => new Date(s.date) <= endOfDay);
+        const nextDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate() + 1));
+        allOutputs = allOutputs.filter(o => new Date(o.date) < nextDay);
+        allSales = allSales.filter(s => new Date(s.date) < nextDay);
     }
     
     // Map outputs to ledger entries
