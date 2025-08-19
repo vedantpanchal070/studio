@@ -442,12 +442,12 @@ export async function getVouchers(username: string, filters: { name?: string; st
     }
     if (filters.startDate) {
         const filterDate = new Date(filters.startDate);
-        const startOfDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate()));
+        const startOfDay = new Date(Date.UTC(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate()));
         vouchers = vouchers.filter(v => new Date(v.date) >= startOfDay);
     }
     if (filters.endDate) {
         const filterDate = new Date(filters.endDate);
-        const nextDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate() + 1));
+        const nextDay = new Date(Date.UTC(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate() + 1));
         vouchers = vouchers.filter(v => new Date(v.date) < nextDay);
     }
     
@@ -465,12 +465,12 @@ export async function getInventoryItem(username: string, name: string, filters?:
     // Date filtering
     if (filters?.startDate) {
         const start = new Date(filters.startDate);
-        const startOfDay = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+        const startOfDay = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate()));
         itemVouchers = itemVouchers.filter(v => new Date(v.date) >= startOfDay);
     }
     if (filters?.endDate) {
         const end = new Date(filters.endDate);
-        const nextDay = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate() + 1));
+        const nextDay = new Date(Date.UTC(end.getFullYear(), end.getMonth(), end.getDate() + 1));
         itemVouchers = itemVouchers.filter(v => new Date(v.date) < nextDay);
     }
 
@@ -546,12 +546,12 @@ export async function getProcesses(username: string, filters: { name?: string; s
     }
     if (filters.startDate) {
         const filterDate = new Date(filters.startDate);
-        const startOfDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate()));
+        const startOfDay = new Date(Date.UTC(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate()));
         processes = processes.filter(p => new Date(p.date) >= startOfDay);
     }
     if (filters.endDate) {
         const filterDate = new Date(filters.endDate);
-        const nextDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate() + 1));
+        const nextDay = new Date(Date.UTC(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate() + 1));
         processes = processes.filter(p => new Date(p.date) < nextDay);
     }
     
@@ -605,13 +605,13 @@ export async function getOutputLedger(username: string, filters: { name?: string
     }
     if (filters.startDate) {
         const filterDate = new Date(filters.startDate);
-        const startOfDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate()));
+        const startOfDay = new Date(Date.UTC(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate()));
         allOutputs = allOutputs.filter(o => new Date(o.date) >= startOfDay);
         allSales = allSales.filter(s => new Date(s.date) >= startOfDay);
     }
     if (filters.endDate) {
         const filterDate = new Date(filters.endDate);
-        const nextDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate() + 1));
+        const nextDay = new Date(Date.UTC(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate() + 1));
         allOutputs = allOutputs.filter(o => new Date(o.date) < nextDay);
         allSales = allSales.filter(s => new Date(s.date) < nextDay);
     }
