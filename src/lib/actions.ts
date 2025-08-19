@@ -332,13 +332,13 @@ export async function createOutput(username: string, values: z.infer<typeof outp
 
         if (scrapeQty > 0) {
             const scrapeVoucher: Voucher = {
-                id: outputId + "scrape", // Scrape still needs a unique ID
+                id: outputId + "scrape",
                 date,
                 name: `${productName} - SCRAPE`,
                 code: `SCRAPE-${productName}`,
                 quantities: scrapeQty,
                 quantityType: 'KG',
-                pricePerNo: finalAveragePrice, // Scrape inherits the cost price of the process
+                pricePerNo: finalAveragePrice,
                 totalPrice: scrapeQty * finalAveragePrice,
                 remarks: `SCRAPE FROM ${validatedFields.data.processUsed}`,
             };
@@ -439,11 +439,18 @@ export async function getVouchers(username: string, filters: { name?: string, st
     }
     
     if (startDate) {
-        const start = new Date(startDate);
-        const end = endDate ? new Date(endDate) : new Date();
-
-        const startTimestamp = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
-        const endTimestamp = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1).getTime();
+        let startTimestamp = new Date(startDate).getTime();
+        let endTimestamp;
+        if (endDate) {
+          const endOfDay = new Date(endDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          endTimestamp = endOfDay.getTime();
+        } else {
+          // If only start date is provided, filter for that single day
+          const endOfDay = new Date(startDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          endTimestamp = endOfDay.getTime();
+        }
         
         vouchers = vouchers.filter(v => {
             if (!v.date) return false;
@@ -536,12 +543,19 @@ export async function getProcesses(username: string, filters: { name?: string, s
     }
     
     if (startDate) {
-        const start = new Date(startDate);
-        const end = endDate ? new Date(endDate) : new Date();
-
-        const startTimestamp = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
-        const endTimestamp = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1).getTime();
-
+        let startTimestamp = new Date(startDate).getTime();
+        let endTimestamp;
+        if (endDate) {
+          const endOfDay = new Date(endDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          endTimestamp = endOfDay.getTime();
+        } else {
+          // If only start date is provided, filter for that single day
+          const endOfDay = new Date(startDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          endTimestamp = endOfDay.getTime();
+        }
+        
         processes = processes.filter(p => {
             if (!p.date) return false;
             const processTimestamp = new Date(p.date).getTime();
@@ -625,12 +639,19 @@ export async function getOutputLedger(username: string, filters: { name?: string
     
     // Date filter
     if (startDate) {
-        const start = new Date(startDate);
-        const end = endDate ? new Date(endDate) : new Date();
+        let startTimestamp = new Date(startDate).getTime();
+        let endTimestamp;
+        if (endDate) {
+          const endOfDay = new Date(endDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          endTimestamp = endOfDay.getTime();
+        } else {
+          // If only start date is provided, filter for that single day
+          const endOfDay = new Date(startDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          endTimestamp = endOfDay.getTime();
+        }
         
-        const startTimestamp = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
-        const endTimestamp = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1).getTime();
-
         ledger = ledger.filter(entry => {
             if (!entry.date) return false;
             const entryTimestamp = new Date(entry.date).getTime();
@@ -1052,3 +1073,5 @@ export async function updateSale(username: string, values: z.infer<typeof saleSc
         return { success: false, message: "Failed to update sale." };
     }
 }
+
+    
