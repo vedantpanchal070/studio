@@ -421,51 +421,19 @@ export async function recordSale(username: string, values: z.infer<typeof saleSc
   }
 }
 
-export async function getVouchers(username: string, filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<any[]> {
+export async function getVouchers(username: string, filters: { name?: string }): Promise<any[]> {
     let vouchers = await readVouchers(username);
 
     // Filter out finished goods production and sales from the raw material ledger view
     vouchers = vouchers.filter(v => 
-        !v.remarks?.startsWith("PRODUCED FROM") &&
-        !v.remarks?.startsWith("SOLD TO") || v.remarks?.startsWith("SCRAPE FROM")
+        (!v.remarks?.startsWith("PRODUCED FROM") && !v.remarks?.startsWith("SOLD TO")) || v.remarks?.startsWith("SCRAPE FROM")
     );
     
-    // Default timestamps that will include all dates
-    let startTimestamp = 0; // The beginning of time
-    let endTimestamp = Infinity; // The far future
-
-    if (filters.startDate) {
-        const date = new Date(filters.startDate);
-        const startOfDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-        // Convert the start boundary to a number
-        startTimestamp = startOfDay.getTime();
-    }
-
-    if (filters.endDate) {
-        const date = new Date(filters.endDate);
-        const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
-        // Convert the end boundary to a number
-        endTimestamp = startOfNextDay.getTime();
-    }
-    
-    let filteredVouchers = vouchers.filter(v => {
-        // Skip any voucher that doesn't have a date
-        if (!v.date) {
-            return false;
-        }
-        
-        // Convert the voucher's date to a number
-        const voucherTimestamp = new Date(v.date).getTime();
-
-        // Compare the numbers
-        return voucherTimestamp >= startTimestamp && voucherTimestamp < endTimestamp;
-    });
-
     if (filters.name) {
-        filteredVouchers = filteredVouchers.filter(v => v.name === filters.name);
+        vouchers = vouchers.filter(v => v.name === filters.name);
     }
     
-    return filteredVouchers;
+    return vouchers;
 }
 
 export async function getInventoryItem(username: string, name: string, filters?: { startDate?: Date; endDate?: Date }) {
@@ -1091,5 +1059,3 @@ export async function updateSale(username: string, values: z.infer<typeof saleSc
         return { success: false, message: "Failed to update sale." };
     }
 }
-
-    
