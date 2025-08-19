@@ -97,5 +97,27 @@
     "pricePerNo": 0,
     "totalPrice": 0,
     "remarks": "USED IN SAK"
+  },
+  {
+    "id": "2025-08-19T07:56:59.854Zvrpdyvuxz",
+    "date": "2025-08-19T07:56:23.036Z",
+    "name": "SAK",
+    "code": "FG-SAK",
+    "quantities": 140,
+    "quantityType": "KG",
+    "pricePerNo": 89.28571428571429,
+    "totalPrice": 12500,
+    "remarks": "PRODUCED FROM SAK"
+  },
+  {
+    "id": "2025-08-19T07:56:59.854Zvrpdyvuxzscrape",
+    "date": "2025-08-19T07:56:23.036Z",
+    "name": "SAK - SCRAPE",
+    "code": "SCRAPE-SAK",
+    "quantities": 40,
+    "quantityType": "KG",
+    "pricePerNo": 0,
+    "totalPrice": 0,
+    "remarks": "SCRAPE FROM SAK"
   }
 ]
