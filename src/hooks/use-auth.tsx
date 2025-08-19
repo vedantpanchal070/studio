@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Check localStorage on mount
+    // This effect runs only on the client-side
     try {
       const storedUser = localStorage.getItem('inventomax_user');
       if (storedUser) {
@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Failed to parse user from localStorage", error);
       localStorage.removeItem('inventomax_user');
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   }, []);
 
