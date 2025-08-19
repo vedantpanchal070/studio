@@ -428,40 +428,33 @@ export async function getVouchers(username: string, filters: { name?: string, st
         vouchers = vouchers.filter(v => v.name === filters.name);
     }
     
-    // Handle date filtering
     if (filters.startDate || filters.endDate) {
         vouchers = vouchers.filter(v => {
             if (!v.date) return false;
             
-            // If only one date is provided, match that exact day
-            if (filters.startDate && !filters.endDate) {
-                const start = new Date(filters.startDate);
-                const itemDate = new Date(v.date);
-                return itemDate.getFullYear() === start.getFullYear() &&
-                       itemDate.getMonth() === start.getMonth() &&
-                       itemDate.getDate() === start.getDate();
+            const rowDate = new Date(v.date);
+            const startDateObj = filters.startDate ? new Date(filters.startDate) : null;
+            const endDateObj = filters.endDate ? new Date(filters.endDate) : null;
+            
+            // Set time to 00:00:00 for accurate day comparison
+            rowDate.setHours(0,0,0,0);
+            if (startDateObj) startDateObj.setHours(0,0,0,0);
+            if (endDateObj) endDateObj.setHours(0,0,0,0);
+
+            // Case 1: Both dates are provided (range search)
+            if (startDateObj && endDateObj) {
+                return startDateObj <= rowDate && rowDate <= endDateObj;
             }
-            if (!filters.startDate && filters.endDate) {
-                 const end = new Date(filters.endDate);
-                 const itemDate = new Date(v.date);
-                 return itemDate.getFullYear() === end.getFullYear() &&
-                        itemDate.getMonth() === end.getMonth() &&
-                        itemDate.getDate() === end.getDate();
+            // Case 2: Only start date is provided (single day search)
+            else if (startDateObj) {
+                return rowDate.getTime() === startDateObj.getTime();
+            }
+            // Case 3: Only end date is provided (single day search)
+            else if (endDateObj) {
+                return rowDate.getTime() === endDateObj.getTime();
             }
 
-            // If both dates are provided, check the range
-            if(filters.startDate && filters.endDate) {
-                const startDate = new Date(filters.startDate);
-                startDate.setHours(0,0,0,0);
-                
-                const endDate = new Date(filters.endDate);
-                endDate.setHours(23,59,59,999);
-                
-                const voucherTimestamp = new Date(v.date).getTime();
-                
-                return voucherTimestamp >= startDate.getTime() && voucherTimestamp <= endDate.getTime();
-            }
-            return true; // Should not happen, but for safety
+            return false;
         });
     }
 
@@ -509,8 +502,7 @@ export async function getInventoryItem(username: string, name: string) {
 export async function getVoucherItemNames(username: string): Promise<string[]> {
     const vouchers = await readVouchers(username);
     const relevantVouchers = vouchers.filter(v =>
-        !v.remarks?.startsWith("PRODUCED FROM") &&
-        (!v.remarks?.startsWith("SOLD TO") || v.remarks?.startsWith("SCRAPE FROM"))
+        (!v.remarks?.startsWith("PRODUCED FROM") && !v.remarks?.startsWith("SOLD TO")) || v.remarks?.startsWith("SCRAPE FROM")
     );
     const names = new Set(relevantVouchers.map(v => v.name));
     return Array.from(names).sort();
@@ -547,43 +539,28 @@ export async function getProcesses(username: string, filters: { name?: string, s
         processes = processes.filter(p => p.processName === filters.name);
     }
     
-     // Handle date filtering
     if (filters.startDate || filters.endDate) {
         processes = processes.filter(p => {
             if (!p.date) return false;
             
-            // If only one date is provided, match that exact day
-            if (filters.startDate && !filters.endDate) {
-                const start = new Date(filters.startDate);
-                const itemDate = new Date(p.date);
-                return itemDate.getFullYear() === start.getFullYear() &&
-                       itemDate.getMonth() === start.getMonth() &&
-                       itemDate.getDate() === start.getDate();
-            }
-             if (!filters.startDate && filters.endDate) {
-                 const end = new Date(filters.endDate);
-                 const itemDate = new Date(p.date);
-                 return itemDate.getFullYear() === end.getFullYear() &&
-                        itemDate.getMonth() === end.getMonth() &&
-                        itemDate.getDate() === end.getDate();
-            }
+            const rowDate = new Date(p.date);
+            const startDateObj = filters.startDate ? new Date(filters.startDate) : null;
+            const endDateObj = filters.endDate ? new Date(filters.endDate) : null;
 
-            // If both dates are provided, check the range
-            if(filters.startDate && filters.endDate) {
-                const startDate = new Date(filters.startDate);
-                startDate.setHours(0,0,0,0);
+            rowDate.setHours(0,0,0,0);
+            if (startDateObj) startDateObj.setHours(0,0,0,0);
+            if (endDateObj) endDateObj.setHours(0,0,0,0);
 
-                const endDate = new Date(filters.endDate);
-                endDate.setHours(23,59,59,999);
-                
-                const processTimestamp = new Date(p.date).getTime();
-                
-                return processTimestamp >= startDate.getTime() && processTimestamp <= endDate.getTime();
+            if (startDateObj && endDateObj) {
+                return startDateObj <= rowDate && rowDate <= endDateObj;
+            } else if (startDateObj) {
+                return rowDate.getTime() === startDateObj.getTime();
+            } else if (endDateObj) {
+                return rowDate.getTime() === endDateObj.getTime();
             }
-             return true; // Should not happen, but for safety
+            return false;
         });
     }
-
 
     return processes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
@@ -658,40 +635,27 @@ export async function getOutputLedger(username: string, filters: { name?: string
         ledger = ledger.filter(o => o.productName === filters.name);
     }
     
-    // Handle date filtering
+    // Date filter
     if (filters.startDate || filters.endDate) {
         ledger = ledger.filter(entry => {
             if (!entry.date) return false;
             
-            // If only one date is provided, match that exact day
-            if (filters.startDate && !filters.endDate) {
-                const start = new Date(filters.startDate);
-                const itemDate = new Date(entry.date);
-                return itemDate.getFullYear() === start.getFullYear() &&
-                       itemDate.getMonth() === start.getMonth() &&
-                       itemDate.getDate() === start.getDate();
-            }
-             if (!filters.startDate && filters.endDate) {
-                 const end = new Date(filters.endDate);
-                 const itemDate = new Date(entry.date);
-                 return itemDate.getFullYear() === end.getFullYear() &&
-                        itemDate.getMonth() === end.getMonth() &&
-                        itemDate.getDate() === end.getDate();
-            }
+            const rowDate = new Date(entry.date);
+            const startDateObj = filters.startDate ? new Date(filters.startDate) : null;
+            const endDateObj = filters.endDate ? new Date(filters.endDate) : null;
 
-            // If both dates are provided, check the range
-            if(filters.startDate && filters.endDate) {
-                const startDate = new Date(filters.startDate);
-                startDate.setHours(0,0,0,0);
-                
-                const endDate = new Date(filters.endDate);
-                endDate.setHours(23,59,59,999);
+            rowDate.setHours(0,0,0,0);
+            if (startDateObj) startDateObj.setHours(0,0,0,0);
+            if (endDateObj) endDateObj.setHours(0,0,0,0);
 
-                const entryTimestamp = new Date(entry.date).getTime();
-                
-                return entryTimestamp >= startDate.getTime() && entryTimestamp <= endDate.getTime();
+            if (startDateObj && endDateObj) {
+                return startDateObj <= rowDate && rowDate <= endDateObj;
+            } else if (startDateObj) {
+                return rowDate.getTime() === startDateObj.getTime();
+            } else if (endDateObj) {
+                return rowDate.getTime() === endDateObj.getTime();
             }
-             return true; // Should not happen, but for safety
+            return false;
         });
     }
 
@@ -776,7 +740,7 @@ export async function updateVoucher(username: string, values: z.infer<typeof vou
             return { success: false, message: "Voucher not found." };
         }
 
-        vouchers[voucherIndex] = { ...vouchers[voucherIndex], ...updatedVoucherData };
+        vouchers[voucherIndex] = { ...vouchers[voucherIndex], ...updatedVoucherData, id };
         await writeVouchers(username, vouchers);
 
         revalidatePath("/view/vouchers");
