@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { getFinishedGoodsInventory } from "@/lib/actions"
+import { useAuth } from "@/hooks/use-auth"
 import {
   Form,
   FormControl,
@@ -41,6 +42,7 @@ type SearchFormValues = z.infer<typeof searchSchema>
 export function InventoryClient({ initialData }: InventoryClientProps) {
   const [inventory, setInventory] = useState<FinishedGoodInventoryItem[]>(initialData)
   const [isLoading, setIsLoading] = useState(false)
+  const { user } = useAuth()
 
   
   const form = useForm<SearchFormValues>({
@@ -53,27 +55,21 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
   const watchedFilters = useWatch({ control: form.control });
 
   useEffect(() => {
-    // We update based on filters, but the initial load is server-side.
+    if (!user) return;
     const fetchInventory = async () => {
         setIsLoading(true);
-        const updatedInventory = await getFinishedGoodsInventory(watchedFilters);
+        const updatedInventory = await getFinishedGoodsInventory(user.username, watchedFilters);
         setInventory(updatedInventory);
         setIsLoading(false);
     };
 
     // Debounce to avoid excessive requests while typing
     const handler = setTimeout(() => {
-        // We only refetch if filters are applied. Initial data is a prop.
-        if (watchedFilters.name !== "" || initialData.length === 0) {
-           fetchInventory();
-        } else {
-           // if filters are cleared, just reset to the initial server-fetched data
-           setInventory(initialData); 
-        }
+        fetchInventory();
     }, 300); 
 
     return () => clearTimeout(handler);
-  }, [watchedFilters, initialData]);
+  }, [watchedFilters, initialData, user]);
   
   const handleClear = () => {
     form.reset({ name: "" })
@@ -149,3 +145,5 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
     </div>
   )
 }
+
+    

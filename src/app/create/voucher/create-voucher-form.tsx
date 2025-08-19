@@ -9,6 +9,7 @@ import type { z } from "zod"
 import { voucherSchema } from "@/lib/schemas"
 import { createVoucher } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -27,6 +28,7 @@ type VoucherFormValues = z.infer<typeof voucherSchema>
 
 export function CreateVoucherForm() {
   const { toast } = useToast()
+  const { user } = useAuth()
   const form = useForm<VoucherFormValues>({
     resolver: zodResolver(voucherSchema),
     defaultValues: {
@@ -52,7 +54,11 @@ export function CreateVoucherForm() {
   }, [quantities, pricePerNo, form])
 
   const onSubmit = async (values: VoucherFormValues) => {
-    const result = await createVoucher(values)
+    if (!user) {
+      toast({ title: "Error", description: "You must be logged in to create a voucher.", variant: "destructive" });
+      return;
+    }
+    const result = await createVoucher(user.username, values)
     if (result.success) {
       toast({
         title: "Success!",
@@ -219,10 +225,12 @@ export function CreateVoucherForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" disabled={form.formState.isSubmitting} ref={saveButtonRef}>
+        <Button type="submit" disabled={form.formState.isSubmitting || !user} ref={saveButtonRef}>
           {form.formState.isSubmitting ? "Saving..." : "Save All Entries"}
         </Button>
       </form>
     </Form>
   )
 }
+
+    

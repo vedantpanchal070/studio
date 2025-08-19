@@ -9,6 +9,7 @@ import { z } from "zod"
 import { outputSchema, type Output } from "@/lib/schemas"
 import { getProcessNamesAndDetails, updateOutput, type ProcessDetails } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -44,6 +45,7 @@ interface EditOutputDialogProps {
 
 export function EditOutputDialog({ isOpen, onOpenChange, output, onOutputUpdated }: EditOutputDialogProps) {
   const { toast } = useToast()
+  const { user } = useAuth()
   const [processes, setProcesses] = useState<ProcessDetails[]>([])
   const [selectedProcess, setSelectedProcess] = useState<ProcessDetails | null>(null)
   
@@ -68,14 +70,15 @@ export function EditOutputDialog({ isOpen, onOpenChange, output, onOutputUpdated
   }, [output, form])
 
   useEffect(() => {
+    if (!user) return;
     const fetchProcesses = async () => {
-      const processData = await getProcessNamesAndDetails()
+      const processData = await getProcessNamesAndDetails(user.username)
       setProcesses(processData)
       const currentProcess = processData.find(p => p.processName === output.processUsed);
       setSelectedProcess(currentProcess || null);
     }
     fetchProcesses()
-  }, [output])
+  }, [output, user])
 
   const watchedValues = useWatch({ control: form.control });
 
@@ -119,6 +122,11 @@ export function EditOutputDialog({ isOpen, onOpenChange, output, onOutputUpdated
   }
 
   const onSubmit = async (values: OutputFormValues) => {
+    if (!user) {
+      toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+      return;
+    }
+
     const submissionData = {
       ...values,
       quantityProduced: netAvailableQty,
@@ -126,7 +134,7 @@ export function EditOutputDialog({ isOpen, onOpenChange, output, onOutputUpdated
       id: output.id,
     }
     
-    const result = await updateOutput(submissionData)
+    const result = await updateOutput(user.username, submissionData)
     if (result.success) {
       toast({
         title: "Success!",
@@ -281,7 +289,7 @@ export function EditOutputDialog({ isOpen, onOpenChange, output, onOutputUpdated
 
             <DialogFooter>
               <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button type="submit" disabled={form.formState.isSubmitting || !user}>
                 {form.formState.isSubmitting ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
@@ -291,3 +299,5 @@ export function EditOutputDialog({ isOpen, onOpenChange, output, onOutputUpdated
     </Dialog>
   )
 }
+
+    

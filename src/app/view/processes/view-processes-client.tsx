@@ -9,7 +9,8 @@ import { Search, Trash2, ChevronDown, Edit } from "lucide-react"
 import { format } from 'date-fns'
 
 import type { Process } from "@/lib/schemas"
-import { getProcesses, deleteProcess } from "@/lib/actions"
+import { getProcesses, deleteProcess, getUniqueProcessNames } from "@/lib/actions"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/date-picker"
 import {
@@ -51,10 +52,6 @@ const searchSchema = z.object({
 
 type SearchFormValues = z.infer<typeof searchSchema>
 
-interface ViewProcessesClientProps {
-  initialData: Process[];
-  processNames: string[];
-}
 
 function ProcessEntry({ process, onDelete, onEdit }: { process: Process, onDelete: (process: Process) => void, onEdit: (process: Process) => void }) {
     const [isOpen, setIsOpen] = useState(false)
@@ -135,9 +132,11 @@ function ProcessEntry({ process, onDelete, onEdit }: { process: Process, onDelet
     )
 }
 
-export function ViewProcessesClient({ initialData, processNames }: ViewProcessesClientProps) {
+export function ViewProcessesClient() {
   const { toast } = useToast()
-  const [processes, setProcesses] = useState<Process[]>(initialData)
+  const { user } = useAuth()
+  const [processes, setProcesses] = useState<Process[]>([])
+  const [processNames, setProcessNames] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null)
@@ -151,15 +150,20 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
   const watchedFilters = useWatch({ control: form.control });
 
   useEffect(() => {
+    if (!user) return;
     const fetchProcesses = async () => {
       setIsLoading(true)
-      const results = await getProcesses(watchedFilters)
+      const [results, names] = await Promise.all([
+        getProcesses(user.username, watchedFilters),
+        getUniqueProcessNames(user.username)
+      ]);
       setProcesses(results)
+      setProcessNames(names)
       setIsLoading(false)
     };
 
     fetchProcesses();
-  }, [watchedFilters]);
+  }, [watchedFilters, user]);
 
 
   const handleClear = () => {
@@ -167,10 +171,11 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
   }
   
   const handleDelete = async (process: Process) => {
-    const result = await deleteProcess(process);
+    if (!user) return;
+    const result = await deleteProcess(user.username, process);
     if (result.success) {
       toast({ title: "Success", description: result.message });
-      const results = await getProcesses(form.getValues())
+      const results = await getProcesses(user.username, form.getValues())
       setProcesses(results)
     } else {
       toast({ title: "Error", description: result.message, variant: "destructive" });
@@ -273,12 +278,10 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
             isOpen={isEditDialogOpen}
             onOpenChange={setIsEditDialogOpen}
             process={selectedProcess}
-            onProcessUpdated={() => {
-                const fetchProcesses = async () => {
-                    const results = await getProcesses(form.getValues())
-                    setProcesses(results)
-                }
-                fetchProcesses();
+            onProcessUpdated={async () => {
+                if (!user) return;
+                const results = await getProcesses(user.username, form.getValues())
+                setProcesses(results)
             }}
         />
       )}

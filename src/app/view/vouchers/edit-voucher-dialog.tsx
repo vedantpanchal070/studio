@@ -9,6 +9,7 @@ import { z } from "zod"
 import { voucherSchema, type Voucher } from "@/lib/schemas"
 import { updateVoucher } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -44,6 +45,7 @@ interface EditVoucherDialogProps {
 
 export function EditVoucherDialog({ isOpen, onOpenChange, voucher, onVoucherUpdated }: EditVoucherDialogProps) {
   const { toast } = useToast()
+  const { user } = useAuth()
   const nameRef = useRef<HTMLInputElement>(null)
 
   
@@ -69,7 +71,11 @@ export function EditVoucherDialog({ isOpen, onOpenChange, voucher, onVoucherUpda
 
 
   const onSubmit = async (values: VoucherFormValues) => {
-    const result = await updateVoucher(values)
+    if (!user) {
+      toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+      return;
+    }
+    const result = await updateVoucher(user.username, values)
     if (result.success) {
       toast({
         title: "Success!",
@@ -151,7 +157,7 @@ export function EditVoucherDialog({ isOpen, onOpenChange, voucher, onVoucherUpda
             />
             <DialogFooter>
               <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button type="submit" disabled={form.formState.isSubmitting || !user}>
                 {form.formState.isSubmitting ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
@@ -161,3 +167,5 @@ export function EditVoucherDialog({ isOpen, onOpenChange, voucher, onVoucherUpda
     </Dialog>
   )
 }
+
+    

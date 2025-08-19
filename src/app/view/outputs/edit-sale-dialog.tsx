@@ -9,6 +9,7 @@ import { z } from "zod"
 import { saleSchema, type Sale } from "@/lib/schemas"
 import { getInventoryItem, updateSale } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -41,6 +42,7 @@ interface EditSaleDialogProps {
 
 export function EditSaleDialog({ isOpen, onOpenChange, sale, onSaleUpdated }: EditSaleDialogProps) {
   const { toast } = useToast()
+  const { user } = useAuth()
   const [availableQty, setAvailableQty] = useState(0)
   const [totalAmount, setTotalAmount] = useState(0)
 
@@ -63,10 +65,11 @@ export function EditSaleDialog({ isOpen, onOpenChange, sale, onSaleUpdated }: Ed
   const salePrice = form.watch("salePrice")
 
   useEffect(() => {
+    if (!user) return;
     const fetchStock = async () => {
       if (sale.productName) {
         // We add back the original quantity of this specific sale to calculate the "available before this sale" stock
-        const stock = await getInventoryItem(sale.productName)
+        const stock = await getInventoryItem(user.username, sale.productName)
         setAvailableQty(stock.availableStock + sale.saleQty)
       } else {
         setAvailableQty(0)
@@ -75,7 +78,7 @@ export function EditSaleDialog({ isOpen, onOpenChange, sale, onSaleUpdated }: Ed
     if (isOpen) {
         fetchStock()
     }
-  }, [sale, isOpen])
+  }, [sale, isOpen, user])
 
   useEffect(() => {
     const amount = (saleQty || 0) * (salePrice || 0)
@@ -84,6 +87,10 @@ export function EditSaleDialog({ isOpen, onOpenChange, sale, onSaleUpdated }: Ed
   }, [saleQty, salePrice, form])
 
   const onSubmit = async (values: SalesFormValues) => {
+    if (!user) {
+      toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+      return;
+    }
     if (values.saleQty > availableQty) {
       toast({
         title: "Error",
@@ -93,7 +100,7 @@ export function EditSaleDialog({ isOpen, onOpenChange, sale, onSaleUpdated }: Ed
       return
     }
 
-    const result = await updateSale(values)
+    const result = await updateSale(user.username, values)
     if (result.success) {
       toast({
         title: "Success!",
@@ -197,7 +204,7 @@ export function EditSaleDialog({ isOpen, onOpenChange, sale, onSaleUpdated }: Ed
               <DialogClose asChild>
                 <Button type="button" variant="secondary">Cancel</Button>
               </DialogClose>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button type="submit" disabled={form.formState.isSubmitting || !user}>
                 {form.formState.isSubmitting ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
@@ -207,3 +214,5 @@ export function EditSaleDialog({ isOpen, onOpenChange, sale, onSaleUpdated }: Ed
     </Dialog>
   )
 }
+
+    

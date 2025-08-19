@@ -10,6 +10,7 @@ import { outputSchema } from "@/lib/schemas"
 import { createOutput, getProcessNamesAndDetails } from "@/lib/actions"
 import type { ProcessDetails } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -30,6 +31,7 @@ type OutputFormValues = z.infer<typeof outputSchema>
 
 export function CreateOutputForm() {
   const { toast } = useToast()
+  const { user } = useAuth()
   const [processes, setProcesses] = useState<ProcessDetails[]>([])
   const [selectedProcess, setSelectedProcess] = useState<ProcessDetails | null>(null)
   
@@ -40,12 +42,13 @@ export function CreateOutputForm() {
 
 
   useEffect(() => {
+    if (!user) return;
     const fetchProcesses = async () => {
-      const processData = await getProcessNamesAndDetails()
+      const processData = await getProcessNamesAndDetails(user.username)
       setProcesses(processData)
     }
     fetchProcesses()
-  }, [])
+  }, [user])
   
   const form = useForm<OutputFormValues>({
     resolver: zodResolver(outputSchema),
@@ -106,6 +109,10 @@ export function CreateOutputForm() {
   }
 
   const onSubmit = async (values: OutputFormValues) => {
+    if (!user) {
+      toast({ title: "Error", description: "You must be logged in to create an output.", variant: "destructive" });
+      return;
+    }
     if (!selectedProcess) {
       toast({
         title: "Error",
@@ -121,7 +128,7 @@ export function CreateOutputForm() {
       finalAveragePrice: finalAvgPrice,
     }
     
-    const result = await createOutput(submissionData)
+    const result = await createOutput(user.username, submissionData)
     if (result.success) {
       toast({
         title: "Success!",
@@ -275,7 +282,7 @@ export function CreateOutputForm() {
             )}
           />
           <div className="flex gap-4">
-              <Button type="submit" disabled={form.formState.isSubmitting || !selectedProcess}>
+              <Button type="submit" disabled={form.formState.isSubmitting || !selectedProcess || !user}>
               {form.formState.isSubmitting ? "Saving..." : "Save Output"}
               </Button>
           </div>
@@ -284,3 +291,5 @@ export function CreateOutputForm() {
     </>
   )
 }
+
+    

@@ -1,4 +1,6 @@
 
+"use client"
+
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
@@ -11,13 +13,9 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { ViewOutputsClient } from "./view-outputs-client"
-import { getOutputLedger, getFinishedGoods } from "@/lib/actions"
 
-export const dynamic = 'force-dynamic'
 
-export default async function ViewOutputsPage() {
-  const initialData = await getOutputLedger({})
-  const finishedGoods = await getFinishedGoods()
+export default function ViewOutputsPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center bg-background p-4 sm:p-8">
@@ -35,13 +33,12 @@ export default async function ViewOutputsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ViewOutputsClient 
-              initialData={initialData}
-              productNames={finishedGoods.map(g => g.name)}
-            />
+            <ViewOutputsClient />
           </CardContent>
         </Card>
       </div>
     </main>
   )
 }
+
+    

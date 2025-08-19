@@ -8,8 +8,9 @@ import { z } from "zod"
 import { useRouter } from "next/navigation"
 
 import { saleSchema, type FinishedGood } from "@/lib/schemas"
-import { getFinishedGoods, getInventoryItem, recordSale } from "@/lib/actions"
+import { getInventoryItem, recordSale } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -43,6 +44,7 @@ interface SalesDialogProps {
 
 export function SalesDialog({ isOpen, onOpenChange, finishedGoods }: SalesDialogProps) {
   const { toast } = useToast()
+  const { user } = useAuth()
   const router = useRouter()
   const [availableQty, setAvailableQty] = useState(0)
   const [totalAmount, setTotalAmount] = useState(0)
@@ -66,16 +68,17 @@ export function SalesDialog({ isOpen, onOpenChange, finishedGoods }: SalesDialog
   const selectedProduct = form.watch("productName")
 
   useEffect(() => {
+    if (!user) return;
     const fetchStock = async () => {
       if (selectedProduct) {
-        const stock = await getInventoryItem(selectedProduct)
+        const stock = await getInventoryItem(user.username, selectedProduct)
         setAvailableQty(stock.availableStock)
       } else {
         setAvailableQty(0)
       }
     }
     fetchStock()
-  }, [selectedProduct])
+  }, [selectedProduct, user])
 
   useEffect(() => {
     const amount = (saleQty || 0) * (salePrice || 0)
@@ -100,6 +103,10 @@ export function SalesDialog({ isOpen, onOpenChange, finishedGoods }: SalesDialog
   }
 
   const onSubmit = async (values: SalesFormValues) => {
+    if (!user) {
+        toast({ title: "Error", description: "You must be logged in to record a sale.", variant: "destructive" });
+        return;
+    }
     if (values.saleQty > availableQty) {
         toast({
             title: "Error",
@@ -109,14 +116,13 @@ export function SalesDialog({ isOpen, onOpenChange, finishedGoods }: SalesDialog
         return;
     }
     
-    const result = await recordSale(values)
+    const result = await recordSale(user.username, values)
     if (result.success) {
       toast({
         title: "Success!",
         description: "Sale has been recorded.",
       })
       handleOpenChange(false)
-      // Instead of a callback, we just refresh the router to refetch data on the page.
       router.refresh() 
     } else {
       toast({
@@ -221,7 +227,7 @@ export function SalesDialog({ isOpen, onOpenChange, finishedGoods }: SalesDialog
               <DialogClose asChild>
                 <Button type="button" variant="secondary">Cancel</Button>
               </DialogClose>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button type="submit" disabled={form.formState.isSubmitting || !user}>
                 {form.formState.isSubmitting ? "Saving..." : "Confirm Sale"}
               </Button>
             </DialogFooter>
@@ -231,3 +237,5 @@ export function SalesDialog({ isOpen, onOpenChange, finishedGoods }: SalesDialog
     </Dialog>
   )
 }
+
+    

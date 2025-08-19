@@ -9,8 +9,9 @@ import { Search, Trash2, Edit } from "lucide-react"
 import { format } from 'date-fns'
 
 import type { LedgerEntry, Output, Sale } from "@/lib/actions"
-import { getOutputLedger, deleteOutput, deleteSale, getOutput, getSale } from "@/lib/actions"
+import { getOutputLedger, deleteOutput, deleteSale, getOutput, getSale, getFinishedGoods } from "@/lib/actions"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/date-picker"
 import {
@@ -53,14 +54,11 @@ const searchSchema = z.object({
 
 type SearchFormValues = z.infer<typeof searchSchema>
 
-interface ViewOutputsClientProps {
-  initialData: LedgerEntry[];
-  productNames: string[];
-}
-
-export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClientProps) {
+export function ViewOutputsClient() {
   const { toast } = useToast()
-  const [ledger, setLedger] = useState<LedgerEntry[]>(initialData)
+  const { user } = useAuth()
+  const [ledger, setLedger] = useState<LedgerEntry[]>([])
+  const [productNames, setProductNames] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const endDateRef = useRef<HTMLButtonElement>(null)
   
@@ -76,17 +74,21 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
 
   const watchedFilters = useWatch({ control: form.control });
   const selectedName = watchedFilters.name;
-  
-  useEffect(() => {
-    const fetchLedger = async () => {
-      setIsLoading(true)
-      const results = await getOutputLedger(watchedFilters)
-      setLedger(results)
-      setIsLoading(false)
-    };
 
-    fetchLedger();
-  }, [watchedFilters]);
+  useEffect(() => {
+    if (!user) return;
+    const fetchInitialData = async () => {
+        setIsLoading(true);
+        const [ledgerResults, goods] = await Promise.all([
+            getOutputLedger(user.username, watchedFilters),
+            getFinishedGoods(user.username)
+        ]);
+        setLedger(ledgerResults);
+        setProductNames(goods.map(g => g.name));
+        setIsLoading(false);
+    };
+    fetchInitialData();
+  }, [watchedFilters, user]);
 
 
   const handleClear = () => {
@@ -94,16 +96,17 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
   }
 
   const handleDelete = async (entry: LedgerEntry) => {
+    if (!user) return;
     let result;
     if (entry.type === 'Production') {
-      result = await deleteOutput(entry.id);
+      result = await deleteOutput(user.username, entry.id);
     } else { // Sale
-      result = await deleteSale(entry.id);
+      result = await deleteSale(user.username, entry.id);
     }
     
     if (result.success) {
       toast({ title: "Success", description: result.message });
-      const results = await getOutputLedger(form.getValues())
+      const results = await getOutputLedger(user.username, form.getValues())
       setLedger(results)
     } else {
       toast({ title: "Error", description: result.message, variant: "destructive" });
@@ -111,8 +114,9 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
   };
   
   const handleEdit = async (entry: LedgerEntry) => {
+    if (!user) return;
     if (entry.type === 'Production') {
-      const outputData = await getOutput(entry.id);
+      const outputData = await getOutput(user.username, entry.id);
       if (outputData) {
         setSelectedOutput(outputData);
         setIsOutputDialogOpen(true);
@@ -120,7 +124,7 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
         toast({ title: "Error", description: "Could not find output record to edit.", variant: "destructive" });
       }
     } else { // Sale
-      const saleData = await getSale(entry.id);
+      const saleData = await getSale(user.username, entry.id);
        if (saleData) {
         setSelectedSale(saleData);
         setIsSaleDialogOpen(true);
@@ -291,12 +295,10 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
             isOpen={isOutputDialogOpen}
             onOpenChange={setIsOutputDialogOpen}
             output={selectedOutput}
-            onOutputUpdated={() => {
-                const fetchLedger = async () => {
-                  const results = await getOutputLedger(form.getValues())
-                  setLedger(results)
-                }
-                fetchLedger();
+            onOutputUpdated={async () => {
+                if (!user) return;
+                const results = await getOutputLedger(user.username, form.getValues())
+                setLedger(results)
             }}
         />
       )}
@@ -306,12 +308,10 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
             isOpen={isSaleDialogOpen}
             onOpenChange={setIsSaleDialogOpen}
             sale={selectedSale}
-            onSaleUpdated={() => {
-                const fetchLedger = async () => {
-                  const results = await getOutputLedger(form.getValues())
-                  setLedger(results)
-                }
-                fetchLedger();
+            onSaleUpdated={async () => {
+                if (!user) return;
+                const results = await getOutputLedger(user.username, form.getValues())
+                setLedger(results)
             }}
         />
       )}
@@ -319,3 +319,5 @@ export function ViewOutputsClient({ initialData, productNames }: ViewOutputsClie
     </div>
   )
 }
+
+    

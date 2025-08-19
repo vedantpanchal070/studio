@@ -9,31 +9,28 @@ import fs from "fs/promises"
 import path from "path"
 
 const DATA_DIR = path.join(process.cwd(), "data")
-const VOUCHERS_FILE = path.join(DATA_DIR, "vouchers.json")
-const PROCESSES_FILE = path.join(DATA_DIR, "processes.json")
-const OUTPUTS_FILE = path.join(DATA_DIR, "outputs.json")
-const SALES_FILE = path.join(DATA_DIR, "sales.json")
 const USERS_FILE = path.join(DATA_DIR, "users.json")
 
+// Helper function to get the data directory for a specific user
+function getUserDataDir(username: string) {
+  return path.join(DATA_DIR, username);
+}
 
-// Ensure data directory exists
-async function ensureDataDir() {
+// Ensure data directory exists for a user
+async function ensureUserDataDir(username: string) {
+  const userDir = getUserDataDir(username);
   try {
-    await fs.mkdir(DATA_DIR, { recursive: true })
+    await fs.mkdir(userDir, { recursive: true })
   } catch (error) {
-    console.error("Error creating data directory:", error)
+    console.error(`Error creating data directory for user ${username}:`, error)
   }
 }
 
 async function readJsonFile(filePath: string): Promise<any[]> {
     try {
-        await ensureDataDir();
+        // The parent directory is now created by ensureUserDataDir
         const fileContent = await fs.readFile(filePath, "utf-8");
         const data = JSON.parse(fileContent);
-        // When parsing from JSON, assume the date string is in UTC format.
-        // The 'Z' at the end of an ISO string signifies UTC. If it's not present,
-        // new Date() might interpret it in the server's local timezone.
-        // We manually ensure we treat it as a UTC date string.
         return data.map((item: any) => {
             if (item.date && typeof item.date === 'string') {
                 const dateStr = item.date.endsWith('Z') ? item.date : `${item.date}Z`;
@@ -51,10 +48,8 @@ async function readJsonFile(filePath: string): Promise<any[]> {
     }
 }
 
-
 async function writeJsonFile(filePath: string, data: any) {
     try {
-        await ensureDataDir();
         await fs.writeFile(filePath, JSON.stringify(data, null, 2));
     } catch (error) {
         console.error(`Failed to write to ${path.basename(filePath)}:`, error);
@@ -62,24 +57,47 @@ async function writeJsonFile(filePath: string, data: any) {
 }
 
 
+// User-specific file paths
+const getVouchersFile = (username: string) => path.join(getUserDataDir(username), "vouchers.json");
+const getProcessesFile = (username: string) => path.join(getUserDataDir(username), "processes.json");
+const getOutputsFile = (username: string) => path.join(getUserDataDir(username), "outputs.json");
+const getSalesFile = (username: string) => path.join(getUserDataDir(username), "sales.json");
+
+
 // Vouchers
-const readVouchers = (): Promise<Voucher[]> => readJsonFile(VOUCHERS_FILE);
-const writeVouchers = (data: any[]) => writeJsonFile(VOUCHERS_FILE, data);
+const readVouchers = async (username: string): Promise<Voucher[]> => {
+    await ensureUserDataDir(username);
+    return readJsonFile(getVouchersFile(username));
+}
+const writeVouchers = (username: string, data: any[]) => writeJsonFile(getVouchersFile(username), data);
 
 // Processes
-const readProcesses = (): Promise<Process[]> => readJsonFile(PROCESSES_FILE);
-const writeProcesses = (data: any[]) => writeJsonFile(PROCESSES_FILE, data);
+const readProcesses = async (username: string): Promise<Process[]> => {
+    await ensureUserDataDir(username);
+    return readJsonFile(getProcessesFile(username));
+}
+const writeProcesses = (username: string, data: any[]) => writeJsonFile(getProcessesFile(username), data);
 
 // Outputs
-const readOutputs = (): Promise<Output[]> => readJsonFile(OUTPUTS_FILE);
-const writeOutputs = (data: any[]) => writeJsonFile(OUTPUTS_FILE, data);
+const readOutputs = async (username: string): Promise<Output[]> => {
+    await ensureUserDataDir(username);
+    return readJsonFile(getOutputsFile(username));
+}
+const writeOutputs = (username: string, data: any[]) => writeJsonFile(getOutputsFile(username), data);
 
 // Sales
-const readSales = (): Promise<Sale[]> => readJsonFile(SALES_FILE);
-const writeSales = (data: any[]) => writeJsonFile(SALES_FILE, data);
+const readSales = async (username: string): Promise<Sale[]> => {
+    await ensureUserDataDir(username);
+    return readJsonFile(getSalesFile(username));
+}
+const writeSales = (username: string, data: any[]) => writeJsonFile(getSalesFile(username), data);
 
-// Users
-const readUsers = (): Promise<User[]> => readJsonFile(USERS_FILE);
+
+// Users (Global)
+const readUsers = async (): Promise<User[]> => {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    return readJsonFile(USERS_FILE);
+};
 const writeUsers = (data: any[]) => writeJsonFile(USERS_FILE, data);
 
 // ============== USER ACTIONS ==============
@@ -100,10 +118,11 @@ export async function updateUser(updatedUser: User): Promise<boolean> {
         let users = await readUsers();
         const userIndex = users.findIndex(u => u.username === updatedUser.username);
         if (userIndex === -1) {
-            console.error("User not found for update:", updatedUser.username);
-            return false;
+            // If user doesn't exist, create one (useful for first-time run)
+            users.push(validatedFields.data);
+        } else {
+            users[userIndex] = validatedFields.data;
         }
-        users[userIndex] = validatedFields.data;
         await writeUsers(users);
         return true;
     } catch (error) {
@@ -115,7 +134,7 @@ export async function updateUser(updatedUser: User): Promise<boolean> {
 
 // ============== VOUCHER / PROCESS / ETC. ACTIONS ==============
 
-export async function createVoucher(values: z.infer<typeof voucherSchema>) {
+export async function createVoucher(username: string, values: z.infer<typeof voucherSchema>) {
   const validatedFields = voucherSchema.safeParse(values)
 
   if (!validatedFields.success) {
@@ -126,7 +145,7 @@ export async function createVoucher(values: z.infer<typeof voucherSchema>) {
   }
 
   try {
-    const vouchers = await readVouchers();
+    const vouchers = await readVouchers(username);
 
     const newVoucher = {
       ...validatedFields.data,
@@ -134,7 +153,7 @@ export async function createVoucher(values: z.infer<typeof voucherSchema>) {
     }
 
     vouchers.push(newVoucher)
-    await writeVouchers(vouchers)
+    await writeVouchers(username, vouchers)
 
     revalidatePath("/view/vouchers")
     revalidatePath("/create/process") // To update ingredient lists
@@ -148,7 +167,7 @@ export async function createVoucher(values: z.infer<typeof voucherSchema>) {
   }
 }
 
-export async function createProcess(values: z.infer<typeof processSchema>) {
+export async function createProcess(username: string, values: z.infer<typeof processSchema>) {
   const validatedFields = processSchema.safeParse(values)
 
   if (!validatedFields.success) {
@@ -161,12 +180,12 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
   const { date, rawMaterials, processName } = validatedFields.data;
 
   try {
-    const allVouchers = await readVouchers();
-    const allProcesses = await readProcesses();
+    const allVouchers = await readVouchers(username);
+    const allProcesses = await readProcesses(username);
 
     // Check for sufficient stock before proceeding
     for (const material of rawMaterials) {
-        const inventory = await getInventoryItem(material.name);
+        const inventory = await getInventoryItem(username, material.name);
         if (inventory.availableStock < material.quantity) {
             return {
                 success: false,
@@ -181,7 +200,7 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
       ...validatedFields.data,
       id: processId,
     });
-    await writeProcesses(allProcesses);
+    await writeProcesses(username, allProcesses);
 
     // Create a new voucher for each raw material consumption, linking it to the process
     rawMaterials.forEach(material => {
@@ -199,7 +218,7 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
         allVouchers.push(processVoucher);
     });
 
-    await writeVouchers(allVouchers);
+    await writeVouchers(username, allVouchers);
 
     revalidatePath("/view/vouchers");
     revalidatePath("/create/process");
@@ -218,7 +237,7 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
   }
 }
 
-export async function createOutput(values: z.infer<typeof outputSchema>) {
+export async function createOutput(username: string, values: z.infer<typeof outputSchema>) {
   const validatedFields = outputSchema.safeParse(values)
 
   if (!validatedFields.success) {
@@ -229,9 +248,9 @@ export async function createOutput(values: z.infer<typeof outputSchema>) {
   }
 
   try {
-    const { date, productName, quantityProduced, processCharge, scrape, scrapeUnit, notes } = validatedFields.data;
-    const allOutputs = await readOutputs();
-    const allVouchers = await readVouchers();
+    const { date, productName, quantityProduced, scrape, scrapeUnit } = validatedFields.data;
+    const allOutputs = await readOutputs(username);
+    const allVouchers = await readVouchers(username);
     
     const outputId = new Date().toISOString() + Math.random().toString(36).substr(2, 9);
 
@@ -241,7 +260,7 @@ export async function createOutput(values: z.infer<typeof outputSchema>) {
       id: outputId,
     };
     allOutputs.push(newOutput);
-    await writeOutputs(allOutputs);
+    await writeOutputs(username, allOutputs);
     
     // 2. Add the finished good to inventory (vouchers)
     const finishedGoodVoucher: Voucher = {
@@ -261,7 +280,7 @@ export async function createOutput(values: z.infer<typeof outputSchema>) {
     // 3. Add scrape back to inventory if applicable
     let scrapeQty = 0;
     if (scrape && scrape > 0) {
-        const processDetails = await getProcessDetails(validatedFields.data.processUsed);
+        const processDetails = await getProcessDetails(username, validatedFields.data.processUsed);
         if (scrapeUnit === '%') {
             scrapeQty = (processDetails?.totalProcessOutput || 0) * (scrape / 100);
         } else {
@@ -284,7 +303,7 @@ export async function createOutput(values: z.infer<typeof outputSchema>) {
         }
     }
     
-    await writeVouchers(allVouchers);
+    await writeVouchers(username, allVouchers);
 
     revalidatePath("/view/vouchers");
     revalidatePath("/view/outputs");
@@ -298,7 +317,7 @@ export async function createOutput(values: z.infer<typeof outputSchema>) {
   }
 }
 
-export async function recordSale(values: z.infer<typeof saleSchema>) {
+export async function recordSale(username: string, values: z.infer<typeof saleSchema>) {
   const validatedFields = saleSchema.safeParse(values)
 
   if (!validatedFields.success) {
@@ -311,11 +330,11 @@ export async function recordSale(values: z.infer<typeof saleSchema>) {
   const { productName, saleQty, date, clientCode } = validatedFields.data;
 
   try {
-    const allVouchers = await readVouchers();
-    const allSales = await readSales();
+    const allVouchers = await readVouchers(username);
+    const allSales = await readSales(username);
     
     // Final stock check
-    const inventory = await getInventoryItem(productName);
+    const inventory = await getInventoryItem(username, productName);
     if (inventory.availableStock < saleQty) {
         return {
             success: false,
@@ -330,7 +349,7 @@ export async function recordSale(values: z.infer<typeof saleSchema>) {
         id: saleId,
     }
     allSales.push(newSale);
-    await writeSales(allSales);
+    await writeSales(username, allSales);
 
     // 2. Create a negative voucher to deduct from inventory
     const saleVoucher: Voucher = {
@@ -345,7 +364,7 @@ export async function recordSale(values: z.infer<typeof saleSchema>) {
         remarks: `SOLD TO ${clientCode}`,
     };
     allVouchers.push(saleVoucher);
-    await writeVouchers(allVouchers);
+    await writeVouchers(username, allVouchers);
 
     revalidatePath("/view/vouchers");
     revalidatePath("/create/output"); // To refresh finished goods list
@@ -359,21 +378,19 @@ export async function recordSale(values: z.infer<typeof saleSchema>) {
   }
 }
 
-export async function getVouchers(filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<any[]> {
-    let vouchers = await readVouchers();
+export async function getVouchers(username: string, filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<any[]> {
+    let vouchers = await readVouchers(username);
     
     if (filters.name) {
         vouchers = vouchers.filter(v => v.name === filters.name);
     }
     if (filters.startDate) {
         const filterDate = new Date(filters.startDate);
-        // Important: Create a new Date object based on UTC values to avoid timezone shifts
         const startOfDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate()));
         vouchers = vouchers.filter(v => new Date(v.date) >= startOfDay);
     }
     if (filters.endDate) {
         const filterDate = new Date(filters.endDate);
-         // Important: Set to the very end of the UTC day
         const endOfDay = new Date(Date.UTC(filterDate.getUTCFullYear(), filterDate.getUTCMonth(), filterDate.getUTCDate(), 23, 59, 59, 999));
         vouchers = vouchers.filter(v => new Date(v.date) <= endOfDay);
     }
@@ -381,12 +398,12 @@ export async function getVouchers(filters: { name?: string; startDate?: Date; en
     return vouchers;
 }
 
-export async function getInventoryItem(name: string, filters?: { startDate?: Date; endDate?: Date }) {
+export async function getInventoryItem(username: string, name: string, filters?: { startDate?: Date; endDate?: Date }) {
     if (!name) {
         return { availableStock: 0, averagePrice: 0, code: "", quantityType: "" };
     }
   
-    let allVouchers = await readVouchers();
+    let allVouchers = await readVouchers(username);
     let itemVouchers = allVouchers.filter(v => v.name === name);
 
     // Date filtering
@@ -432,8 +449,8 @@ export async function getInventoryItem(name: string, filters?: { startDate?: Dat
     };
 }
 
-export async function getVoucherItemNames(): Promise<string[]> {
-    const vouchers = await readVouchers();
+export async function getVoucherItemNames(username: string): Promise<string[]> {
+    const vouchers = await readVouchers(username);
     const purchaseVouchers = vouchers.filter(v => v.quantities > 0 && !v.remarks?.includes("PRODUCED FROM"));
     const names = new Set(purchaseVouchers.map(v => v.name));
     return Array.from(names).sort();
@@ -445,8 +462,8 @@ export interface ProcessDetails {
   totalCost: number;
 }
 
-export async function getProcessNamesAndDetails(): Promise<ProcessDetails[]> {
-  const processes = await readProcesses();
+export async function getProcessNamesAndDetails(username: string): Promise<ProcessDetails[]> {
+  const processes = await readProcesses(username);
   return processes.map(p => {
     const totalCost = p.rawMaterials.reduce((sum: number, mat: any) => sum + (mat.rate * mat.quantity), 0);
     return {
@@ -457,13 +474,13 @@ export async function getProcessNamesAndDetails(): Promise<ProcessDetails[]> {
   });
 }
 
-export async function getProcessDetails(name: string): Promise<ProcessDetails | null> {
-    const processes = await getProcessNamesAndDetails();
+export async function getProcessDetails(username: string, name: string): Promise<ProcessDetails | null> {
+    const processes = await getProcessNamesAndDetails(username);
     return processes.find(p => p.processName === name) || null;
 }
 
-export async function getProcesses(filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<any[]> {
-    let processes = await readProcesses();
+export async function getProcesses(username: string, filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<any[]> {
+    let processes = await readProcesses(username);
 
     if (filters.name) {
         processes = processes.filter(p => p.processName === filters.name);
@@ -482,22 +499,22 @@ export async function getProcesses(filters: { name?: string; startDate?: Date; e
     return processes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-export async function getUniqueProcessNames(): Promise<string[]> {
-    const processes = await readProcesses();
+export async function getUniqueProcessNames(username: string): Promise<string[]> {
+    const processes = await readProcesses(username);
     const names = new Set(processes.map(p => p.processName));
     return Array.from(names).sort();
 }
 
-export async function getFinishedGoods(): Promise<FinishedGood[]> {
-  const vouchers = await readVouchers();
+export async function getFinishedGoods(username: string): Promise<FinishedGood[]> {
+  const vouchers = await readVouchers(username);
   const finishedGoodsMap = new Map<string, FinishedGood>();
 
   // Use outputs file to get the list of all possible finished goods
-  const outputs = await readOutputs();
+  const outputs = await readOutputs(username);
   const productNames = new Set(outputs.map(o => o.productName));
 
   for (const name of Array.from(productNames)) {
-    const { availableStock } = await getInventoryItem(name);
+    const { availableStock } = await getInventoryItem(username, name);
     if(availableStock > 0) {
       finishedGoodsMap.set(name, { name, availableStock });
     }
@@ -517,9 +534,9 @@ export interface LedgerEntry {
   id: string;
 }
 
-export async function getOutputLedger(filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<LedgerEntry[]> {
-    let allOutputs = await readOutputs();
-    let allSales = await readSales();
+export async function getOutputLedger(username: string, filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<LedgerEntry[]> {
+    let allOutputs = await readOutputs(username);
+    let allSales = await readSales(username);
     let ledger: LedgerEntry[] = [];
 
     // Apply filters
@@ -579,8 +596,8 @@ export interface FinishedGoodInventoryItem {
   quantityType: string;
 }
 
-export async function getFinishedGoodsInventory(filters?: { name?: string }): Promise<FinishedGoodInventoryItem[]> {
-  const vouchers = await readVouchers();
+export async function getFinishedGoodsInventory(username: string, filters?: { name?: string }): Promise<FinishedGoodInventoryItem[]> {
+  const vouchers = await readVouchers(username);
   
   let productNames = Array.from(new Set(vouchers.filter(v => v.code.startsWith('FG-')).map(v => v.name)));
   
@@ -592,7 +609,7 @@ export async function getFinishedGoodsInventory(filters?: { name?: string }): Pr
   const inventory: FinishedGoodInventoryItem[] = [];
 
   for (const name of productNames) {
-    const itemDetails = await getInventoryItem(name);
+    const itemDetails = await getInventoryItem(username, name);
     if (itemDetails.availableStock > 0) {
       inventory.push({
         name: name,
@@ -610,11 +627,11 @@ export async function getFinishedGoodsInventory(filters?: { name?: string }): Pr
 
 // ============== DELETE / UPDATE ACTIONS ==============
 
-export async function deleteVoucher(voucherId: string) {
+export async function deleteVoucher(username: string, voucherId: string) {
   try {
-    let vouchers = await readVouchers();
+    let vouchers = await readVouchers(username);
     vouchers = vouchers.filter(v => v.id !== voucherId);
-    await writeVouchers(vouchers);
+    await writeVouchers(username, vouchers);
     revalidatePath("/view/vouchers");
     revalidatePath("/view/inventory");
 
@@ -625,7 +642,7 @@ export async function deleteVoucher(voucherId: string) {
   }
 }
 
-export async function updateVoucher(values: z.infer<typeof voucherSchema>) {
+export async function updateVoucher(username: string, values: z.infer<typeof voucherSchema>) {
     const validatedFields = voucherSchema.safeParse(values)
 
     if (!validatedFields.success) {
@@ -634,7 +651,7 @@ export async function updateVoucher(values: z.infer<typeof voucherSchema>) {
 
     try {
         const { id, ...updatedVoucherData } = validatedFields.data;
-        let vouchers = await readVouchers();
+        let vouchers = await readVouchers(username);
         const voucherIndex = vouchers.findIndex(v => v.id === id);
 
         if (voucherIndex === -1) {
@@ -642,7 +659,7 @@ export async function updateVoucher(values: z.infer<typeof voucherSchema>) {
         }
 
         vouchers[voucherIndex] = { ...vouchers[voucherIndex], ...updatedVoucherData };
-        await writeVouchers(vouchers);
+        await writeVouchers(username, vouchers);
 
         revalidatePath("/view/vouchers");
         revalidatePath("/view/inventory");
@@ -653,7 +670,7 @@ export async function updateVoucher(values: z.infer<typeof voucherSchema>) {
     }
 }
 
-export async function updateProcess(originalProcess: Process, newValues: z.infer<typeof processSchema>) {
+export async function updateProcess(username: string, originalProcess: Process, newValues: z.infer<typeof processSchema>) {
     const validatedFields = processSchema.safeParse(newValues);
 
     if (!validatedFields.success) {
@@ -663,7 +680,7 @@ export async function updateProcess(originalProcess: Process, newValues: z.infer
     const { date, processName, outputUnit, notes } = validatedFields.data;
 
     try {
-        let allProcesses = await readProcesses();
+        let allProcesses = await readProcesses(username);
         const processIndex = allProcesses.findIndex(p => p.id === originalProcess.id);
         
         if (processIndex === -1) {
@@ -680,11 +697,11 @@ export async function updateProcess(originalProcess: Process, newValues: z.infer
             outputUnit,
             notes,
         };
-        await writeProcesses(allProcesses);
+        await writeProcesses(username, allProcesses);
 
         // Also update the associated vouchers' remarks if process name changed
         if(originalProcessName !== processName) {
-            let allVouchers = await readVouchers();
+            let allVouchers = await readVouchers(username);
             const originalRemark = `USED IN ${originalProcessName}`;
             const newRemark = `USED IN ${processName}`;
 
@@ -693,7 +710,7 @@ export async function updateProcess(originalProcess: Process, newValues: z.infer
                     voucher.remarks = newRemark;
                 }
             });
-            await writeVouchers(allVouchers);
+            await writeVouchers(username, allVouchers);
         }
         
         revalidatePath("/view/processes");
@@ -706,20 +723,19 @@ export async function updateProcess(originalProcess: Process, newValues: z.infer
     }
 }
 
-export async function deleteProcess(processToDelete: Process) {
+export async function deleteProcess(username: string, processToDelete: Process) {
   try {
-    let processes = await readProcesses();
-    let vouchers = await readVouchers();
+    let processes = await readProcesses(username);
+    let vouchers = await readVouchers(username);
 
     // 1. Remove the process record
     processes = processes.filter(p => p.id !== processToDelete.id);
     
     // 2. Find and remove the corresponding consumption vouchers
-    // The consumption vouchers now have IDs starting with the process ID
     vouchers = vouchers.filter(v => !v.id?.startsWith(processToDelete.id!));
     
-    await writeProcesses(processes);
-    await writeVouchers(vouchers);
+    await writeProcesses(username, processes);
+    await writeVouchers(username, vouchers);
 
     revalidatePath("/view/processes");
     revalidatePath("/view/vouchers");
@@ -731,10 +747,10 @@ export async function deleteProcess(processToDelete: Process) {
   }
 }
 
-export async function deleteOutput(outputId: string) {
+export async function deleteOutput(username: string, outputId: string) {
     try {
-        let outputs = await readOutputs();
-        let vouchers = await readVouchers();
+        let outputs = await readOutputs(username);
+        let vouchers = await readVouchers(username);
         const outputToDelete = outputs.find(o => o.id === outputId);
 
         if (!outputToDelete) {
@@ -745,12 +761,10 @@ export async function deleteOutput(outputId: string) {
         outputs = outputs.filter(o => o.id !== outputId);
 
         // 2. Find and remove the corresponding finished good and scrape vouchers
-        // The production voucher has the same ID as the output.
-        // The scrape voucher has an ID that starts with the output ID.
         vouchers = vouchers.filter(v => !v.id?.startsWith(outputId));
 
-        await writeOutputs(outputs);
-        await writeVouchers(vouchers);
+        await writeOutputs(username, outputs);
+        await writeVouchers(username, vouchers);
 
         revalidatePath("/view/outputs");
         revalidatePath("/view/vouchers");
@@ -763,10 +777,10 @@ export async function deleteOutput(outputId: string) {
     }
 }
 
-export async function deleteSale(saleId: string) {
+export async function deleteSale(username: string, saleId: string) {
     try {
-        let sales = await readSales();
-        let vouchers = await readVouchers();
+        let sales = await readSales(username);
+        let vouchers = await readVouchers(username);
         
         if (!sales.find(s => s.id === saleId)) {
             return { success: false, message: "Sale record not found." };
@@ -778,8 +792,8 @@ export async function deleteSale(saleId: string) {
         // 2. Find and remove the corresponding negative inventory voucher, which has the same ID.
         vouchers = vouchers.filter(v => v.id !== saleId);
 
-        await writeSales(sales);
-        await writeVouchers(vouchers);
+        await writeSales(username, sales);
+        await writeVouchers(username, vouchers);
 
         revalidatePath("/view/outputs");
         revalidatePath("/view/vouchers");
@@ -791,17 +805,17 @@ export async function deleteSale(saleId: string) {
     }
 }
 
-export async function getOutput(id: string): Promise<Output | undefined> {
-    const outputs = await readOutputs();
+export async function getOutput(username: string, id: string): Promise<Output | undefined> {
+    const outputs = await readOutputs(username);
     return outputs.find(o => o.id === id);
 }
 
-export async function getSale(id: string): Promise<Sale | undefined> {
-    const sales = await readSales();
+export async function getSale(username: string, id: string): Promise<Sale | undefined> {
+    const sales = await readSales(username);
     return sales.find(s => s.id === id);
 }
 
-export async function updateOutput(values: z.infer<typeof outputSchema>) {
+export async function updateOutput(username: string, values: z.infer<typeof outputSchema>) {
     const validatedFields = outputSchema.safeParse(values)
 
     if (!validatedFields.success) {
@@ -812,8 +826,8 @@ export async function updateOutput(values: z.infer<typeof outputSchema>) {
         const { id, ...updatedData } = validatedFields.data;
         if (!id) return { success: false, message: "Output ID is missing." };
 
-        let allOutputs = await readOutputs();
-        let allVouchers = await readVouchers();
+        let allOutputs = await readOutputs(username);
+        let allVouchers = await readVouchers(username);
         
         const outputIndex = allOutputs.findIndex(o => o.id === id);
         if (outputIndex === -1) return { success: false, message: "Output not found." };
@@ -821,7 +835,7 @@ export async function updateOutput(values: z.infer<typeof outputSchema>) {
         const originalOutput = allOutputs[outputIndex];
 
         // Recalculate values based on new data
-        const processDetails = await getProcessDetails(updatedData.processUsed);
+        const processDetails = await getProcessDetails(username, updatedData.processUsed);
         if (!processDetails) return { success: false, message: "Process details not found." };
         
         const { totalCost, totalProcessOutput } = processDetails;
@@ -880,8 +894,8 @@ export async function updateOutput(values: z.infer<typeof outputSchema>) {
             allVouchers.push(scrapeVoucher);
         }
 
-        await writeOutputs(allOutputs);
-        await writeVouchers(allVouchers);
+        await writeOutputs(username, allOutputs);
+        await writeVouchers(username, allVouchers);
 
         revalidatePath("/view/outputs");
         revalidatePath("/view/vouchers");
@@ -895,7 +909,7 @@ export async function updateOutput(values: z.infer<typeof outputSchema>) {
     }
 }
 
-export async function updateSale(values: z.infer<typeof saleSchema>) {
+export async function updateSale(username: string, values: z.infer<typeof saleSchema>) {
     const validatedFields = saleSchema.safeParse(values)
 
     if (!validatedFields.success) {
@@ -906,8 +920,8 @@ export async function updateSale(values: z.infer<typeof saleSchema>) {
         const { id, ...updatedData } = validatedFields.data;
         if (!id) return { success: false, message: "Sale ID is missing." };
         
-        let allSales = await readSales();
-        let allVouchers = await readVouchers();
+        let allSales = await readSales(username);
+        let allVouchers = await readVouchers(username);
         
         const saleIndex = allSales.findIndex(s => s.id === id);
         if (saleIndex === -1) return { success: false, message: "Sale not found." };
@@ -915,7 +929,7 @@ export async function updateSale(values: z.infer<typeof saleSchema>) {
         const originalSale = allSales[saleIndex];
         
         // Server-side stock check
-        const currentStock = await getInventoryItem(updatedData.productName);
+        const currentStock = await getInventoryItem(username, updatedData.productName);
         const stockBeforeThisSale = currentStock.availableStock + originalSale.saleQty;
         if (updatedData.saleQty > stockBeforeThisSale) {
             return { success: false, message: `Not enough stock. Available before this sale: ${stockBeforeThisSale}` };
@@ -931,7 +945,7 @@ export async function updateSale(values: z.infer<typeof saleSchema>) {
         allSales[saleIndex] = { ...originalSale, ...updatedData, id: originalSale.id };
         
         // Update Voucher Record
-        const inventoryDetails = await getInventoryItem(updatedData.productName);
+        const inventoryDetails = await getInventoryItem(username, updatedData.productName);
         allVouchers[saleVoucherIndex].date = updatedData.date;
         allVouchers[saleVoucherIndex].quantities = -updatedData.saleQty;
         allVouchers[saleVoucherIndex].remarks = `SOLD TO ${updatedData.clientCode}`;
@@ -939,8 +953,8 @@ export async function updateSale(values: z.infer<typeof saleSchema>) {
         allVouchers[saleVoucherIndex].pricePerNo = inventoryDetails.averagePrice;
         allVouchers[saleVoucherIndex].totalPrice = updatedData.saleQty * inventoryDetails.averagePrice;
         
-        await writeSales(allSales);
-        await writeVouchers(allVouchers);
+        await writeSales(username, allSales);
+        await writeVouchers(username, allVouchers);
         
         revalidatePath("/view/outputs");
         revalidatePath("/view/vouchers");
@@ -953,3 +967,5 @@ export async function updateSale(values: z.infer<typeof saleSchema>) {
         return { success: false, message: "Failed to update sale." };
     }
 }
+
+    

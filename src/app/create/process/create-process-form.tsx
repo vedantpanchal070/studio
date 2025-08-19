@@ -10,6 +10,7 @@ import { PlusCircle, Trash2 } from "lucide-react"
 import { processSchema } from "@/lib/schemas"
 import { createProcess, getInventoryItem, getVoucherItemNames } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -40,18 +41,20 @@ interface MaterialData {
 
 export function CreateProcessForm() {
   const { toast } = useToast()
+  const { user } = useAuth()
   const [materialData, setMaterialData] = useState<Record<string, MaterialData>>({});
   const [itemNames, setItemNames] = useState<string[]>([]);
   const processNameRef = useRef<HTMLInputElement>(null)
 
 
   useEffect(() => {
+    if (!user) return;
     const fetchItemNames = async () => {
-      const names = await getVoucherItemNames();
+      const names = await getVoucherItemNames(user.username);
       setItemNames(names);
     };
     fetchItemNames();
-  }, []);
+  }, [user]);
 
   const form = useForm<ProcessFormValues>({
     resolver: zodResolver(processSchema),
@@ -74,8 +77,8 @@ export function CreateProcessForm() {
   const rawMaterials = useWatch({ control: form.control, name: "rawMaterials" });
 
   const fetchMaterialData = async (name: string, index: number) => {
-      if (!name) return;
-      const data = await getInventoryItem(name);
+      if (!name || !user) return;
+      const data = await getInventoryItem(user.username, name);
       setMaterialData(prev => ({...prev, [name]: {
           availableStock: data.availableStock,
           rate: data.averagePrice,
@@ -120,7 +123,11 @@ export function CreateProcessForm() {
 
 
   const onSubmit = async (values: ProcessFormValues) => {
-    const result = await createProcess(values)
+    if (!user) {
+      toast({ title: "Error", description: "You must be logged in to create a process.", variant: "destructive" });
+      return;
+    }
+    const result = await createProcess(user.username, values)
     if (result.success) {
       toast({
         title: "Success!",
@@ -306,10 +313,12 @@ export function CreateProcessForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" disabled={form.formState.isSubmitting}>
+        <Button type="submit" disabled={form.formState.isSubmitting || !user}>
           {form.formState.isSubmitting ? "Saving..." : "Save and Close"}
         </Button>
       </form>
     </Form>
   )
 }
+
+    

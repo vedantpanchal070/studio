@@ -1,4 +1,6 @@
 
+"use client"
+
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
@@ -11,13 +13,9 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { ViewProcessesClient } from "./view-processes-client"
-import { getProcesses, getUniqueProcessNames } from "@/lib/actions"
 
-export const dynamic = 'force-dynamic'
 
-export default async function ViewProcessesPage() {
-  const initialData = await getProcesses({})
-  const processNames = await getUniqueProcessNames()
+export default function ViewProcessesPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center bg-background p-4 sm:p-8">
@@ -35,13 +33,12 @@ export default async function ViewProcessesPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ViewProcessesClient 
-              initialData={initialData}
-              processNames={processNames} 
-            />
+            <ViewProcessesClient />
           </CardContent>
         </Card>
       </div>
     </main>
   )
 }
+
+    

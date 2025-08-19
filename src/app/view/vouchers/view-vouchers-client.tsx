@@ -9,7 +9,8 @@ import { ArrowUpDown, Search, Edit, Trash2 } from "lucide-react"
 import { format } from 'date-fns'
 
 import type { Voucher } from "@/lib/schemas"
-import { getVouchers, getInventoryItem, deleteVoucher } from "@/lib/actions"
+import { getVouchers, getInventoryItem, deleteVoucher, getVoucherItemNames } from "@/lib/actions"
+import { useAuth } from "@/hooks/use-auth"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/date-picker"
@@ -54,11 +55,12 @@ type SearchFormValues = z.infer<typeof searchSchema>
 type SortKey = keyof Voucher
 type SortDirection = "asc" | "desc"
 
-export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) {
+export function ViewVouchersClient() {
   const { toast } = useToast()
-  const [vouchers, setVouchers] = useState<Voucher[]>(initialData)
+  const { user } = useAuth()
+  const [vouchers, setVouchers] = useState<Voucher[]>([])
   const [itemNames, setItemNames] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null)
   const [sortConfig, setSortConfig] = useState<{
@@ -76,37 +78,39 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
   const selectedName = watchedFilters.name;
 
   useEffect(() => {
+    if (!user) return;
     const fetchVouchers = async () => {
       setIsLoading(true);
-      const results = await getVouchers(watchedFilters);
+      const results = await getVouchers(user.username, watchedFilters);
       setVouchers(results);
       setIsLoading(false);
     }
     fetchVouchers();
-  }, [watchedFilters]);
+  }, [watchedFilters, user]);
 
 
   // Fetch all unique item names for the dropdown
   useEffect(() => {
+    if (!user) return;
     const fetchItemNames = async () => {
-      const allVouchers = await getVouchers({});
-      const names = new Set(allVouchers.map(v => v.name));
-      setItemNames(Array.from(names));
+      const names = await getVoucherItemNames(user.username);
+      setItemNames(names);
     };
     fetchItemNames();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
+    if (!user) return;
     const fetchAveragePrice = async () => {
         if (selectedName) {
-            const inventoryData = await getInventoryItem(selectedName);
+            const inventoryData = await getInventoryItem(user.username, selectedName);
             setAveragePrice(inventoryData.averagePrice);
         } else {
             setAveragePrice(0);
         }
     };
     fetchAveragePrice();
-  }, [selectedName, vouchers]);
+  }, [selectedName, vouchers, user]);
 
 
   const sortedVouchers = useMemo(() => {
@@ -143,10 +147,11 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
   }
 
   const handleDelete = async (voucherId: string) => {
-    const result = await deleteVoucher(voucherId);
+    if (!user) return;
+    const result = await deleteVoucher(user.username, voucherId);
     if (result.success) {
       toast({ title: "Success", description: result.message });
-      const results = await getVouchers(form.getValues());
+      const results = await getVouchers(user.username, form.getValues());
       setVouchers(results);
     } else {
       toast({ title: "Error", description: result.message, variant: "destructive" });
@@ -310,15 +315,15 @@ export function ViewVouchersClient({ initialData }: { initialData: Voucher[] }) 
           isOpen={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
           voucher={selectedVoucher}
-          onVoucherUpdated={() => {
-            const fetchVouchers = async () => {
-              const results = await getVouchers(form.getValues());
-              setVouchers(results);
-            }
-            fetchVouchers();
+          onVoucherUpdated={async () => {
+            if (!user) return;
+            const results = await getVouchers(user.username, form.getValues());
+            setVouchers(results);
           }}
         />
       )}
     </div>
   )
 }
+
+    

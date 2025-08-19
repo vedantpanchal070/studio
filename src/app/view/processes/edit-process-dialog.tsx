@@ -9,6 +9,7 @@ import { z } from "zod"
 import { processSchema, type Process } from "@/lib/schemas"
 import { updateProcess } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -48,6 +49,7 @@ interface EditProcessDialogProps {
 
 export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpdated }: EditProcessDialogProps) {
   const { toast } = useToast()
+  const { user } = useAuth()
   const processNameRef = useRef<HTMLInputElement>(null)
 
   const form = useForm<ProcessFormValues>({
@@ -64,8 +66,12 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
 
 
   const onSubmit = async (values: ProcessFormValues) => {
+    if (!user) {
+      toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+      return;
+    }
     // Only send editable fields to the update function
-    const result = await updateProcess(process, values);
+    const result = await updateProcess(user.username, process, values);
     if (result.success) {
       toast({
         title: "Success!",
@@ -162,7 +168,7 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
             />
             <DialogFooter>
               <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button type="submit" disabled={form.formState.isSubmitting || !user}>
                 {form.formState.isSubmitting ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
@@ -172,3 +178,5 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
     </Dialog>
   )
 }
+
+    
