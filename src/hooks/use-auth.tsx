@@ -5,58 +5,83 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
-  user: string | null;
+  user: { username: string; password?: string } | null;
   loading: boolean;
   login: (username: string, pass: string) => boolean;
   logout: () => void;
+  changePassword: (currentPass: string, newPass: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Hardcoded credentials for the prototype
-const FAKE_USER = {
+const FAKE_USER_KEY = 'inventomax_user';
+const DEFAULT_USER = {
   username: 'admin',
   password: 'password',
 };
 
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<string | null>(null);
+  const [user, setUser] = useState<{ username: string; password?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     // This effect runs only on the client-side
     try {
-      const storedUser = localStorage.getItem('inventomax_user');
+      const storedUser = localStorage.getItem(FAKE_USER_KEY);
       if (storedUser) {
         setUser(JSON.parse(storedUser));
+      } else {
+        // If no user is stored, we can set the default one.
+        // This is for the prototype so that a password exists on first load.
+        localStorage.setItem(FAKE_USER_KEY, JSON.stringify(DEFAULT_USER));
+        setUser(DEFAULT_USER);
       }
     } catch (error) {
       console.error("Failed to parse user from localStorage", error);
-      localStorage.removeItem('inventomax_user');
+      localStorage.removeItem(FAKE_USER_KEY);
     } finally {
         setLoading(false);
     }
   }, []);
 
   const login = (username: string, pass: string): boolean => {
-    if (username === FAKE_USER.username && pass === FAKE_USER.password) {
-      const userData = JSON.stringify(username);
-      localStorage.setItem('inventomax_user', userData);
-      setUser(username);
+    // During login, we get the currently stored user to check against
+    const storedUserRaw = localStorage.getItem(FAKE_USER_KEY);
+    const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : DEFAULT_USER;
+    
+    if (username === storedUser.username && pass === storedUser.password) {
+      setUser(storedUser);
+      // No need to set localStorage again, it's already correct
       return true;
     }
     return false;
   };
 
   const logout = () => {
-    localStorage.removeItem('inventomax_user');
+    // We don't remove the user object itself, just clear the session state.
     setUser(null);
     router.push('/login');
   };
 
+  const changePassword = (currentPass: string, newPass: string): boolean => {
+    const storedUserRaw = localStorage.getItem(FAKE_USER_KEY);
+    if (!storedUserRaw) return false;
+
+    const storedUser = JSON.parse(storedUserRaw);
+
+    if (storedUser.password === currentPass) {
+      const updatedUser = { ...storedUser, password: newPass };
+      localStorage.setItem(FAKE_USER_KEY, JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      return true;
+    }
+    return false;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, changePassword }}>
       {children}
     </AuthContext.Provider>
   );

@@ -2,7 +2,7 @@
 "use client"
 
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PlusCircle, LayoutList, Warehouse, LogOut } from "lucide-react";
+import { PlusCircle, LayoutList, Warehouse, LogOut, Settings } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -33,10 +33,18 @@ export default function Home() {
       <div className="w-full max-w-5xl">
         <div className="flex justify-between items-center mb-12">
             <h1 className="text-5xl font-bold text-primary tracking-tight">InventoMax</h1>
-            <Button variant="outline" onClick={logout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
+            <div className="flex items-center gap-2">
+              <Link href="/settings">
+                <Button variant="outline" size="icon">
+                  <Settings className="h-4 w-4" />
+                  <span className="sr-only">Settings</span>
+                </Button>
+              </Link>
+              <Button variant="outline" onClick={logout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
+            </div>
         </div>
          <p className="text-muted-foreground text-center -mt-8 mb-12 text-lg">Your Complete Inventory Management Solution</p>
        
