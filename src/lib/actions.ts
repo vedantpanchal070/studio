@@ -148,11 +148,10 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
     });
     await writeProcesses(allProcesses);
 
-
-    for (const material of rawMaterials) {
-        // Create a new voucher for the raw material consumption
-        const processVoucher = {
-            id: processId + material.code, // Create a predictable ID
+    // Create a new voucher for each raw material consumption, linking it to the process
+    rawMaterials.forEach(material => {
+        const processVoucher: Voucher = {
+            id: processId + material.name, // Create a unique, deterministic ID for each consumption entry
             date: date,
             name: material.name,
             code: material.code,
@@ -163,7 +162,7 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
             remarks: `USED IN ${processName}`,
         };
         allVouchers.push(processVoucher);
-    }
+    });
 
     await writeVouchers(allVouchers);
 
@@ -210,8 +209,8 @@ export async function createOutput(values: z.infer<typeof outputSchema>) {
     await writeOutputs(allOutputs);
     
     // 2. Add the finished good to inventory (vouchers)
-    const finishedGoodVoucher = {
-        id: outputId + "prod",
+    const finishedGoodVoucher: Voucher = {
+        id: outputId, // Use the same ID as the parent output record
         date,
         name: productName,
         code: "FG-" + productName, // Simple finished good code
@@ -235,8 +234,8 @@ export async function createOutput(values: z.infer<typeof outputSchema>) {
         }
 
         if (scrapeQty > 0) {
-            const scrapeVoucher = {
-                id: outputId + "scrape",
+            const scrapeVoucher: Voucher = {
+                id: outputId + "scrape", // Scrape still needs a unique ID
                 date,
                 name: `${productName} - SCRAPE`,
                 code: `SCRAPE-${productName}`,
@@ -299,8 +298,8 @@ export async function recordSale(values: z.infer<typeof saleSchema>) {
     await writeSales(allSales);
 
     // 2. Create a negative voucher to deduct from inventory
-    const saleVoucher = {
-        id: saleId,
+    const saleVoucher: Voucher = {
+        id: saleId, // Use the same ID as the parent sale record
         date: date,
         name: productName,
         code: inventory.code,
@@ -681,10 +680,8 @@ export async function deleteProcess(processToDelete: Process) {
     processes = processes.filter(p => p.id !== processToDelete.id);
     
     // 2. Find and remove the corresponding consumption vouchers
-    vouchers = vouchers.filter(v => {
-      const isConsumptionVoucher = v.remarks === `USED IN ${processToDelete.processName}` && new Date(v.date).getTime() === new Date(processToDelete.date).getTime();
-      return !isConsumptionVoucher;
-    });
+    // The consumption vouchers now have IDs starting with the process ID
+    vouchers = vouchers.filter(v => !v.id?.startsWith(processToDelete.id!));
     
     await writeProcesses(processes);
     await writeVouchers(vouchers);
@@ -713,14 +710,9 @@ export async function deleteOutput(outputId: string) {
         outputs = outputs.filter(o => o.id !== outputId);
 
         // 2. Find and remove the corresponding finished good and scrape vouchers
-        const productionVoucherRemark = `PRODUCED FROM ${outputToDelete.processUsed}`;
-        const scrapeVoucherRemark = `SCRAPE FROM ${outputToDelete.processUsed}`;
-        
-        vouchers = vouchers.filter(v => {
-            const isProductionVoucher = v.remarks === productionVoucherRemark && new Date(v.date).getTime() === new Date(outputToDelete.date).getTime();
-            const isScrapeVoucher = v.remarks === scrapeVoucherRemark && new Date(v.date).getTime() === new Date(outputToDelete.date).getTime();
-            return !isProductionVoucher && !isScrapeVoucher;
-        });
+        // The production voucher has the same ID as the output.
+        // The scrape voucher has an ID that starts with the output ID.
+        vouchers = vouchers.filter(v => !v.id?.startsWith(outputId));
 
         await writeOutputs(outputs);
         await writeVouchers(vouchers);
@@ -740,24 +732,16 @@ export async function deleteSale(saleId: string) {
     try {
         let sales = await readSales();
         let vouchers = await readVouchers();
-        const saleToDelete = sales.find(s => s.id === saleId);
-
-        if (!saleToDelete) {
+        
+        if (!sales.find(s => s.id === saleId)) {
             return { success: false, message: "Sale record not found." };
         }
 
         // 1. Remove the sale record
         sales = sales.filter(s => s.id !== saleId);
 
-        // 2. Find and remove the corresponding negative inventory voucher
-        const saleVoucherRemark = `SOLD TO ${saleToDelete.clientCode}`;
-        vouchers = vouchers.filter(v => {
-            const isSaleVoucher = v.remarks === saleVoucherRemark && 
-                                  v.name === saleToDelete.productName && 
-                                  new Date(v.date).getTime() === new Date(saleToDelete.date).getTime() &&
-                                  v.quantities === -saleToDelete.saleQty;
-            return !isSaleVoucher;
-        });
+        // 2. Find and remove the corresponding negative inventory voucher, which has the same ID.
+        vouchers = vouchers.filter(v => v.id !== saleId);
 
         await writeSales(sales);
         await writeVouchers(vouchers);
@@ -824,8 +808,8 @@ export async function updateOutput(values: z.infer<typeof outputSchema>) {
         allOutputs[outputIndex] = { ...originalOutput, ...finalUpdatedData, id: originalOutput.id };
 
         // Find and update the associated inventory vouchers
-        // Production Voucher
-        const prodVoucherIndex = allVouchers.findIndex(v => v.remarks === `PRODUCED FROM ${originalOutput.processUsed}` && new Date(v.date).getTime() === new Date(originalOutput.date).getTime());
+        // Production Voucher (has same ID as output)
+        const prodVoucherIndex = allVouchers.findIndex(v => v.id === id);
         if (prodVoucherIndex !== -1) {
             allVouchers[prodVoucherIndex].date = finalUpdatedData.date;
             allVouchers[prodVoucherIndex].name = finalUpdatedData.productName;
@@ -836,7 +820,7 @@ export async function updateOutput(values: z.infer<typeof outputSchema>) {
         }
 
         // Scrape Voucher
-        const scrapeVoucherIndex = allVouchers.findIndex(v => v.remarks === `SCRAPE FROM ${originalOutput.processUsed}` && new Date(v.date).getTime() === new Date(originalOutput.date).getTime());
+        const scrapeVoucherIndex = allVouchers.findIndex(v => v.id === id + "scrape");
         if (scrapeVoucherIndex !== -1) {
              if (scrapeQty > 0) {
                 allVouchers[scrapeVoucherIndex].date = finalUpdatedData.date;
@@ -847,8 +831,8 @@ export async function updateOutput(values: z.infer<typeof outputSchema>) {
                 allVouchers.splice(scrapeVoucherIndex, 1); // Remove scrape voucher if scrape is 0
              }
         } else if (scrapeQty > 0) { // Add new scrape voucher if it didn't exist before
-             const scrapeVoucher = {
-                id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+             const scrapeVoucher: Voucher = {
+                id: id + "scrape",
                 date: finalUpdatedData.date,
                 name: `${finalUpdatedData.productName} - SCRAPE`,
                 code: `SCRAPE-${finalUpdatedData.productName}`,
@@ -895,14 +879,15 @@ export async function updateSale(values: z.infer<typeof saleSchema>) {
         
         const originalSale = allSales[saleIndex];
         
-        // Find and update the associated inventory voucher
-        const saleVoucherIndex = allVouchers.findIndex(v => 
-            v.remarks === `SOLD TO ${originalSale.clientCode}` &&
-            v.name === originalSale.productName &&
-            new Date(v.date).getTime() === new Date(originalSale.date).getTime() &&
-            v.quantities === -originalSale.saleQty
-        );
-        
+        // Server-side stock check
+        const currentStock = await getInventoryItem(updatedData.productName);
+        const stockBeforeThisSale = currentStock.availableStock + originalSale.saleQty;
+        if (updatedData.saleQty > stockBeforeThisSale) {
+            return { success: false, message: `Not enough stock. Available before this sale: ${stockBeforeThisSale}` };
+        }
+
+        // Find and update the associated inventory voucher (has same ID as sale)
+        const saleVoucherIndex = allVouchers.findIndex(v => v.id === id);
         if (saleVoucherIndex === -1) {
             return { success: false, message: "Could not find the original inventory transaction for this sale." };
         }
@@ -933,3 +918,5 @@ export async function updateSale(values: z.infer<typeof saleSchema>) {
         return { success: false, message: "Failed to update sale." };
     }
 }
+
+    

@@ -256,7 +256,7 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
                         </TableCell>
                     </TableRow>
                   ) : processes.length > 0 ? processes.map((process) => (
-                      <ProcessEntry process={process} onDelete={handleDelete} onEdit={handleEdit} />
+                      <ProcessEntry key={process.id} process={process} onDelete={handleDelete} onEdit={handleEdit} />
                   )) : (
                     <TableRow>
                         <TableCell colSpan={5} className="h-24 text-center">
@@ -285,3 +285,5 @@ export function ViewProcessesClient({ initialData, processNames }: ViewProcesses
     </div>
   )
 }
+
+    
