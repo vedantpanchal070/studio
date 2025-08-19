@@ -1,8 +1,7 @@
 
 "use server"
 
-import firebase from "firebase/app"
-import "firebase/firestore"
+import { initializeApp } from "firebase/app";
 import { z } from "zod"
 import { voucherSchema, processSchema, outputSchema, saleSchema, type Process, type Voucher, type FinishedGood, type Output, type Sale } from "./schemas"
 import { revalidatePath } from "next/cache"
@@ -16,8 +15,7 @@ const OUTPUTS_FILE = path.join(DATA_DIR, "outputs.json")
 const SALES_FILE = path.join(DATA_DIR, "sales.json")
 
 // Enable offline data persistence
-firebase.firestore().enablePersistence()
-
+// Note: Firebase Persistence needs Firebase App and Firestore initialized. Add initialization here or where Firebase config is setup.
 
 // Ensure data directory exists
 async function ensureDataDir() {
@@ -142,9 +140,11 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
         }
     }
     
+    const processId = new Date().toISOString() + Math.random().toString(36).substr(2, 9);
+    
     allProcesses.push({
       ...validatedFields.data,
-      id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+      id: processId,
     });
     await writeProcesses(allProcesses);
 
@@ -152,7 +152,7 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
     for (const material of rawMaterials) {
         // Create a new voucher for the raw material consumption
         const processVoucher = {
-            id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+            id: processId + material.code, // Create a predictable ID
             date: date,
             name: material.name,
             code: material.code,
@@ -198,18 +198,20 @@ export async function createOutput(values: z.infer<typeof outputSchema>) {
     const { date, productName, quantityProduced, processCharge, scrape, scrapeUnit, notes } = validatedFields.data;
     const allOutputs = await readOutputs();
     const allVouchers = await readVouchers();
+    
+    const outputId = new Date().toISOString() + Math.random().toString(36).substr(2, 9);
 
     // 1. Save the main output record
     const newOutput = {
       ...validatedFields.data,
-      id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+      id: outputId,
     };
     allOutputs.push(newOutput);
     await writeOutputs(allOutputs);
     
     // 2. Add the finished good to inventory (vouchers)
     const finishedGoodVoucher = {
-        id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+        id: outputId + "prod",
         date,
         name: productName,
         code: "FG-" + productName, // Simple finished good code
@@ -234,7 +236,7 @@ export async function createOutput(values: z.infer<typeof outputSchema>) {
 
         if (scrapeQty > 0) {
             const scrapeVoucher = {
-                id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+                id: outputId + "scrape",
                 date,
                 name: `${productName} - SCRAPE`,
                 code: `SCRAPE-${productName}`,
@@ -287,17 +289,18 @@ export async function recordSale(values: z.infer<typeof saleSchema>) {
         };
     }
 
+    const saleId = new Date().toISOString() + Math.random().toString(36).substr(2, 9);
     // 1. Save the sales record
     const newSale = {
         ...validatedFields.data,
-        id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+        id: saleId,
     }
     allSales.push(newSale);
     await writeSales(allSales);
 
     // 2. Create a negative voucher to deduct from inventory
     const saleVoucher = {
-        id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+        id: saleId,
         date: date,
         name: productName,
         code: inventory.code,

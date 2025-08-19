@@ -30,9 +30,6 @@ export function InstallPwaButton() {
     };
   }, []);
 
-  useEffect(() => {
-    handleDisplayMode();
-  }, []);
 
   const handleInstallClick = () => {
     if (!installPrompt) {
@@ -50,15 +47,14 @@ export function InstallPwaButton() {
     });
   };
 
-  const handleDisplayMode = () => {
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      console.log('Launched in standalone mode');
-    } else {
-      console.log('Launched in browser mode');
+  const isAppInstalled = () => {
+    if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {
+      return true;
     }
+    return false;
   };
 
-  if (!installPrompt) {
+  if (!installPrompt || isAppInstalled()) {
     return null;
   }
 
