@@ -430,6 +430,13 @@ export async function recordSale(username: string, values: z.infer<typeof saleSc
 
 export async function getVouchers(username: string, filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<any[]> {
     let vouchers = await readVouchers(username);
+
+    // Filter out finished goods production, scrape, and sales from the raw material ledger view
+    vouchers = vouchers.filter(v => 
+        !v.remarks?.startsWith("PRODUCED FROM") &&
+        !v.remarks?.startsWith("SCRAPE FROM") &&
+        !v.remarks?.startsWith("SOLD TO")
+    );
     
     if (filters.name) {
         vouchers = vouchers.filter(v => v.name === filters.name);
@@ -501,7 +508,8 @@ export async function getInventoryItem(username: string, name: string, filters?:
 
 export async function getVoucherItemNames(username: string): Promise<string[]> {
     const vouchers = await readVouchers(username);
-    const purchaseVouchers = vouchers.filter(v => v.quantities > 0 && !v.remarks?.includes("PRODUCED FROM"));
+    // Only show names of items that were purchased (positive quantity) and are not finished goods
+    const purchaseVouchers = vouchers.filter(v => v.quantities > 0 && !v.remarks?.startsWith("PRODUCED FROM") && !v.remarks?.startsWith("SCRAPE FROM"));
     const names = new Set(purchaseVouchers.map(v => v.name));
     return Array.from(names).sort();
 }
@@ -646,7 +654,7 @@ export interface FinishedGoodInventoryItem {
   quantityType: string;
 }
 
-export async function getFinishedGoodsInventory(username: string, filters?: { name?: string }): Promise<FinishedGoodInventoryItem[]> {
+export async function getFinishedGoodsInventory(username: string, filters?: { name?: string; code?: string }): Promise<FinishedGoodInventoryItem[]> {
   const vouchers = await readVouchers(username);
   
   let productNames = Array.from(new Set(vouchers.filter(v => v.code.startsWith('FG-')).map(v => v.name)));
@@ -655,11 +663,16 @@ export async function getFinishedGoodsInventory(username: string, filters?: { na
   if (filters?.name) {
     productNames = productNames.filter(name => name.toLowerCase().includes(filters.name!.toLowerCase()));
   }
-
+  
   const inventory: FinishedGoodInventoryItem[] = [];
 
   for (const name of productNames) {
     const itemDetails = await getInventoryItem(username, name);
+    // Apply code filter
+    if (filters?.code && !itemDetails.code.toLowerCase().includes(filters.code.toLowerCase())) {
+        continue;
+    }
+
     if (itemDetails.availableStock > 0) {
       inventory.push({
         name: name,

@@ -1,1 +1,57 @@
-[]
+[
+  {
+    "date": "2025-08-19T07:33:48.254Z",
+    "name": "MILK",
+    "code": "2501",
+    "quantities": 1000,
+    "quantityType": "LIT",
+    "pricePerNo": 30,
+    "totalPrice": 30000,
+    "remarks": "",
+    "id": "2025-08-19T07:34:02.447Zn4rwshurl"
+  },
+  {
+    "id": "2025-08-19T07:35:17.496Zdb7s0bvzdMILK",
+    "date": "2025-08-19T07:34:31.875Z",
+    "name": "MILK",
+    "code": "2501",
+    "quantities": -100,
+    "quantityType": "LIT",
+    "pricePerNo": 30,
+    "totalPrice": 3000,
+    "remarks": "USED IN MALAYI MAK"
+  },
+  {
+    "id": "2025-08-19T07:35:58.875Zlhek9kxcx",
+    "date": "2025-08-19T07:35:30.824Z",
+    "name": "MALAYI MAK",
+    "code": "FG-MALAYI MAK",
+    "quantities": 90,
+    "quantityType": "KG",
+    "pricePerNo": 36.333333333333336,
+    "totalPrice": 3270,
+    "remarks": "PRODUCED FROM MALAYI MAK"
+  },
+  {
+    "id": "2025-08-19T07:35:58.875Zlhek9kxcxscrape",
+    "date": "2025-08-19T07:35:30.824Z",
+    "name": "MALAYI MAK - SCRAPE",
+    "code": "SCRAPE-MALAYI MAK",
+    "quantities": 10,
+    "quantityType": "KG",
+    "pricePerNo": 0,
+    "totalPrice": 0,
+    "remarks": "SCRAPE FROM MALAYI MAK"
+  },
+  {
+    "id": "2025-08-19T07:36:59.589Zjono5gvdm",
+    "date": "2025-08-19T07:36:42.815Z",
+    "name": "MALAYI MAK",
+    "code": "FG-MALAYI MAK",
+    "quantities": -50,
+    "quantityType": "KG",
+    "pricePerNo": 36.333333333333336,
+    "totalPrice": 1816.6666666666667,
+    "remarks": "SOLD TO 3030"
+  }
+]

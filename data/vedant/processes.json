@@ -1,0 +1,20 @@
+[
+  {
+    "date": "2025-08-19T07:34:31.875Z",
+    "processName": "MALAYI MAK",
+    "totalProcessOutput": 100,
+    "outputUnit": "LIT",
+    "rawMaterials": [
+      {
+        "name": "MILK",
+        "code": "2501",
+        "quantityType": "LIT",
+        "quantity": 100,
+        "ratio": 100,
+        "rate": 30
+      }
+    ],
+    "notes": "",
+    "id": "2025-08-19T07:35:17.496Zdb7s0bvzd"
+  }
+]
