@@ -291,7 +291,7 @@ export async function createOutput(username: string, values: z.infer<typeof outp
   }
 
   try {
-    const { date, productName, quantityProduced, scrape, scrapeUnit, reduction, reductionUnit } = validatedFields.data;
+    const { date, productName, quantityProduced, scrape, scrapeUnit, finalAveragePrice } = validatedFields.data;
     const allOutputs = await readOutputs(username);
     const allVouchers = await readVouchers(username);
     
@@ -313,8 +313,8 @@ export async function createOutput(username: string, values: z.infer<typeof outp
         code: "FG-" + productName, // Simple finished good code
         quantities: quantityProduced,
         quantityType: "KG", // Assuming KG for now, can be made dynamic
-        pricePerNo: validatedFields.data.finalAveragePrice,
-        totalPrice: quantityProduced * validatedFields.data.finalAveragePrice,
+        pricePerNo: finalAveragePrice,
+        totalPrice: quantityProduced * finalAveragePrice,
         remarks: `PRODUCED FROM ${validatedFields.data.processUsed}`,
     };
     allVouchers.push(finishedGoodVoucher);
@@ -338,8 +338,8 @@ export async function createOutput(username: string, values: z.infer<typeof outp
                 code: `SCRAPE-${productName}`,
                 quantities: scrapeQty,
                 quantityType: 'KG',
-                pricePerNo: 0, // Scrape has no value until re-processed
-                totalPrice: 0,
+                pricePerNo: finalAveragePrice, // Scrape inherits the cost price of the process
+                totalPrice: scrapeQty * finalAveragePrice,
                 remarks: `SCRAPE FROM ${validatedFields.data.processUsed}`,
             };
             allVouchers.push(scrapeVoucher);
@@ -429,6 +429,8 @@ export async function getVouchers(username: string, filters: { name?: string, st
     let vouchers = allVouchers.filter(v => {
         const isPurchase = v.quantities > 0;
         const isScrape = v.remarks?.startsWith("SCRAPE FROM");
+        // An entry is a purchase if it's positive and NOT produced from a process.
+        // It's also included if it's a scrape entry.
         return (isPurchase && !v.remarks?.startsWith("PRODUCED FROM")) || isScrape;
     });
 
