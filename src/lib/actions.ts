@@ -440,8 +440,8 @@ export async function getVouchers(username: string, filters: { name?: string, st
     
     if (startDate) {
         const start = new Date(startDate);
-        const end = endDate ? new Date(endDate) : new Date(startDate);
-        
+        const end = endDate ? new Date(endDate) : new Date();
+
         const startTimestamp = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
         const endTimestamp = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1).getTime();
         
@@ -537,7 +537,7 @@ export async function getProcesses(username: string, filters: { name?: string, s
     
     if (startDate) {
         const start = new Date(startDate);
-        const end = endDate ? new Date(endDate) : new Date(startDate);
+        const end = endDate ? new Date(endDate) : new Date();
 
         const startTimestamp = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
         const endTimestamp = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1).getTime();
@@ -626,7 +626,7 @@ export async function getOutputLedger(username: string, filters: { name?: string
     // Date filter
     if (startDate) {
         const start = new Date(startDate);
-        const end = endDate ? new Date(endDate) : new Date(startDate);
+        const end = endDate ? new Date(endDate) : new Date();
         
         const startTimestamp = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
         const endTimestamp = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1).getTime();
@@ -1052,5 +1052,3 @@ export async function updateSale(username: string, values: z.infer<typeof saleSc
         return { success: false, message: "Failed to update sale." };
     }
 }
-
-    
