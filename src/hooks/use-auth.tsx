@@ -47,7 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (username: string, pass: string): Promise<boolean> => {
     const foundUser = await getUser(username);
     
-    if (foundUser && foundUser.password === pass) {
+    if (!foundUser) {
+      return false; // User does not exist
+    }
+
+    if (foundUser.password === pass) {
       const userToStore = { username: foundUser.username, password: foundUser.password };
       setUser(userToStore); 
       sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(userToStore));
@@ -63,17 +67,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const changePassword = useCallback(async (currentPass: string, newPass: string): Promise<boolean> => {
-    // We get the user from session storage to ensure we have the most recent data client-side
     const storedUserStr = sessionStorage.getItem(SESSION_STORAGE_KEY);
     if (!storedUserStr) return false;
+    
     const storedUser = JSON.parse(storedUserStr);
 
     if (storedUser.password === currentPass) {
-      const updatedUser = { ...storedUser, password: newPass };
-      const success = await updateUser(updatedUser);
+      const updatedUserPayload = { ...storedUser, password: newPass };
+      const success = await updateUser(updatedUserPayload);
       if (success) {
-        setUser(updatedUser); // Keep the local state in sync
-        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedUser));
+        setUser(updatedUserPayload); // Keep the local state in sync
+        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedUserPayload));
         return true;
       }
     }
