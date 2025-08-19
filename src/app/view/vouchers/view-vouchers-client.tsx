@@ -208,9 +208,10 @@ export function ViewVouchersClient() {
                       value={field.value} 
                       onChange={(date) => {
                         field.onChange(date);
-                        // Automatically set end date to start date
                         if (date) {
-                          form.setValue("endDate", date);
+                          const nextDay = new Date(date);
+                          nextDay.setDate(nextDay.getDate() + 1);
+                          form.setValue("endDate", nextDay);
                         }
                       }} 
                     />

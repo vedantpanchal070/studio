@@ -219,7 +219,9 @@ export function ViewProcessesClient() {
                       onChange={(date) => {
                         field.onChange(date);
                         if (date) {
-                          form.setValue("endDate", date);
+                          const nextDay = new Date(date);
+                          nextDay.setDate(nextDay.getDate() + 1);
+                          form.setValue("endDate", nextDay);
                         }
                       }} 
                     />
