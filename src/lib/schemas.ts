@@ -54,6 +54,7 @@ export const outputSchema = z.object({
   scrape: z.coerce.number().min(0, "Scrape must be a non-negative number.").optional(),
   scrapeUnit: z.enum(["kg", "%"]).optional(),
   reduction: z.coerce.number().min(0, "Reduction must be a non-negative number.").optional(),
+  reductionUnit: z.enum(["kg", "%"]).optional(),
   processCharge: z.coerce.number().min(0, "Process charge must be a non-negative number.").optional(),
   quantityProduced: z.coerce.number(),
   finalAveragePrice: z.coerce.number(),
@@ -75,7 +76,7 @@ export const saleSchema = z.object({
 export type User = z.infer<typeof userSchema>;
 export type Voucher = z.infer<typeof voucherSchema> & { id: string }
 export type Process = z.infer<typeof processSchema> & { id: string };
-export type Output = z.infer<typeof outputSchema> & { id: anystring };
+export type Output = z.infer<typeof outputSchema> & { id: string };
 export type Sale = z.infer<typeof saleSchema> & { id: string };
 
 

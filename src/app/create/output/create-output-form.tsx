@@ -59,6 +59,7 @@ export function CreateOutputForm() {
       scrape: 0,
       scrapeUnit: "kg",
       reduction: 0,
+      reductionUnit: "kg",
       processCharge: 0,
       notes: "",
       quantityProduced: 0,
@@ -76,7 +77,7 @@ export function CreateOutputForm() {
     }
 
     const { totalCost, totalProcessOutput } = selectedProcess;
-    const { scrape = 0, scrapeUnit = 'kg', reduction = 0 } = watchedValues;
+    const { scrape = 0, scrapeUnit = 'kg', reduction = 0, reductionUnit = 'kg' } = watchedValues;
     const processCharge = Number(watchedValues.processCharge) || 0;
 
     let scrapeQty = 0;
@@ -86,7 +87,14 @@ export function CreateOutputForm() {
       scrapeQty = scrape;
     }
 
-    const currentNetQty = totalProcessOutput - scrapeQty - (reduction || 0);
+    let reductionQty = 0;
+    if (reductionUnit === '%') {
+      reductionQty = totalProcessOutput * (reduction / 100);
+    } else {
+      reductionQty = reduction;
+    }
+
+    const currentNetQty = totalProcessOutput - scrapeQty - reductionQty;
     setNetAvailableQty(currentNetQty);
 
     if (currentNetQty > 0) {
@@ -141,6 +149,7 @@ export function CreateOutputForm() {
         scrape: 0,
         scrapeUnit: "kg",
         reduction: 0,
+        reductionUnit: "kg",
         processCharge: 0,
         notes: "",
         quantityProduced: 0,
@@ -226,18 +235,39 @@ export function CreateOutputForm() {
                       )}
                   />
               </div>
-              <FormField
-                  control={form.control}
-                  name="reduction"
-                  render={({ field }) => (
-                  <FormItem>
-                      <FormLabel>Reduction (optional)</FormLabel>
-                      <FormControl>
-                      <Input type="number" {...field} />
-                      </FormControl>
-                  </FormItem>
-                  )}
-              />
+              <div className="flex items-end gap-2">
+                  <FormField
+                      control={form.control}
+                      name="reduction"
+                      render={({ field }) => (
+                      <FormItem className="flex-grow">
+                          <FormLabel>Reduction</FormLabel>
+                          <FormControl>
+                          <Input type="number" {...field} />
+                          </FormControl>
+                      </FormItem>
+                      )}
+                  />
+                  <FormField
+                      control={form.control}
+                      name="reductionUnit"
+                      render={({ field }) => (
+                      <FormItem>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                              <SelectTrigger className="w-[80px]">
+                                  <SelectValue />
+                              </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                  <SelectItem value="kg">kg</SelectItem>
+                                  <SelectItem value="%">%</SelectItem>
+                              </SelectContent>
+                          </Select>
+                      </FormItem>
+                      )}
+                  />
+              </div>
           </div>
 
           <FormField
@@ -291,5 +321,3 @@ export function CreateOutputForm() {
     </>
   )
 }
-
-    

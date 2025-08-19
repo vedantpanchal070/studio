@@ -507,9 +507,9 @@ export async function getInventoryItem(username: string, name: string, filters?:
 
 export async function getVoucherItemNames(username: string): Promise<string[]> {
     const vouchers = await readVouchers(username);
-    // Only show names of items that were purchased (positive quantity) and are not finished goods
-    const purchaseVouchers = vouchers.filter(v => v.quantities > 0 && !v.remarks?.startsWith("PRODUCED FROM"));
-    const names = new Set(purchaseVouchers.map(v => v.name));
+    // Only show names of items that were purchased (positive quantity) or are scrape
+    const relevantVouchers = vouchers.filter(v => v.quantities > 0);
+    const names = new Set(relevantVouchers.map(v => v.name));
     return Array.from(names).sort();
 }
 
@@ -907,7 +907,15 @@ export async function updateOutput(username: string, values: z.infer<typeof outp
         } else {
             scrapeQty = updatedData.scrape || 0;
         }
-        const currentNetQty = totalProcessOutput - scrapeQty - (updatedData.reduction || 0);
+
+        let reductionQty = 0;
+        if (updatedData.reductionUnit === '%') {
+            reductionQty = totalProcessOutput * ((updatedData.reduction || 0) / 100);
+        } else {
+            reductionQty = updatedData.reduction || 0;
+        }
+
+        const currentNetQty = totalProcessOutput - scrapeQty - reductionQty;
         const finalAveragePrice = currentNetQty > 0 ? (totalCost / currentNetQty) + (updatedData.processCharge || 0) : 0;
         
         const finalUpdatedData = {

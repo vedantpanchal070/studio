@@ -53,5 +53,49 @@
     "pricePerNo": 36.333333333333336,
     "totalPrice": 1816.6666666666667,
     "remarks": "SOLD TO 3030"
+  },
+  {
+    "date": "2025-08-19T07:44:23.950Z",
+    "name": "SUGAR",
+    "code": "2502",
+    "quantities": 1000,
+    "quantityType": "KG",
+    "pricePerNo": 20,
+    "totalPrice": 20000,
+    "remarks": "",
+    "id": "2025-08-19T07:44:39.611Zk39we6o93"
+  },
+  {
+    "id": "2025-08-19T07:46:32.835ZpbrhwysvcMILK",
+    "date": "2025-08-19T07:44:51.634Z",
+    "name": "MILK",
+    "code": "2501",
+    "quantities": -190,
+    "quantityType": "LIT",
+    "pricePerNo": 30,
+    "totalPrice": 5700,
+    "remarks": "USED IN SAK"
+  },
+  {
+    "id": "2025-08-19T07:46:32.835ZpbrhwysvcSUGAR",
+    "date": "2025-08-19T07:44:51.634Z",
+    "name": "SUGAR",
+    "code": "2502",
+    "quantities": -200,
+    "quantityType": "KG",
+    "pricePerNo": 20,
+    "totalPrice": 4000,
+    "remarks": "USED IN SAK"
+  },
+  {
+    "id": "2025-08-19T07:46:32.835ZpbrhwysvcMALAYIMAK-SCRAPE",
+    "date": "2025-08-19T07:44:51.634Z",
+    "name": "MALAYI MAK - SCRAPE",
+    "code": "SCRAPE-MALAYI MAK",
+    "quantities": -10,
+    "quantityType": "KG",
+    "pricePerNo": 0,
+    "totalPrice": 0,
+    "remarks": "USED IN SAK"
   }
 ]
