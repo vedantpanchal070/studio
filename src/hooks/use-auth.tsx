@@ -33,14 +33,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       } else {
-        // If no user is stored, we can set the default one.
-        // This is for the prototype so that a password exists on first load.
+        // If no user is stored, we create the default one for the first run.
         localStorage.setItem(FAKE_USER_KEY, JSON.stringify(DEFAULT_USER));
         setUser(DEFAULT_USER);
       }
     } catch (error) {
       console.error("Failed to parse user from localStorage", error);
-      localStorage.removeItem(FAKE_USER_KEY);
+      // If parsing fails, reset to a default state
+      localStorage.setItem(FAKE_USER_KEY, JSON.stringify(DEFAULT_USER));
+      setUser(DEFAULT_USER);
     } finally {
         setLoading(false);
     }
@@ -60,7 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    // We don't remove the user object itself, just clear the session state.
+    // We don't remove the user object itself from storage on logout, 
+    // just clear the session state. This way the "user" persists.
     setUser(null);
     router.push('/login');
   };
