@@ -53,8 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : DEFAULT_USER;
     
     if (username === storedUser.username && pass === storedUser.password) {
-      setUser(storedUser);
-      // No need to set localStorage again, it's already correct
+      // Critical Fix: Set the full user object, including the password, into the state.
+      setUser(storedUser); 
       return true;
     }
     return false;
@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (storedUser.password === currentPass) {
       const updatedUser = { ...storedUser, password: newPass };
       localStorage.setItem(FAKE_USER_KEY, JSON.stringify(updatedUser));
-      setUser(updatedUser);
+      setUser(updatedUser); // Keep the local state in sync
       return true;
     }
     return false;
