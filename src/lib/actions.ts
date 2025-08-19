@@ -291,7 +291,7 @@ export async function createOutput(username: string, values: z.infer<typeof outp
   }
 
   try {
-    const { date, productName, quantityProduced, scrape, scrapeUnit } = validatedFields.data;
+    const { date, productName, quantityProduced, scrape, scrapeUnit, reduction, reductionUnit } = validatedFields.data;
     const allOutputs = await readOutputs(username);
     const allVouchers = await readVouchers(username);
     
@@ -426,8 +426,8 @@ export async function getVouchers(username: string, filters: { name?: string; st
 
     // Filter out finished goods production and sales from the raw material ledger view
     vouchers = vouchers.filter(v => 
-      !(v.remarks?.startsWith("PRODUCED FROM") || v.remarks?.startsWith("SOLD TO"))
-      || v.remarks?.startsWith("SCRAPE FROM")
+        !v.remarks?.startsWith("PRODUCED FROM") &&
+        !v.remarks?.startsWith("SOLD TO") || v.remarks?.startsWith("SCRAPE FROM")
     );
     
     // Default timestamps that will include all dates
@@ -1091,11 +1091,5 @@ export async function updateSale(username: string, values: z.infer<typeof saleSc
         return { success: false, message: "Failed to update sale." };
     }
 }
-
-    
-
-    
-
-
 
     
