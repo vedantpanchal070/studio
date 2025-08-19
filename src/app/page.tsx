@@ -2,6 +2,7 @@
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PlusCircle, LayoutList, Warehouse } from "lucide-react";
 import Link from "next/link";
+import { InstallPwaButton } from "@/components/install-pwa-button";
 
 export default async function Home() {
   return (
@@ -30,6 +31,9 @@ export default async function Home() {
               title="Inventory"
               description="View and sell finished goods stock on hand."
             />
+        </div>
+        <div className="mt-12 text-center">
+            <InstallPwaButton />
         </div>
       </div>
     </main>
