@@ -421,8 +421,35 @@ export async function recordSale(username: string, values: z.infer<typeof saleSc
   }
 }
 
-export async function getVouchers(username: string, filters: { name?: string }): Promise<any[]> {
+export async function getVouchers(username: string, filters: { name?: string, startDate?: Date, endDate?: Date }): Promise<any[]> {
     let vouchers = await readVouchers(username);
+
+    // Default timestamps that will include all dates
+    let startTimestamp = 0; // The beginning of time
+    let endTimestamp = Infinity; // The far future
+
+    if (filters.startDate) {
+        const date = new Date(filters.startDate);
+        // Use LOCAL date parts to construct the UTC timestamp for the start of the user's day
+        const startOfDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        startTimestamp = startOfDay.getTime();
+    }
+
+    if (filters.endDate) {
+        const date = new Date(filters.endDate);
+        // Find the start of the NEXT day to create an exclusive boundary
+        const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
+        endTimestamp = startOfNextDay.getTime();
+    }
+    
+    // Filter by date range if start or end date is provided
+    if (filters.startDate || filters.endDate) {
+        vouchers = vouchers.filter(v => {
+            if (!v.date) return false;
+            const voucherTimestamp = new Date(v.date).getTime();
+            return voucherTimestamp >= startTimestamp && voucherTimestamp < endTimestamp;
+        });
+    }
     
     if (filters.name) {
         vouchers = vouchers.filter(v => v.name === filters.name);
@@ -503,8 +530,32 @@ export async function getProcessDetails(username: string, name: string): Promise
     return processes.find(p => p.processName === name) || null;
 }
 
-export async function getProcesses(username: string, filters: { name?: string }): Promise<any[]> {
+export async function getProcesses(username: string, filters: { name?: string, startDate?: Date, endDate?: Date }): Promise<any[]> {
     let processes = await readProcesses(username);
+
+    // Default timestamps that will include all dates
+    let startTimestamp = 0; // The beginning of time
+    let endTimestamp = Infinity; // The far future
+
+    if (filters.startDate) {
+        const date = new Date(filters.startDate);
+        const startOfDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        startTimestamp = startOfDay.getTime();
+    }
+
+    if (filters.endDate) {
+        const date = new Date(filters.endDate);
+        const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
+        endTimestamp = startOfNextDay.getTime();
+    }
+    
+    if (filters.startDate || filters.endDate) {
+        processes = processes.filter(p => {
+            if (!p.date) return false;
+            const processTimestamp = new Date(p.date).getTime();
+            return processTimestamp >= startTimestamp && processTimestamp < endTimestamp;
+        });
+    }
 
     if (filters.name) {
         processes = processes.filter(p => p.processName === filters.name);
@@ -548,17 +599,11 @@ export interface LedgerEntry {
   id: string;
 }
 
-export async function getOutputLedger(username: string, filters: { name?: string }): Promise<LedgerEntry[]> {
+export async function getOutputLedger(username: string, filters: { name?: string, startDate?: Date, endDate?: Date }): Promise<LedgerEntry[]> {
     let allOutputs = await readOutputs(username);
     let allSales = await readSales(username);
     let ledger: LedgerEntry[] = [];
 
-    // Name filter
-    if (filters.name) {
-        allOutputs = allOutputs.filter(o => o.productName === filters.name);
-        allSales = allSales.filter(s => s.productName === filters.name);
-    }
-    
     // Map outputs to ledger entries
     allOutputs.forEach(output => {
         ledger.push({
@@ -583,7 +628,35 @@ export async function getOutputLedger(username: string, filters: { name?: string
             id: sale.id!,
         });
     });
+    
+    // Default timestamps that will include all dates
+    let startTimestamp = 0;
+    let endTimestamp = Infinity;
 
+    if (filters.startDate) {
+        const date = new Date(filters.startDate);
+        const startOfDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        startTimestamp = startOfDay.getTime();
+    }
+
+    if (filters.endDate) {
+        const date = new Date(filters.endDate);
+        const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
+        endTimestamp = startOfNextDay.getTime();
+    }
+
+    if (filters.startDate || filters.endDate) {
+        ledger = ledger.filter(entry => {
+            const entryTimestamp = new Date(entry.date).getTime();
+            return entryTimestamp >= startTimestamp && entryTimestamp < endTimestamp;
+        });
+    }
+
+    // Name filter
+    if (filters.name) {
+        ledger = ledger.filter(o => o.productName === filters.name);
+    }
+    
     // Sort by date chronologically
     ledger.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -997,3 +1070,4 @@ export async function updateSale(username: string, values: z.infer<typeof saleSc
         return { success: false, message: "Failed to update sale." };
     }
 }
+

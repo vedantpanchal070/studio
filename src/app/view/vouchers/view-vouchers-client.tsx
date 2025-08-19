@@ -43,9 +43,12 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { EditVoucherDialog } from "./edit-voucher-dialog"
 import { Combobox } from "@/components/ui/combobox"
+import { DatePicker } from "@/components/date-picker"
 
 const searchSchema = z.object({
   name: z.string().optional(),
+  startDate: z.date().optional(),
+  endDate: z.date().optional(),
 })
 
 type SearchFormValues = z.infer<typeof searchSchema>
@@ -137,7 +140,7 @@ export function ViewVouchersClient() {
   }
 
   const handleClear = () => {
-    form.reset({ name: "" })
+    form.reset({ name: "", startDate: undefined, endDate: undefined })
     setAveragePrice(0);
     setSortConfig(null)
   }
@@ -177,7 +180,7 @@ export function ViewVouchersClient() {
     <div className="space-y-6">
       <Form {...form}>
         <form className="rounded-lg border p-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
              <FormField
               control={form.control}
               name="name"
@@ -191,6 +194,30 @@ export function ViewVouchersClient() {
                       placeholder="Select an item"
                       searchPlaceholder="Search items..."
                     />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="startDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Start Date</FormLabel>
+                  <FormControl>
+                    <DatePicker value={field.value} onChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="endDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>End Date</FormLabel>
+                  <FormControl>
+                    <DatePicker value={field.value} onChange={field.onChange} />
+                  </FormControl>
                 </FormItem>
               )}
             />
@@ -239,7 +266,7 @@ export function ViewVouchersClient() {
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" disabled={!!voucher.remarks?.startsWith('USED IN') || !!voucher.remarks?.startsWith('SOLD TO')}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </AlertDialogTrigger>

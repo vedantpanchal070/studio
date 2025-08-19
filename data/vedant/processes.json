@@ -27,8 +27,8 @@
         "name": "MILK",
         "code": "2501",
         "quantityType": "LIT",
-        "quantity": 190,
-        "ratio": 95,
+        "quantity": 200,
+        "ratio": 100,
         "rate": 30
       },
       {
@@ -38,14 +38,6 @@
         "quantity": 200,
         "ratio": 100,
         "rate": 20
-      },
-      {
-        "name": "MALAYI MAK - SCRAPE",
-        "code": "SCRAPE-MALAYI MAK",
-        "quantityType": "KG",
-        "quantity": 10,
-        "ratio": 5,
-        "rate": 0
       }
     ],
     "notes": "",

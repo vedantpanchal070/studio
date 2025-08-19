@@ -44,9 +44,12 @@ import { useToast } from "@/hooks/use-toast"
 import { EditOutputDialog } from "./edit-output-dialog"
 import { EditSaleDialog } from "./edit-sale-dialog"
 import { Combobox } from "@/components/ui/combobox"
+import { DatePicker } from "@/components/date-picker"
 
 const searchSchema = z.object({
   name: z.string().optional(),
+  startDate: z.date().optional(),
+  endDate: z.date().optional(),
 })
 
 type SearchFormValues = z.infer<typeof searchSchema>
@@ -88,7 +91,7 @@ export function ViewOutputsClient() {
 
 
   const handleClear = () => {
-    form.reset({ name: "" })
+    form.reset({ name: "", startDate: undefined, endDate: undefined })
   }
 
   const handleDelete = async (entry: LedgerEntry) => {
@@ -149,7 +152,7 @@ export function ViewOutputsClient() {
     <div className="space-y-6">
       <Form {...form}>
         <form className="rounded-lg border p-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
              <FormField
               control={form.control}
               name="name"
@@ -163,6 +166,30 @@ export function ViewOutputsClient() {
                       placeholder="Select a product"
                       searchPlaceholder="Search products..."
                     />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="startDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Start Date</FormLabel>
+                  <FormControl>
+                    <DatePicker value={field.value} onChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="endDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>End Date</FormLabel>
+                  <FormControl>
+                    <DatePicker value={field.value} onChange={field.onChange} />
+                  </FormControl>
                 </FormItem>
               )}
             />
