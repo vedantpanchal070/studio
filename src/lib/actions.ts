@@ -20,49 +20,39 @@ function getUserDataDir(username: string) {
 async function ensureUserDataDir(username: string) {
   const userDir = getUserDataDir(username);
   try {
-    // Check if the user-specific directory exists.
     await fs.access(userDir);
   } catch (error: any) {
     if (error.code === 'ENOENT') {
-      // Directory doesn't exist, so create it.
       await fs.mkdir(userDir, { recursive: true });
 
-      // This is a special case for the 'admin' user to migrate old data.
+      // Special case for 'admin' user to migrate old data from the root data directory.
       if (username === 'admin') {
         const oldFiles = ['vouchers.json', 'processes.json', 'outputs.json', 'sales.json'];
         for (const file of oldFiles) {
           const oldPath = path.join(DATA_DIR, file);
           const newPath = path.join(userDir, file);
           try {
-            // Check if old file exists before trying to move it
-            await fs.access(oldPath);
-            await fs.rename(oldPath, newPath);
-            console.log(`Migrated ${oldPath} to ${newPath}`);
+            await fs.access(oldPath); // Check if old file exists
+            await fs.rename(oldPath, newPath); // Move it
           } catch (moveError: any) {
-            // ENOENT means old file didn't exist, which is fine.
-            if (moveError.code !== 'ENOENT') {
-              console.error(`Error migrating ${file}:`, moveError);
+            if (moveError.code !== 'ENOENT') { // Ignore if old file doesn't exist
+              console.error(`Error migrating ${file} for admin:`, moveError);
             }
           }
         }
       }
     } else {
-      console.error(`Error accessing data directory for user ${username}:`, error);
+      console.error(`Error accessing user data directory for ${username}:`, error);
     }
   }
 }
 
+
 async function readJsonFile(filePath: string): Promise<any[]> {
     try {
+        await fs.access(filePath); // Check if file exists
         const fileContent = await fs.readFile(filePath, "utf-8");
-        const data = JSON.parse(fileContent);
-        return data.map((item: any) => {
-            if (item.date && typeof item.date === 'string') {
-                const dateStr = item.date.endsWith('Z') ? item.date : `${item.date}Z`;
-                return { ...item, date: new Date(dateStr) };
-            }
-            return item;
-        });
+        return JSON.parse(fileContent);
     } catch (error: any) {
         if (error.code === 'ENOENT') {
             await writeJsonFile(filePath, []); // File doesn't exist, create it.
@@ -120,7 +110,11 @@ const writeSales = (username: string, data: any[]) => writeJsonFile(getSalesFile
 
 // Users (Global)
 const readUsers = async (): Promise<User[]> => {
-    await fs.mkdir(DATA_DIR, { recursive: true });
+    try {
+        await fs.access(USERS_FILE);
+    } catch {
+        await writeJsonFile(USERS_FILE, [{ username: "admin", password: "mahadev" }]);
+    }
     return readJsonFile(USERS_FILE);
 };
 const writeUsers = (data: any[]) => writeJsonFile(USERS_FILE, data);
@@ -147,7 +141,7 @@ export async function createUser(userData: User) {
 
         users.push(validatedFields.data);
         await writeUsers(users);
-        await ensureUserDataDir(validatedFields.data.username); // Create user's data directory
+        await ensureUserDataDir(validatedFields.data.username); 
 
         return { success: true, message: "User created successfully." };
     } catch (error) {
@@ -168,7 +162,6 @@ export async function updateUser(updatedUser: User): Promise<boolean> {
         let users = await readUsers();
         const userIndex = users.findIndex(u => u.username === updatedUser.username);
         if (userIndex === -1) {
-            // This case should ideally not happen in an update scenario
             return false;
         } else {
             users[userIndex] = validatedFields.data;
@@ -431,7 +424,7 @@ export async function recordSale(username: string, values: z.infer<typeof saleSc
 export async function getVouchers(username: string, filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<any[]> {
     let vouchers = await readVouchers(username);
 
-    // Filter out finished goods production and sales from the raw material ledger view, but keep scrape
+    // Filter out finished goods production and sales from the raw material ledger view
     vouchers = vouchers.filter(v => 
         !v.remarks?.startsWith("PRODUCED FROM") &&
         !v.remarks?.startsWith("SOLD TO")
@@ -440,18 +433,30 @@ export async function getVouchers(username: string, filters: { name?: string; st
     if (filters.name) {
         vouchers = vouchers.filter(v => v.name === filters.name);
     }
-    if (filters.startDate) {
-        const filterDate = new Date(filters.startDate);
-        const startOfDay = new Date(Date.UTC(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate()));
-        vouchers = vouchers.filter(v => new Date(v.date) >= startOfDay);
-    }
-    if (filters.endDate) {
-        const filterDate = new Date(filters.endDate);
-        const nextDay = new Date(Date.UTC(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate() + 1));
-        vouchers = vouchers.filter(v => new Date(v.date) < nextDay);
-    }
     
-    return vouchers;
+    // More robust date filtering by comparing timestamps
+    let startTimestamp = 0;
+    let endTimestamp = Infinity;
+
+    if (filters.startDate) {
+        const date = new Date(filters.startDate);
+        const startOfDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        startTimestamp = startOfDay.getTime();
+    }
+
+    if (filters.endDate) {
+        const date = new Date(filters.endDate);
+        const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
+        endTimestamp = startOfNextDay.getTime();
+    }
+
+    const filteredVouchers = vouchers.filter(v => {
+        if (!v.date) return false;
+        const voucherTimestamp = new Date(v.date).getTime();
+        return voucherTimestamp >= startTimestamp && voucherTimestamp < endTimestamp;
+    });
+    
+    return filteredVouchers;
 }
 
 export async function getInventoryItem(username: string, name: string, filters?: { startDate?: Date; endDate?: Date }) {
@@ -462,16 +467,28 @@ export async function getInventoryItem(username: string, name: string, filters?:
     let allVouchers = await readVouchers(username);
     let itemVouchers = allVouchers.filter(v => v.name === name);
 
-    // Date filtering
-    if (filters?.startDate) {
-        const start = new Date(filters.startDate);
-        const startOfDay = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate()));
-        itemVouchers = itemVouchers.filter(v => new Date(v.date) >= startOfDay);
-    }
-    if (filters?.endDate) {
-        const end = new Date(filters.endDate);
-        const nextDay = new Date(Date.UTC(end.getFullYear(), end.getMonth(), end.getDate() + 1));
-        itemVouchers = itemVouchers.filter(v => new Date(v.date) < nextDay);
+    // Date filtering using timestamps
+    if (filters?.startDate || filters?.endDate) {
+        let startTimestamp = 0;
+        let endTimestamp = Infinity;
+
+        if (filters.startDate) {
+            const date = new Date(filters.startDate);
+            const startOfDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            startTimestamp = startOfDay.getTime();
+        }
+
+        if (filters.endDate) {
+            const date = new Date(filters.endDate);
+            const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
+            endTimestamp = startOfNextDay.getTime();
+        }
+        
+        itemVouchers = itemVouchers.filter(v => {
+            if (!v.date) return false;
+            const voucherTimestamp = new Date(v.date).getTime();
+            return voucherTimestamp >= startTimestamp && voucherTimestamp < endTimestamp;
+        });
     }
 
 
@@ -544,18 +561,30 @@ export async function getProcesses(username: string, filters: { name?: string; s
     if (filters.name) {
         processes = processes.filter(p => p.processName === filters.name);
     }
+    
+    // More robust date filtering by comparing timestamps
+    let startTimestamp = 0;
+    let endTimestamp = Infinity;
+
     if (filters.startDate) {
-        const filterDate = new Date(filters.startDate);
-        const startOfDay = new Date(Date.UTC(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate()));
-        processes = processes.filter(p => new Date(p.date) >= startOfDay);
+        const date = new Date(filters.startDate);
+        const startOfDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        startTimestamp = startOfDay.getTime();
     }
+
     if (filters.endDate) {
-        const filterDate = new Date(filters.endDate);
-        const nextDay = new Date(Date.UTC(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate() + 1));
-        processes = processes.filter(p => new Date(p.date) < nextDay);
+        const date = new Date(filters.endDate);
+        const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
+        endTimestamp = startOfNextDay.getTime();
     }
     
-    return processes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const filteredProcesses = processes.filter(p => {
+        if (!p.date) return false;
+        const processTimestamp = new Date(p.date).getTime();
+        return processTimestamp >= startTimestamp && processTimestamp < endTimestamp;
+    });
+
+    return filteredProcesses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export async function getUniqueProcessNames(username: string): Promise<string[]> {
@@ -598,22 +627,36 @@ export async function getOutputLedger(username: string, filters: { name?: string
     let allSales = await readSales(username);
     let ledger: LedgerEntry[] = [];
 
-    // Apply filters
+    // Date filtering using timestamps
+    let startTimestamp = 0;
+    let endTimestamp = Infinity;
+
+    if (filters.startDate) {
+        const date = new Date(filters.startDate);
+        const startOfDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        startTimestamp = startOfDay.getTime();
+    }
+
+    if (filters.endDate) {
+        const date = new Date(filters.endDate);
+        const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
+        endTimestamp = startOfNextDay.getTime();
+    }
+    
+    const filterByTimestamp = (entry: { date?: string | Date }) => {
+        if (!entry.date) return false;
+        const entryTimestamp = new Date(entry.date).getTime();
+        return entryTimestamp >= startTimestamp && entryTimestamp < endTimestamp;
+    };
+    
+    allOutputs = allOutputs.filter(filterByTimestamp);
+    allSales = allSales.filter(filterByTimestamp);
+
+
+    // Name filter
     if (filters.name) {
         allOutputs = allOutputs.filter(o => o.productName === filters.name);
         allSales = allSales.filter(s => s.productName === filters.name);
-    }
-    if (filters.startDate) {
-        const filterDate = new Date(filters.startDate);
-        const startOfDay = new Date(Date.UTC(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate()));
-        allOutputs = allOutputs.filter(o => new Date(o.date) >= startOfDay);
-        allSales = allSales.filter(s => new Date(s.date) >= startOfDay);
-    }
-    if (filters.endDate) {
-        const filterDate = new Date(filters.endDate);
-        const nextDay = new Date(Date.UTC(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate() + 1));
-        allOutputs = allOutputs.filter(o => new Date(o.date) < nextDay);
-        allSales = allSales.filter(s => new Date(s.date) < nextDay);
     }
     
     // Map outputs to ledger entries
@@ -1043,3 +1086,4 @@ export async function updateSale(username: string, values: z.infer<typeof saleSc
     
 
     
+
