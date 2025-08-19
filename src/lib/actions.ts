@@ -439,23 +439,26 @@ export async function getVouchers(username: string, filters: { name?: string, st
     }
     
     if (startDate) {
-        let startTimestamp = new Date(startDate).getTime();
+        const startOfDay = new Date(startDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const startTimestamp = startOfDay.getTime();
+
         let endTimestamp;
         if (endDate) {
-          const endOfDay = new Date(endDate);
-          endOfDay.setHours(23, 59, 59, 999);
-          endTimestamp = endOfDay.getTime();
+            const endOfDay = new Date(endDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            endTimestamp = endOfDay.getTime();
         } else {
-          // If only start date is provided, filter for that single day
-          const endOfDay = new Date(startDate);
-          endOfDay.setHours(23, 59, 59, 999);
-          endTimestamp = endOfDay.getTime();
+            // If only start date is provided, filter for that single day
+            const endOfDay = new Date(startDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            endTimestamp = endOfDay.getTime();
         }
-        
+
         vouchers = vouchers.filter(v => {
             if (!v.date) return false;
             const voucherTimestamp = new Date(v.date).getTime();
-            return voucherTimestamp >= startTimestamp && voucherTimestamp < endTimestamp;
+            return voucherTimestamp >= startTimestamp && voucherTimestamp <= endTimestamp;
         });
     }
 
@@ -543,23 +546,25 @@ export async function getProcesses(username: string, filters: { name?: string, s
     }
     
     if (startDate) {
-        let startTimestamp = new Date(startDate).getTime();
+        const startOfDay = new Date(startDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const startTimestamp = startOfDay.getTime();
+
         let endTimestamp;
         if (endDate) {
-          const endOfDay = new Date(endDate);
-          endOfDay.setHours(23, 59, 59, 999);
-          endTimestamp = endOfDay.getTime();
+            const endOfDay = new Date(endDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            endTimestamp = endOfDay.getTime();
         } else {
-          // If only start date is provided, filter for that single day
-          const endOfDay = new Date(startDate);
-          endOfDay.setHours(23, 59, 59, 999);
-          endTimestamp = endOfDay.getTime();
+            const endOfDay = new Date(startDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            endTimestamp = endOfDay.getTime();
         }
         
         processes = processes.filter(p => {
             if (!p.date) return false;
             const processTimestamp = new Date(p.date).getTime();
-            return processTimestamp >= startTimestamp && processTimestamp < endTimestamp;
+            return processTimestamp >= startTimestamp && processTimestamp <= endTimestamp;
         });
     }
 
@@ -639,23 +644,25 @@ export async function getOutputLedger(username: string, filters: { name?: string
     
     // Date filter
     if (startDate) {
-        let startTimestamp = new Date(startDate).getTime();
+        const startOfDay = new Date(startDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const startTimestamp = startOfDay.getTime();
+
         let endTimestamp;
         if (endDate) {
-          const endOfDay = new Date(endDate);
-          endOfDay.setHours(23, 59, 59, 999);
-          endTimestamp = endOfDay.getTime();
+            const endOfDay = new Date(endDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            endTimestamp = endOfDay.getTime();
         } else {
-          // If only start date is provided, filter for that single day
-          const endOfDay = new Date(startDate);
-          endOfDay.setHours(23, 59, 59, 999);
-          endTimestamp = endOfDay.getTime();
+            const endOfDay = new Date(startDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            endTimestamp = endOfDay.getTime();
         }
         
         ledger = ledger.filter(entry => {
             if (!entry.date) return false;
             const entryTimestamp = new Date(entry.date).getTime();
-            return entryTimestamp >= startTimestamp && entryTimestamp < endTimestamp;
+            return entryTimestamp >= startTimestamp && entryTimestamp <= endTimestamp;
         });
     }
 
