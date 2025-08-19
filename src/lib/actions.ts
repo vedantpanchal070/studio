@@ -16,19 +16,44 @@ function getUserDataDir(username: string) {
   return path.join(DATA_DIR, username);
 }
 
-// Ensure data directory exists for a user
+// Ensure data directory exists for a user, and migrate old data if necessary
 async function ensureUserDataDir(username: string) {
   const userDir = getUserDataDir(username);
   try {
-    await fs.mkdir(userDir, { recursive: true })
-  } catch (error) {
-    console.error(`Error creating data directory for user ${username}:`, error)
+    // Check if the user-specific directory exists.
+    await fs.access(userDir);
+  } catch (error: any) {
+    if (error.code === 'ENOENT') {
+      // Directory doesn't exist, so create it.
+      await fs.mkdir(userDir, { recursive: true });
+
+      // This is a special case for the 'admin' user to migrate old data.
+      if (username === 'admin') {
+        const oldFiles = ['vouchers.json', 'processes.json', 'outputs.json', 'sales.json'];
+        for (const file of oldFiles) {
+          const oldPath = path.join(DATA_DIR, file);
+          const newPath = path.join(userDir, file);
+          try {
+            // Check if old file exists before trying to move it
+            await fs.access(oldPath);
+            await fs.rename(oldPath, newPath);
+            console.log(`Migrated ${oldPath} to ${newPath}`);
+          } catch (moveError: any) {
+            // ENOENT means old file didn't exist, which is fine.
+            if (moveError.code !== 'ENOENT') {
+              console.error(`Error migrating ${file}:`, moveError);
+            }
+          }
+        }
+      }
+    } else {
+      console.error(`Error accessing data directory for user ${username}:`, error);
+    }
   }
 }
 
 async function readJsonFile(filePath: string): Promise<any[]> {
     try {
-        // The parent directory is now created by ensureUserDataDir
         const fileContent = await fs.readFile(filePath, "utf-8");
         const data = JSON.parse(fileContent);
         return data.map((item: any) => {
