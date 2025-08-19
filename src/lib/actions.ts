@@ -507,8 +507,10 @@ export async function getInventoryItem(username: string, name: string, filters?:
 
 export async function getVoucherItemNames(username: string): Promise<string[]> {
     const vouchers = await readVouchers(username);
-    // Only show names of items that were purchased (positive quantity) or are scrape
-    const relevantVouchers = vouchers.filter(v => v.quantities > 0);
+    // Show items that were purchased (positive quantity and not from production) OR are scrape
+    const relevantVouchers = vouchers.filter(v => 
+        (v.quantities > 0 && !v.remarks?.startsWith("PRODUCED FROM")) || v.remarks?.startsWith("SCRAPE FROM")
+    );
     const names = new Set(relevantVouchers.map(v => v.name));
     return Array.from(names).sort();
 }
@@ -1037,5 +1039,7 @@ export async function updateSale(username: string, values: z.infer<typeof saleSc
         return { success: false, message: "Failed to update sale." };
     }
 }
+
+    
 
     
