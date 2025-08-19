@@ -423,11 +423,6 @@ export async function recordSale(username: string, values: z.infer<typeof saleSc
 
 export async function getVouchers(username: string, filters: { name?: string }): Promise<any[]> {
     let vouchers = await readVouchers(username);
-
-    // Filter out finished goods production and sales from the raw material ledger view
-    vouchers = vouchers.filter(v => 
-        !(v.remarks?.startsWith("PRODUCED FROM") || v.remarks?.startsWith("SOLD TO")) || v.remarks?.startsWith("SCRAPE FROM")
-    );
     
     if (filters.name) {
         vouchers = vouchers.filter(v => v.name === filters.name);
@@ -436,46 +431,13 @@ export async function getVouchers(username: string, filters: { name?: string }):
     return vouchers;
 }
 
-export async function getInventoryItem(username: string, name: string, filters?: { startDate?: Date; endDate?: Date }) {
+export async function getInventoryItem(username: string, name: string) {
     if (!name) {
         return { availableStock: 0, averagePrice: 0, code: "", quantityType: "" };
     }
   
-    let allVouchers = await readVouchers(username);
-    let itemVouchers = allVouchers.filter(v => v.name === name);
-
-    // Default timestamps that will include all dates
-    let startTimestamp = 0; // The beginning of time
-    let endTimestamp = Infinity; // The far future
-
-    if (filters?.startDate) {
-        const date = new Date(filters.startDate);
-        const startOfDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-        // Convert the start boundary to a number
-        startTimestamp = startOfDay.getTime();
-    }
-
-    if (filters?.endDate) {
-        const date = new Date(filters.endDate);
-        const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
-        // Convert the end boundary to a number
-        endTimestamp = startOfNextDay.getTime();
-    }
-
-    if (filters?.startDate || filters?.endDate) {
-        itemVouchers = itemVouchers.filter(v => {
-            // Skip any voucher that doesn't have a date
-            if (!v.date) {
-                return false;
-            }
-            
-            // Convert the voucher's date to a number
-            const voucherTimestamp = new Date(v.date).getTime();
-
-            // Compare the numbers
-            return voucherTimestamp >= startTimestamp && voucherTimestamp < endTimestamp;
-        });
-    }
+    let itemVouchers = await readVouchers(username);
+    itemVouchers = itemVouchers.filter(v => v.name === name);
 
     if (itemVouchers.length === 0) {
         return { availableStock: 0, averagePrice: 0, code: "", quantityType: "" };
@@ -509,7 +471,8 @@ export async function getInventoryItem(username: string, name: string, filters?:
 
 export async function getVoucherItemNames(username: string): Promise<string[]> {
     const vouchers = await readVouchers(username);
-    // Show items that were purchased (positive quantity and not from production) OR are scrape
+    // An item is considered a raw material if it was purchased (positive qty and not from production)
+    // OR if it's a scrape item. This excludes finished goods from the dropdown.
     const relevantVouchers = vouchers.filter(v => 
         (v.quantities > 0 && !v.remarks?.startsWith("PRODUCED FROM")) || v.remarks?.startsWith("SCRAPE FROM")
     );
@@ -714,48 +677,61 @@ export async function updateVoucher(username: string, values: z.infer<typeof vou
     }
 }
 
-export async function updateProcess(username: string, originalProcess: Process, newValues: z.infer<typeof processSchema>) {
-    const validatedFields = processSchema.safeParse(newValues);
+export async function updateProcess(username: string, values: z.infer<typeof processSchema>) {
+    const validatedFields = processSchema.safeParse(values);
 
     if (!validatedFields.success) {
         return { success: false, message: "Invalid process data." };
     }
     
-    const { date, processName, outputUnit, notes } = validatedFields.data;
+    const { id, ...updatedData } = validatedFields.data;
+    if (!id) {
+        return { success: false, message: "Process ID is missing." };
+    }
 
     try {
         let allProcesses = await readProcesses(username);
-        const processIndex = allProcesses.findIndex(p => p.id === originalProcess.id);
+        const processIndex = allProcesses.findIndex(p => p.id === id);
         
         if (processIndex === -1) {
             return { success: false, message: "Original process not found." };
         }
 
-        const originalProcessName = allProcesses[processIndex].processName;
+        const originalProcess = allProcesses[processIndex];
 
-        // Update the process entry
-        allProcesses[processIndex] = {
-            ...allProcesses[processIndex],
-            date,
-            processName,
-            outputUnit,
-            notes,
-        };
-        await writeProcesses(username, allProcesses);
+        // First, reverse the old process's inventory consumption
+        let allVouchers = await readVouchers(username);
+        const vouchersToKeep = allVouchers.filter(v => !v.id?.startsWith(originalProcess.id!));
 
-        // Also update the associated vouchers' remarks if process name changed
-        if(originalProcessName !== processName) {
-            let allVouchers = await readVouchers(username);
-            const originalRemark = `USED IN ${originalProcessName}`;
-            const newRemark = `USED IN ${processName}`;
+        // Then, apply the new process's inventory consumption
+        for (const material of updatedData.rawMaterials) {
+            const inventory = await getInventoryItem(username, material.name);
+            if (inventory.availableStock + (originalProcess.rawMaterials.find(rm => rm.name === material.name)?.quantity || 0) < material.quantity) {
+                 return {
+                    success: false,
+                    message: `Insufficient stock for ${material.name}.`,
+                };
+            }
 
-            allVouchers.forEach(voucher => {
-                if (voucher.remarks === originalRemark && new Date(voucher.date).getTime() === new Date(date).getTime()) {
-                    voucher.remarks = newRemark;
-                }
-            });
-            await writeVouchers(username, allVouchers);
+            const processVoucher: Voucher = {
+                id: id + material.name.replace(/\s/g, ''),
+                date: updatedData.date,
+                name: material.name,
+                code: material.code,
+                quantities: -material.quantity,
+                quantityType: material.quantityType,
+                pricePerNo: material.rate || 0,
+                totalPrice: (material.rate || 0) * material.quantity,
+                remarks: `USED IN ${updatedData.processName}`,
+            };
+            vouchersToKeep.push(processVoucher);
         }
+        
+        // Update the process entry itself
+        allProcesses[processIndex] = { ...originalProcess, ...updatedData };
+        
+        await writeProcesses(username, allProcesses);
+        await writeVouchers(username, vouchersToKeep);
         
         revalidatePath("/view/processes");
         revalidatePath("/view/vouchers");
@@ -982,7 +958,7 @@ export async function updateSale(username: string, values: z.infer<typeof saleSc
         
         // Server-side stock check
         const currentStock = await getInventoryItem(username, updatedData.productName);
-        const stockBeforeThisSale = currentStock.availableStock + originalSale.saleQty;
+        const stockBeforeThisSale = currentStock.availableStock + (originalSale.productName === updatedData.productName ? originalSale.saleQty : 0);
         if (updatedData.saleQty > stockBeforeThisSale) {
             return { success: false, message: `Not enough stock. Available before this sale: ${stockBeforeThisSale}` };
         }
@@ -999,6 +975,8 @@ export async function updateSale(username: string, values: z.infer<typeof saleSc
         // Update Voucher Record
         const inventoryDetails = await getInventoryItem(username, updatedData.productName);
         allVouchers[saleVoucherIndex].date = updatedData.date;
+        allVouchers[saleVoucherIndex].name = updatedData.productName;
+        allVouchers[saleVoucherIndex].code = inventoryDetails.code;
         allVouchers[saleVoucherIndex].quantities = -updatedData.saleQty;
         allVouchers[saleVoucherIndex].remarks = `SOLD TO ${updatedData.clientCode}`;
         // Note: Inventory cost price is used for the voucher, not the sale price

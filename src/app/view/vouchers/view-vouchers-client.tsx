@@ -173,10 +173,6 @@ export function ViewVouchersClient() {
     return { totalInputQty, totalOutputQty, availableQty }
   }, [vouchers])
 
-  const isVoucherLocked = (voucher: Voucher) => {
-    return voucher.remarks?.startsWith("USED IN") || voucher.remarks?.startsWith("SOLD TO") || voucher.remarks?.startsWith("PRODUCED FROM") || voucher.remarks?.startsWith("SCRAPE FROM");
-  };
-
   return (
     <div className="space-y-6">
       <Form {...form}>
@@ -238,12 +234,12 @@ export function ViewVouchersClient() {
                     <TableCell>{voucher.totalPrice.toFixed(2)}</TableCell>
                     <TableCell>{voucher.remarks}</TableCell>
                     <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(voucher)} disabled={isVoucherLocked(voucher)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(voucher)}>
                            <Edit className="h-4 w-4" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" disabled={isVoucherLocked(voucher)}>
+                            <Button variant="ghost" size="icon">
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </AlertDialogTrigger>

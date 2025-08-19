@@ -6,8 +6,8 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 
-import { saleSchema, type Sale } from "@/lib/schemas"
-import { getInventoryItem, updateSale } from "@/lib/actions"
+import { saleSchema, type Sale, type FinishedGood } from "@/lib/schemas"
+import { getInventoryItem, updateSale, getFinishedGoods } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
@@ -30,6 +30,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { DatePicker } from "@/components/date-picker"
 import { UppercaseInput } from "@/components/ui/uppercase-input"
+import { Combobox } from "@/components/ui/combobox"
 
 type SalesFormValues = z.infer<typeof saleSchema>
 
@@ -45,6 +46,7 @@ export function EditSaleDialog({ isOpen, onOpenChange, sale, onSaleUpdated }: Ed
   const { user } = useAuth()
   const [availableQty, setAvailableQty] = useState(0)
   const [totalAmount, setTotalAmount] = useState(0)
+  const [finishedGoods, setFinishedGoods] = useState<FinishedGood[]>([])
 
   const form = useForm<SalesFormValues>({
     resolver: zodResolver(saleSchema),
@@ -53,6 +55,10 @@ export function EditSaleDialog({ isOpen, onOpenChange, sale, onSaleUpdated }: Ed
       date: new Date(sale.date),
     },
   })
+  
+  const selectedProduct = form.watch("productName");
+  const saleQty = form.watch("saleQty")
+  const salePrice = form.watch("salePrice")
 
   useEffect(() => {
     form.reset({
@@ -61,24 +67,28 @@ export function EditSaleDialog({ isOpen, onOpenChange, sale, onSaleUpdated }: Ed
     })
   }, [sale, form])
 
-  const saleQty = form.watch("saleQty")
-  const salePrice = form.watch("salePrice")
 
   useEffect(() => {
-    if (!user) return;
-    const fetchStock = async () => {
-      if (sale.productName) {
-        // We add back the original quantity of this specific sale to calculate the "available before this sale" stock
-        const stock = await getInventoryItem(user.username, sale.productName)
-        setAvailableQty(stock.availableStock + sale.saleQty)
-      } else {
-        setAvailableQty(0)
-      }
+    if (!user || !isOpen) return;
+    const fetchPrerequisites = async () => {
+        // Fetch all possible products for the dropdown
+        const goods = await getFinishedGoods(user.username);
+        setFinishedGoods(goods);
+
+        // Fetch stock for the currently selected product
+        if (selectedProduct) {
+            const stock = await getInventoryItem(user.username, selectedProduct);
+            // To calculate "available before this sale", we add back the quantity from the original sale,
+            // but only if the product being viewed is the same as the one on the original sale record.
+            const stockBeforeThisSale = stock.availableStock + (selectedProduct === sale.productName ? sale.saleQty : 0);
+            setAvailableQty(stockBeforeThisSale);
+        } else {
+            setAvailableQty(0);
+        }
     }
-    if (isOpen) {
-        fetchStock()
-    }
-  }, [sale, isOpen, user])
+    fetchPrerequisites();
+  }, [selectedProduct, sale, isOpen, user])
+
 
   useEffect(() => {
     const amount = (saleQty || 0) * (salePrice || 0)
@@ -94,7 +104,7 @@ export function EditSaleDialog({ isOpen, onOpenChange, sale, onSaleUpdated }: Ed
     if (values.saleQty > availableQty) {
       toast({
         title: "Error",
-        description: `Not enough stock. Available before this sale: ${availableQty}`,
+        description: `Not enough stock. Available before this sale: ${availableQty.toFixed(2)}`,
         variant: "destructive",
       })
       return
@@ -129,11 +139,14 @@ export function EditSaleDialog({ isOpen, onOpenChange, sale, onSaleUpdated }: Ed
               control={form.control}
               name="productName"
               render={({ field }) => (
-                <FormItem>
+                 <FormItem>
                   <FormLabel>Product</FormLabel>
-                  <FormControl>
-                    <Input {...field} readOnly className="bg-muted" />
-                  </FormControl>
+                   <Combobox
+                      options={finishedGoods.map(g => ({ value: g.name, label: g.name }))}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select a product"
+                    />
                   <p className="text-sm text-muted-foreground mt-1">Available (before this sale): {availableQty.toFixed(2)}</p>
                   <FormMessage />
                 </FormItem>
@@ -214,5 +227,3 @@ export function EditSaleDialog({ isOpen, onOpenChange, sale, onSaleUpdated }: Ed
     </Dialog>
   )
 }
-
-    

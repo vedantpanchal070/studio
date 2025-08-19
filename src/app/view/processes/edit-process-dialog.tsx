@@ -1,13 +1,14 @@
 
 "use client"
 
-import { useEffect, useRef } from "react"
-import { useForm } from "react-hook-form"
+import { useEffect, useRef, useState } from "react"
+import { useForm, useFieldArray, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
+import { PlusCircle, Trash2 } from "lucide-react"
 
 import { processSchema, type Process } from "@/lib/schemas"
-import { updateProcess } from "@/lib/actions"
+import { updateProcess, getVoucherItemNames, getInventoryItem } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
@@ -31,14 +32,13 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { DatePicker } from "@/components/date-picker"
 import { UppercaseInput } from "@/components/ui/uppercase-input"
+import { Combobox } from "@/components/ui/combobox"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
+import { ReadOnlyInput } from "@/components/ui/read-only-input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 
-const editableProcessSchema = processSchema.extend({
-  // The editable fields. For process, we allow editing descriptive data.
-  // Raw materials and total output are not editable as they affect inventory calculations.
-});
-
-
-type ProcessFormValues = z.infer<typeof editableProcessSchema>
+type ProcessFormValues = z.infer<typeof processSchema>
 
 interface EditProcessDialogProps {
   isOpen: boolean
@@ -47,13 +47,22 @@ interface EditProcessDialogProps {
   onProcessUpdated: () => void
 }
 
+interface MaterialData {
+  availableStock: number;
+  rate: number;
+  code: string;
+  quantityType: string;
+}
+
 export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpdated }: EditProcessDialogProps) {
   const { toast } = useToast()
   const { user } = useAuth()
+  const [materialData, setMaterialData] = useState<Record<string, MaterialData>>({});
+  const [itemNames, setItemNames] = useState<string[]>([]);
   const processNameRef = useRef<HTMLInputElement>(null)
 
   const form = useForm<ProcessFormValues>({
-    resolver: zodResolver(editableProcessSchema),
+    resolver: zodResolver(processSchema),
     defaultValues: process,
   })
 
@@ -64,14 +73,93 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
     }) 
   }, [process, form])
 
+  useEffect(() => {
+    if (!user) return;
+    const fetchInitialData = async () => {
+      const names = await getVoucherItemNames(user.username);
+      setItemNames(names);
+      
+      const initialMaterialData: Record<string, MaterialData> = {};
+      for (const mat of process.rawMaterials) {
+         const data = await getInventoryItem(user.username, mat.name);
+         const originalQuantity = process.rawMaterials.find(rm => rm.name === mat.name)?.quantity || 0;
+         initialMaterialData[mat.name] = {
+            availableStock: data.availableStock + originalQuantity,
+            rate: mat.rate || data.averagePrice,
+            code: mat.code,
+            quantityType: mat.quantityType,
+         }
+      }
+      setMaterialData(initialMaterialData);
+    };
+    if (isOpen) {
+        fetchInitialData();
+    }
+  }, [process, user, isOpen]);
+
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "rawMaterials",
+  })
+  
+  const totalProcessOutput = useWatch({ control: form.control, name: "totalProcessOutput" });
+  const rawMaterials = useWatch({ control: form.control, name: "rawMaterials" });
+
+  const fetchMaterialData = async (name: string, index: number) => {
+      if (!name || !user) return;
+      const data = await getInventoryItem(user.username, name);
+      const originalQuantity = process.rawMaterials.find(rm => rm.name === name)?.quantity || 0;
+
+      setMaterialData(prev => ({...prev, [name]: {
+          availableStock: data.availableStock + originalQuantity,
+          rate: data.averagePrice,
+          code: data.code,
+          quantityType: data.quantityType,
+      }}));
+      form.setValue(`rawMaterials.${index}.rate`, data.averagePrice, { shouldValidate: true });
+      form.setValue(`rawMaterials.${index}.code`, data.code, { shouldValidate: true });
+      form.setValue(`rawMaterials.${index}.quantityType`, data.quantityType, { shouldValidate: true });
+  }
+
+  useEffect(() => {
+    rawMaterials.forEach((material, index) => {
+        const output = (material.ratio ?? 0) * (totalProcessOutput ?? 0) / 100;
+        if (form.getValues(`rawMaterials.${index}.quantity`) !== output) {
+            form.setValue(`rawMaterials.${index}.quantity`, output, { shouldValidate: true });
+        }
+    });
+  }, [rawMaterials, totalProcessOutput, form]);
+  
+  const calculatedMaterials = fields.map((field, index) => {
+    const material = rawMaterials[index] || {};
+    const data = materialData[material.name] || {};
+    const quantity = material.quantity ?? 0;
+    const rate = material.rate || data.rate || 0;
+    const amount = quantity * rate;
+    const stockIsInsufficient = (data.availableStock ?? 0) < quantity;
+
+    return { 
+        ...material, 
+        output: quantity,
+        availableStock: data.availableStock,
+        rate: rate,
+        amount, 
+        stockIsInsufficient,
+    };
+  });
+
+  const totalRatio = calculatedMaterials.reduce((sum, mat) => sum + (mat.ratio ?? 0), 0);
+  const totalAmount = calculatedMaterials.reduce((sum, mat) => sum + mat.amount, 0);
+  const averageRate = (totalProcessOutput ?? 0) > 0 ? totalAmount / (totalProcessOutput ?? 0) : 0;
+
 
   const onSubmit = async (values: ProcessFormValues) => {
     if (!user) {
       toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
       return;
     }
-    // Only send editable fields to the update function
-    const result = await updateProcess(user.username, process, values);
+    const result = await updateProcess(user.username, values);
     if (result.success) {
       toast({
         title: "Success!",
@@ -90,13 +178,13 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Edit Process</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[80vh] overflow-y-auto p-2">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <FormField
                     control={form.control}
                     name="date"
@@ -133,7 +221,7 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
                         <FormItem>
                             <FormLabel>Total Process Output</FormLabel>
                             <FormControl>
-                                <Input type="number" {...field} readOnly className="bg-muted"/>
+                                <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -153,6 +241,102 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
                     )}
                 />
             </div>
+
+             <Card>
+                <CardHeader>
+                    <CardTitle>Recipe Ingredients</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[200px]">Ingredient</TableHead>
+                            <TableHead>Avail. Stock</TableHead>
+                            <TableHead>% Ratio</TableHead>
+                            <TableHead>Output</TableHead>
+                            <TableHead>Rate</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Action</TableHead>
+                        </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                        {fields.map((field, index) => {
+                            const material = calculatedMaterials[index];
+                            return (
+                            <TableRow key={field.id}>
+                            <TableCell>
+                                <FormField
+                                    control={form.control}
+                                    name={`rawMaterials.${index}.name`}
+                                    render={({ field }) => (
+                                        <Combobox
+                                            options={itemNames.map(name => ({ value: name, label: name }))}
+                                            value={field.value}
+                                            onChange={(value) => {
+                                                field.onChange(value);
+                                                fetchMaterialData(value, index);
+                                            }}
+                                            placeholder="Select an item"
+                                            searchPlaceholder="Search items..."
+                                        />
+                                    )}
+                                />
+                            </TableCell>
+                            <TableCell>
+                                <span className={material?.stockIsInsufficient ? "text-destructive" : ""}>
+                                    {material?.availableStock?.toFixed(2) || '0.00'}
+                                </span>
+                            </TableCell>
+                            <TableCell>
+                                <FormField
+                                    control={form.control}
+                                    name={`rawMaterials.${index}.ratio`}
+                                    render={({ field }) => <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />}
+                                />
+                            </TableCell>
+                            <TableCell><ReadOnlyInput value={material?.output?.toFixed(2) || '0.00'} /></TableCell>
+                            <TableCell>
+                                <ReadOnlyInput value={material?.rate?.toFixed(2) || '0.00'} />
+                            </TableCell>
+                            <TableCell>{material?.amount?.toFixed(2) || '0.00'}</TableCell>
+                            <TableCell>
+                                <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                onClick={() => remove(index)}
+                                >
+                                <Trash2 />
+                                </Button>
+                            </TableCell>
+                            </TableRow>
+                        )})}
+                        </TableBody>
+                        <TableFooter>
+                            <TableRow>
+                                <TableCell colSpan={2}>Total</TableCell>
+                                <TableCell className="font-semibold">{totalRatio.toFixed(2)}%</TableCell>
+                                <TableCell></TableCell>
+                                <TableCell className="font-semibold">{averageRate.toFixed(2)}</TableCell>
+                                <TableCell className="font-semibold">{totalAmount.toFixed(2)}</TableCell>
+                                <TableCell></TableCell>
+                            </TableRow>
+                        </TableFooter>
+                    </Table>
+                    </div>
+                    <Separator className="my-4" />
+                    <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => append({ name: "", quantity: 0, ratio: 0, code: "", quantityType: "", rate: 0 })}
+                    >
+                    <PlusCircle className="mr-2" />
+                    Add Ingredient
+                    </Button>
+                </CardContent>
+             </Card>
+
             <FormField
               control={form.control}
               name="notes"
@@ -166,7 +350,7 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
                 </FormItem>
               )}
             />
-            <DialogFooter>
+            <DialogFooter className="sticky bottom-0 bg-background py-4">
               <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
               <Button type="submit" disabled={form.formState.isSubmitting || !user}>
                 {form.formState.isSubmitting ? "Saving..." : "Save Changes"}
@@ -178,5 +362,3 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
     </Dialog>
   )
 }
-
-    
