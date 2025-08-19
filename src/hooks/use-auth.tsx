@@ -1,86 +1,76 @@
 
 "use client"
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { getUser, updateUser } from '@/lib/actions';
+import type { User } from '@/lib/schemas';
 
 interface AuthContextType {
-  user: { username: string; password?: string } | null;
+  user: User | null;
   loading: boolean;
-  login: (username: string, pass: string) => boolean;
+  login: (username: string, pass: string) => Promise<boolean>;
   logout: () => void;
-  changePassword: (currentPass: string, newPass: string) => boolean;
+  changePassword: (currentPass: string, newPass: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const FAKE_USER_KEY = 'inventomax_user';
-const DEFAULT_USER = {
-  username: 'admin',
-  password: 'password',
-};
+const SESSION_STORAGE_KEY = 'inventomax_session_user';
 
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<{ username: string; password?: string } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    // This effect runs only on the client-side
+    // Check for a session on initial load
     try {
-      const storedUser = localStorage.getItem(FAKE_USER_KEY);
+      const storedUser = sessionStorage.getItem(SESSION_STORAGE_KEY);
       if (storedUser) {
         setUser(JSON.parse(storedUser));
-      } else {
-        // If no user is stored, we create the default one for the first run.
-        localStorage.setItem(FAKE_USER_KEY, JSON.stringify(DEFAULT_USER));
-        setUser(DEFAULT_USER);
       }
     } catch (error) {
-      console.error("Failed to parse user from localStorage", error);
-      // If parsing fails, reset to a default state
-      localStorage.setItem(FAKE_USER_KEY, JSON.stringify(DEFAULT_USER));
-      setUser(DEFAULT_USER);
+        console.error("Failed to parse user from sessionStorage", error);
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
     } finally {
         setLoading(false);
     }
   }, []);
 
-  const login = (username: string, pass: string): boolean => {
-    // During login, we get the currently stored user to check against
-    const storedUserRaw = localStorage.getItem(FAKE_USER_KEY);
-    const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : DEFAULT_USER;
+  const login = useCallback(async (username: string, pass: string): Promise<boolean> => {
+    const foundUser = await getUser(username);
     
-    if (username === storedUser.username && pass === storedUser.password) {
-      // Critical Fix: Set the full user object, including the password, into the state.
-      setUser(storedUser); 
+    if (foundUser && foundUser.password === pass) {
+      setUser(foundUser); 
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(foundUser));
       return true;
     }
     return false;
-  };
+  }, []);
 
-  const logout = () => {
-    // We don't remove the user object itself from storage on logout, 
-    // just clear the session state. This way the "user" persists.
+  const logout = useCallback(() => {
     setUser(null);
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
     router.push('/login');
-  };
+  }, [router]);
 
-  const changePassword = (currentPass: string, newPass: string): boolean => {
-    const storedUserRaw = localStorage.getItem(FAKE_USER_KEY);
-    if (!storedUserRaw) return false;
+  const changePassword = useCallback(async (currentPass: string, newPass: string): Promise<boolean> => {
+    if (!user) return false;
 
-    const storedUser = JSON.parse(storedUserRaw);
-
-    if (storedUser.password === currentPass) {
-      const updatedUser = { ...storedUser, password: newPass };
-      localStorage.setItem(FAKE_USER_KEY, JSON.stringify(updatedUser));
-      setUser(updatedUser); // Keep the local state in sync
-      return true;
+    // Verify current password again just in case
+    const userData = await getUser(user.username);
+    if (userData && userData.password === currentPass) {
+      const updatedUser = { ...userData, password: newPass };
+      const success = await updateUser(updatedUser);
+      if (success) {
+        setUser(updatedUser); // Keep the local state in sync
+        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedUser));
+        return true;
+      }
     }
     return false;
-  };
+  }, [user]);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, changePassword }}>

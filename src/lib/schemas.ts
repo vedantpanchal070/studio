@@ -1,6 +1,11 @@
 
 import * as z from "zod"
 
+export const userSchema = z.object({
+  username: z.string(),
+  password: z.string(),
+});
+
 export const voucherSchema = z.object({
   id: z.string().optional(), // Adding ID, optional as it will be created on the server
   date: z.date({
@@ -67,9 +72,10 @@ export const saleSchema = z.object({
   totalAmount: z.coerce.number(),
 });
 
+export type User = z.infer<typeof userSchema>;
 export type Voucher = z.infer<typeof voucherSchema> & { id: string }
 export type Process = z.infer<typeof processSchema> & { id: string };
-export type Output = z.infer<typeof outputSchema> & { id: string };
+export type Output = z.infer<typeof outputSchema> & { id: anystring };
 export type Sale = z.infer<typeof saleSchema> & { id: string };
 
 

@@ -3,7 +3,7 @@
 
 import { initializeApp } from "firebase/app";
 import { z } from "zod"
-import { voucherSchema, processSchema, outputSchema, saleSchema, type Process, type Voucher, type FinishedGood, type Output, type Sale } from "./schemas"
+import { voucherSchema, processSchema, outputSchema, saleSchema, userSchema, type Process, type Voucher, type FinishedGood, type Output, type Sale, type User } from "./schemas"
 import { revalidatePath } from "next/cache"
 import fs from "fs/promises"
 import path from "path"
@@ -13,9 +13,8 @@ const VOUCHERS_FILE = path.join(DATA_DIR, "vouchers.json")
 const PROCESSES_FILE = path.join(DATA_DIR, "processes.json")
 const OUTPUTS_FILE = path.join(DATA_DIR, "outputs.json")
 const SALES_FILE = path.join(DATA_DIR, "sales.json")
+const USERS_FILE = path.join(DATA_DIR, "users.json")
 
-// Enable offline data persistence
-// Note: Firebase Persistence needs Firebase App and Firestore initialized. Add initialization here or where Firebase config is setup.
 
 // Ensure data directory exists
 async function ensureDataDir() {
@@ -79,6 +78,42 @@ const writeOutputs = (data: any[]) => writeJsonFile(OUTPUTS_FILE, data);
 const readSales = (): Promise<Sale[]> => readJsonFile(SALES_FILE);
 const writeSales = (data: any[]) => writeJsonFile(SALES_FILE, data);
 
+// Users
+const readUsers = (): Promise<User[]> => readJsonFile(USERS_FILE);
+const writeUsers = (data: any[]) => writeJsonFile(USERS_FILE, data);
+
+// ============== USER ACTIONS ==============
+
+export async function getUser(username: string): Promise<User | undefined> {
+    const users = await readUsers();
+    return users.find(u => u.username === username);
+}
+
+export async function updateUser(updatedUser: User): Promise<boolean> {
+    const validatedFields = userSchema.safeParse(updatedUser);
+    if (!validatedFields.success) {
+        console.error("Invalid user data for update:", validatedFields.error);
+        return false;
+    }
+    
+    try {
+        let users = await readUsers();
+        const userIndex = users.findIndex(u => u.username === updatedUser.username);
+        if (userIndex === -1) {
+            console.error("User not found for update:", updatedUser.username);
+            return false;
+        }
+        users[userIndex] = validatedFields.data;
+        await writeUsers(users);
+        return true;
+    } catch (error) {
+        console.error("Failed to update user:", error);
+        return false;
+    }
+}
+
+
+// ============== VOUCHER / PROCESS / ETC. ACTIONS ==============
 
 export async function createVoucher(values: z.infer<typeof voucherSchema>) {
   const validatedFields = voucherSchema.safeParse(values)
@@ -151,7 +186,7 @@ export async function createProcess(values: z.infer<typeof processSchema>) {
     // Create a new voucher for each raw material consumption, linking it to the process
     rawMaterials.forEach(material => {
         const processVoucher: Voucher = {
-            id: processId + material.name, // Create a unique, deterministic ID for each consumption entry
+            id: processId + material.name.replace(/\s/g, ''), // Create a unique, deterministic ID for each consumption entry
             date: date,
             name: material.name,
             code: material.code,
@@ -918,5 +953,3 @@ export async function updateSale(values: z.infer<typeof saleSchema>) {
         return { success: false, message: "Failed to update sale." };
     }
 }
-
-    

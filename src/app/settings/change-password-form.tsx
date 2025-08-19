@@ -41,8 +41,8 @@ export function ChangePasswordForm() {
     },
   })
 
-  const onSubmit = (values: ChangePasswordFormValues) => {
-    const success = changePassword(values.currentPassword, values.newPassword)
+  const onSubmit = async (values: ChangePasswordFormValues) => {
+    const success = await changePassword(values.currentPassword, values.newPassword)
     if (success) {
       toast({
         title: "Success!",

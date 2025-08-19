@@ -17,11 +17,13 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    const success = login(username, password);
+    setIsLoggingIn(true);
+    const success = await login(username, password);
     if (success) {
       toast({ title: "Login Successful", description: "Welcome back!" });
       router.push("/");
@@ -29,6 +31,7 @@ export default function LoginPage() {
       setError("Invalid username or password.");
       toast({ title: "Login Failed", description: "Invalid username or password.", variant: "destructive" });
     }
+    setIsLoggingIn(false);
   };
 
   return (
@@ -63,8 +66,8 @@ export default function LoginPage() {
               />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full">
-              Login
+            <Button type="submit" className="w-full" disabled={isLoggingIn}>
+              {isLoggingIn ? "Logging in..." : "Login"}
             </Button>
           </form>
         </CardContent>
