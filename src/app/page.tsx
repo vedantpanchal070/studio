@@ -2,7 +2,7 @@
 "use client"
 
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PlusCircle, LayoutList, Warehouse, LogOut, Settings } from "lucide-react";
+import { PlusCircle, LayoutList, Warehouse, LogOut, Settings, UserCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -34,6 +34,10 @@ export default function Home() {
         <div className="flex justify-between items-center mb-12">
             <h1 className="text-5xl font-bold text-primary tracking-tight">InventoMax</h1>
             <div className="flex items-center gap-2">
+               <Button variant="outline">
+                <UserCircle className="mr-2 h-4 w-4" />
+                {user.username}
+              </Button>
               <Link href="/settings">
                 <Button variant="outline" size="icon">
                   <Settings className="h-4 w-4" />
