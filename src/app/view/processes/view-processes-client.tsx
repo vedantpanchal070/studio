@@ -12,7 +12,6 @@ import type { Process } from "@/lib/schemas"
 import { getProcesses, deleteProcess, getUniqueProcessNames } from "@/lib/actions"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
-import { DatePicker } from "@/components/date-picker"
 import {
   Table,
   TableBody,
@@ -46,8 +45,6 @@ import { Combobox } from "@/components/ui/combobox"
 
 const searchSchema = z.object({
   name: z.string().optional(),
-  startDate: z.date().optional(),
-  endDate: z.date().optional(),
 })
 
 type SearchFormValues = z.infer<typeof searchSchema>
@@ -140,8 +137,7 @@ export function ViewProcessesClient() {
   const [isLoading, setIsLoading] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null)
-  const endDateRef = useRef<HTMLButtonElement>(null)
-
+  
 
   const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchSchema),
@@ -167,7 +163,7 @@ export function ViewProcessesClient() {
 
 
   const handleClear = () => {
-    form.reset({ name: "", startDate: undefined, endDate: undefined })
+    form.reset({ name: "" })
   }
   
   const handleDelete = async (process: Process) => {
@@ -191,7 +187,7 @@ export function ViewProcessesClient() {
     <div className="space-y-6">
       <Form {...form}>
         <form className="rounded-lg border p-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
              <FormField
               control={form.control}
               name="name"
@@ -205,30 +201,6 @@ export function ViewProcessesClient() {
                       placeholder="Select a process"
                       searchPlaceholder="Search processes..."
                     />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="startDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Start Date</FormLabel>
-                  <FormControl>
-                    <DatePicker value={field.value} onChange={field.onChange} nextFocusRef={endDateRef} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="endDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>End Date</FormLabel>
-                  <FormControl>
-                    <DatePicker value={field.value} onChange={field.onChange} ref={endDateRef} />
-                  </FormControl>
                 </FormItem>
               )}
             />
@@ -288,5 +260,3 @@ export function ViewProcessesClient() {
     </div>
   )
 }
-
-    

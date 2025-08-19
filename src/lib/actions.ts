@@ -426,7 +426,7 @@ export async function getVouchers(username: string, filters: { name?: string }):
 
     // Filter out finished goods production and sales from the raw material ledger view
     vouchers = vouchers.filter(v => 
-        (!v.remarks?.startsWith("PRODUCED FROM") && !v.remarks?.startsWith("SOLD TO")) || v.remarks?.startsWith("SCRAPE FROM")
+        !(v.remarks?.startsWith("PRODUCED FROM") || v.remarks?.startsWith("SOLD TO")) || v.remarks?.startsWith("SCRAPE FROM")
     );
     
     if (filters.name) {
@@ -444,30 +444,38 @@ export async function getInventoryItem(username: string, name: string, filters?:
     let allVouchers = await readVouchers(username);
     let itemVouchers = allVouchers.filter(v => v.name === name);
 
-    // Date filtering using timestamps
+    // Default timestamps that will include all dates
+    let startTimestamp = 0; // The beginning of time
+    let endTimestamp = Infinity; // The far future
+
+    if (filters?.startDate) {
+        const date = new Date(filters.startDate);
+        const startOfDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        // Convert the start boundary to a number
+        startTimestamp = startOfDay.getTime();
+    }
+
+    if (filters?.endDate) {
+        const date = new Date(filters.endDate);
+        const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
+        // Convert the end boundary to a number
+        endTimestamp = startOfNextDay.getTime();
+    }
+
     if (filters?.startDate || filters?.endDate) {
-        let startTimestamp = 0;
-        let endTimestamp = Infinity;
-
-        if (filters.startDate) {
-            const date = new Date(filters.startDate);
-            const startOfDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-            startTimestamp = startOfDay.getTime();
-        }
-
-        if (filters.endDate) {
-            const date = new Date(filters.endDate);
-            const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
-            endTimestamp = startOfNextDay.getTime();
-        }
-        
         itemVouchers = itemVouchers.filter(v => {
-            if (!v.date) return false;
+            // Skip any voucher that doesn't have a date
+            if (!v.date) {
+                return false;
+            }
+            
+            // Convert the voucher's date to a number
             const voucherTimestamp = new Date(v.date).getTime();
+
+            // Compare the numbers
             return voucherTimestamp >= startTimestamp && voucherTimestamp < endTimestamp;
         });
     }
-
 
     if (itemVouchers.length === 0) {
         return { availableStock: 0, averagePrice: 0, code: "", quantityType: "" };
@@ -532,36 +540,14 @@ export async function getProcessDetails(username: string, name: string): Promise
     return processes.find(p => p.processName === name) || null;
 }
 
-export async function getProcesses(username: string, filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<any[]> {
+export async function getProcesses(username: string, filters: { name?: string }): Promise<any[]> {
     let processes = await readProcesses(username);
-    
-    // Default timestamps that will include all dates
-    let startTimestamp = 0; // The beginning of time
-    let endTimestamp = Infinity; // The far future
-
-    if (filters.startDate) {
-        const date = new Date(filters.startDate);
-        const startOfDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-        startTimestamp = startOfDay.getTime();
-    }
-
-    if (filters.endDate) {
-        const date = new Date(filters.endDate);
-        const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
-        endTimestamp = startOfNextDay.getTime();
-    }
-
-    let filteredProcesses = processes.filter(p => {
-        if (!p.date) return false;
-        const processTimestamp = new Date(p.date).getTime();
-        return processTimestamp >= startTimestamp && processTimestamp < endTimestamp;
-    });
 
     if (filters.name) {
-        filteredProcesses = filteredProcesses.filter(p => p.processName === filters.name);
+        processes = processes.filter(p => p.processName === filters.name);
     }
 
-    return filteredProcesses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return processes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export async function getUniqueProcessNames(username: string): Promise<string[]> {
@@ -599,36 +585,10 @@ export interface LedgerEntry {
   id: string;
 }
 
-export async function getOutputLedger(username: string, filters: { name?: string; startDate?: Date; endDate?: Date }): Promise<LedgerEntry[]> {
+export async function getOutputLedger(username: string, filters: { name?: string }): Promise<LedgerEntry[]> {
     let allOutputs = await readOutputs(username);
     let allSales = await readSales(username);
     let ledger: LedgerEntry[] = [];
-
-    // Date filtering using timestamps
-    let startTimestamp = 0;
-    let endTimestamp = Infinity;
-
-    if (filters.startDate) {
-        const date = new Date(filters.startDate);
-        const startOfDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-        startTimestamp = startOfDay.getTime();
-    }
-
-    if (filters.endDate) {
-        const date = new Date(filters.endDate);
-        const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
-        endTimestamp = startOfNextDay.getTime();
-    }
-    
-    const filterByTimestamp = (entry: { date?: string | Date }) => {
-        if (!entry.date) return false;
-        const entryTimestamp = new Date(entry.date).getTime();
-        return entryTimestamp >= startTimestamp && entryTimestamp < endTimestamp;
-    };
-    
-    allOutputs = allOutputs.filter(filterByTimestamp);
-    allSales = allSales.filter(filterByTimestamp);
-
 
     // Name filter
     if (filters.name) {
