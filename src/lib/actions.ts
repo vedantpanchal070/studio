@@ -423,7 +423,14 @@ export async function recordSale(username: string, values: z.infer<typeof saleSc
 
 export async function getVouchers(username: string, filters: { name?: string, startDate?: Date, endDate?: Date }): Promise<any[]> {
     const { name, startDate, endDate } = filters;
-    let vouchers = await readVouchers(username);
+    let allVouchers = await readVouchers(username);
+
+    // Filter to only show original purchase vouchers and scrape vouchers
+    let vouchers = allVouchers.filter(v => {
+        const isPurchase = v.quantities > 0;
+        const isScrape = v.remarks?.startsWith("SCRAPE FROM");
+        return (isPurchase && !v.remarks?.startsWith("PRODUCED FROM")) || isScrape;
+    });
 
     if (name) {
         vouchers = vouchers.filter(v => v.name === name);
@@ -432,9 +439,9 @@ export async function getVouchers(username: string, filters: { name?: string, st
     if (startDate) {
         const start = new Date(startDate);
         const end = endDate ? new Date(endDate) : new Date(startDate);
-
-        const startTimestamp = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())).getTime();
-        const endTimestamp = new Date(Date.UTC(end.getFullYear(), end.getMonth(), end.getDate() + 1)).getTime();
+        
+        const startTimestamp = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
+        const endTimestamp = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1).getTime();
         
         vouchers = vouchers.filter(v => {
             if (!v.date) return false;
@@ -486,11 +493,9 @@ export async function getInventoryItem(username: string, name: string) {
 
 export async function getVoucherItemNames(username: string): Promise<string[]> {
     const vouchers = await readVouchers(username);
-    // Correctly filter out finished goods, but keep scrape items
     const relevantVouchers = vouchers.filter(v => {
-      const isUsed = v.remarks?.startsWith("USED IN");
-      const isPurePurchase = !v.remarks;
-      return isUsed || isPurePurchase;
+        const isPurchase = v.quantities > 0;
+        return isPurchase && !v.remarks?.startsWith("PRODUCED FROM");
     });
     const names = new Set(relevantVouchers.map(v => v.name));
     return Array.from(names).sort();
@@ -532,8 +537,8 @@ export async function getProcesses(username: string, filters: { name?: string, s
         const start = new Date(startDate);
         const end = endDate ? new Date(endDate) : new Date(startDate);
 
-        const startTimestamp = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())).getTime();
-        const endTimestamp = new Date(Date.UTC(end.getFullYear(), end.getMonth(), end.getDate() + 1)).getTime();
+        const startTimestamp = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
+        const endTimestamp = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1).getTime();
 
         processes = processes.filter(p => {
             if (!p.date) return false;
@@ -620,9 +625,9 @@ export async function getOutputLedger(username: string, filters: { name?: string
     if (startDate) {
         const start = new Date(startDate);
         const end = endDate ? new Date(endDate) : new Date(startDate);
-
-        const startTimestamp = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())).getTime();
-        const endTimestamp = new Date(Date.UTC(end.getFullYear(), end.getMonth(), end.getDate() + 1)).getTime();
+        
+        const startTimestamp = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
+        const endTimestamp = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1).getTime();
 
         ledger = ledger.filter(entry => {
             if (!entry.date) return false;
@@ -1045,5 +1050,3 @@ export async function updateSale(username: string, values: z.infer<typeof saleSc
         return { success: false, message: "Failed to update sale." };
     }
 }
-
-    
