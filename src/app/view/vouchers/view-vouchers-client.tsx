@@ -204,7 +204,16 @@ export function ViewVouchersClient() {
                 <FormItem>
                   <FormLabel>Start Date</FormLabel>
                   <FormControl>
-                    <DatePicker value={field.value} onChange={field.onChange} />
+                    <DatePicker 
+                      value={field.value} 
+                      onChange={(date) => {
+                        field.onChange(date);
+                        // Automatically set end date to start date
+                        if (date) {
+                          form.setValue("endDate", date);
+                        }
+                      }} 
+                    />
                   </FormControl>
                 </FormItem>
               )}
@@ -266,7 +275,7 @@ export function ViewVouchersClient() {
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" disabled={!!voucher.remarks?.startsWith('USED IN') || !!voucher.remarks?.startsWith('SOLD TO')}>
+                            <Button variant="ghost" size="icon">
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </AlertDialogTrigger>

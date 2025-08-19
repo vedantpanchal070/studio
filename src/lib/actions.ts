@@ -429,33 +429,20 @@ export async function getVouchers(username: string, filters: { name?: string, st
     }
     
     if (filters.startDate || filters.endDate) {
-        vouchers = vouchers.filter(v => {
-            if (!v.date) return false;
-            
-            const rowDate = new Date(v.date);
-            const startDateObj = filters.startDate ? new Date(filters.startDate) : null;
-            const endDateObj = filters.endDate ? new Date(filters.endDate) : null;
-            
-            // Set time to 00:00:00 for accurate day comparison
-            rowDate.setHours(0,0,0,0);
-            if (startDateObj) startDateObj.setHours(0,0,0,0);
-            if (endDateObj) endDateObj.setHours(0,0,0,0);
+        // If one date is provided, treat it as a single-day filter
+        const startDate = filters.startDate ? new Date(filters.startDate) : null;
+        const endDate = filters.endDate ? new Date(filters.endDate) : null;
 
-            // Case 1: Both dates are provided (range search)
-            if (startDateObj && endDateObj) {
-                return startDateObj <= rowDate && rowDate <= endDateObj;
-            }
-            // Case 2: Only start date is provided (single day search)
-            else if (startDateObj) {
-                return rowDate.getTime() === startDateObj.getTime();
-            }
-            // Case 3: Only end date is provided (single day search)
-            else if (endDateObj) {
-                return rowDate.getTime() === endDateObj.getTime();
-            }
+        if (startDate && endDate) {
+             const startTimestamp = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())).getTime();
+             const endTimestamp = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1)).getTime();
 
-            return false;
-        });
+             vouchers = vouchers.filter(v => {
+                if (!v.date) return false;
+                const voucherTimestamp = new Date(v.date).getTime();
+                return voucherTimestamp >= startTimestamp && voucherTimestamp < endTimestamp;
+            });
+        }
     }
 
     return vouchers.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -501,9 +488,14 @@ export async function getInventoryItem(username: string, name: string) {
 
 export async function getVoucherItemNames(username: string): Promise<string[]> {
     const vouchers = await readVouchers(username);
-    const relevantVouchers = vouchers.filter(v =>
-        (!v.remarks?.startsWith("PRODUCED FROM") && !v.remarks?.startsWith("SOLD TO")) || v.remarks?.startsWith("SCRAPE FROM")
-    );
+    // Correctly filter out finished goods, but keep scrape items
+    const relevantVouchers = vouchers.filter(v => {
+        const isProduced = v.remarks?.startsWith("PRODUCED FROM");
+        const isSold = v.remarks?.startsWith("SOLD TO");
+        const isScrape = v.remarks?.startsWith("SCRAPE FROM");
+        // Keep if it's scrape, or if it's neither produced nor sold
+        return isScrape || (!isProduced && !isSold);
+    });
     const names = new Set(relevantVouchers.map(v => v.name));
     return Array.from(names).sort();
 }
@@ -540,26 +532,19 @@ export async function getProcesses(username: string, filters: { name?: string, s
     }
     
     if (filters.startDate || filters.endDate) {
-        processes = processes.filter(p => {
-            if (!p.date) return false;
-            
-            const rowDate = new Date(p.date);
-            const startDateObj = filters.startDate ? new Date(filters.startDate) : null;
-            const endDateObj = filters.endDate ? new Date(filters.endDate) : null;
+        const startDate = filters.startDate ? new Date(filters.startDate) : null;
+        const endDate = filters.endDate ? new Date(filters.endDate) : null;
 
-            rowDate.setHours(0,0,0,0);
-            if (startDateObj) startDateObj.setHours(0,0,0,0);
-            if (endDateObj) endDateObj.setHours(0,0,0,0);
+        if (startDate && endDate) {
+             const startTimestamp = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())).getTime();
+             const endTimestamp = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1)).getTime();
 
-            if (startDateObj && endDateObj) {
-                return startDateObj <= rowDate && rowDate <= endDateObj;
-            } else if (startDateObj) {
-                return rowDate.getTime() === startDateObj.getTime();
-            } else if (endDateObj) {
-                return rowDate.getTime() === endDateObj.getTime();
-            }
-            return false;
-        });
+             processes = processes.filter(p => {
+                if (!p.date) return false;
+                const processTimestamp = new Date(p.date).getTime();
+                return processTimestamp >= startTimestamp && processTimestamp < endTimestamp;
+            });
+        }
     }
 
     return processes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -637,26 +622,19 @@ export async function getOutputLedger(username: string, filters: { name?: string
     
     // Date filter
     if (filters.startDate || filters.endDate) {
-        ledger = ledger.filter(entry => {
-            if (!entry.date) return false;
-            
-            const rowDate = new Date(entry.date);
-            const startDateObj = filters.startDate ? new Date(filters.startDate) : null;
-            const endDateObj = filters.endDate ? new Date(filters.endDate) : null;
+        const startDate = filters.startDate ? new Date(filters.startDate) : null;
+        const endDate = filters.endDate ? new Date(filters.endDate) : null;
 
-            rowDate.setHours(0,0,0,0);
-            if (startDateObj) startDateObj.setHours(0,0,0,0);
-            if (endDateObj) endDateObj.setHours(0,0,0,0);
+        if (startDate && endDate) {
+             const startTimestamp = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())).getTime();
+             const endTimestamp = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1)).getTime();
 
-            if (startDateObj && endDateObj) {
-                return startDateObj <= rowDate && rowDate <= endDateObj;
-            } else if (startDateObj) {
-                return rowDate.getTime() === startDateObj.getTime();
-            } else if (endDateObj) {
-                return rowDate.getTime() === endDateObj.getTime();
-            }
-            return false;
-        });
+             ledger = ledger.filter(entry => {
+                if (!entry.date) return false;
+                const entryTimestamp = new Date(entry.date).getTime();
+                return entryTimestamp >= startTimestamp && entryTimestamp < endTimestamp;
+            });
+        }
     }
 
     // Sort by date chronologically

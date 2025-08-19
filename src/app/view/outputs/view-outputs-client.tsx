@@ -176,7 +176,15 @@ export function ViewOutputsClient() {
                 <FormItem>
                   <FormLabel>Start Date</FormLabel>
                   <FormControl>
-                    <DatePicker value={field.value} onChange={field.onChange} />
+                     <DatePicker 
+                      value={field.value} 
+                      onChange={(date) => {
+                        field.onChange(date);
+                        if (date) {
+                          form.setValue("endDate", date);
+                        }
+                      }} 
+                    />
                   </FormControl>
                 </FormItem>
               )}
