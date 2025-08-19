@@ -70,18 +70,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedUserStr = sessionStorage.getItem(SESSION_STORAGE_KEY);
     if (!storedUserStr) return false;
     
-    const storedUser = JSON.parse(storedUserStr);
+    try {
+        const sessionUser = JSON.parse(storedUserStr);
+        const serverUser = await getUser(sessionUser.username);
 
-    if (storedUser.password === currentPass) {
-      const updatedUserPayload = { ...storedUser, password: newPass };
-      const success = await updateUser(updatedUserPayload);
-      if (success) {
-        setUser(updatedUserPayload); // Keep the local state in sync
-        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedUserPayload));
-        return true;
-      }
+        if (!serverUser || serverUser.password !== currentPass) {
+            return false;
+        }
+
+        const updatedUserPayload = { ...serverUser, password: newPass };
+        const success = await updateUser(updatedUserPayload);
+        
+        if (success) {
+            setUser(updatedUserPayload);
+            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedUserPayload));
+            return true;
+        }
+        return false;
+
+    } catch (error) {
+        console.error("Error during password change:", error);
+        return false;
     }
-    return false;
   }, []);
 
   return (
