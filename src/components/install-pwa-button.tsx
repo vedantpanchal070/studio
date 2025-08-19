@@ -30,6 +30,10 @@ export function InstallPwaButton() {
     };
   }, []);
 
+  useEffect(() => {
+    handleDisplayMode();
+  }, []);
+
   const handleInstallClick = () => {
     if (!installPrompt) {
       alert("The app can't be installed right now. Try adding it to your home screen from the browser menu.");
@@ -38,12 +42,20 @@ export function InstallPwaButton() {
     installPrompt.prompt();
     installPrompt.userChoice.then((choiceResult) => {
       if (choiceResult.outcome === 'accepted') {
-        console.log('User accepted the install prompt');
+              console.log('App installation accepted');
       } else {
         console.log('User dismissed the install prompt');
       }
       setInstallPrompt(null);
     });
+  };
+
+  const handleDisplayMode = () => {
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      console.log('Launched in standalone mode');
+    } else {
+      console.log('Launched in browser mode');
+    }
   };
 
   if (!installPrompt) {
@@ -52,8 +64,7 @@ export function InstallPwaButton() {
 
   return (
     <Button onClick={handleInstallClick} size="lg">
-      <Download className="mr-2 h-5 w-5" />
-      Install App for Offline Use
+      <Download className="mr-2 h-5 w-5" />Install App for Offline Use
     </Button>
   );
 }
