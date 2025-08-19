@@ -424,38 +424,48 @@ export async function recordSale(username: string, values: z.infer<typeof saleSc
 export async function getVouchers(username: string, filters: { name?: string, startDate?: Date, endDate?: Date }): Promise<any[]> {
     let vouchers = await readVouchers(username);
 
-    // Default timestamps that will include all dates
-    let startTimestamp = 0; // The beginning of time
-    let endTimestamp = Infinity; // The far future
-
-    if (filters.startDate) {
-        const date = new Date(filters.startDate);
-        // Use LOCAL date parts to construct the UTC timestamp for the start of the user's day
-        const startOfDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-        startTimestamp = startOfDay.getTime();
-    }
-
-    if (filters.endDate) {
-        const date = new Date(filters.endDate);
-        // Find the start of the NEXT day to create an exclusive boundary
-        const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
-        endTimestamp = startOfNextDay.getTime();
-    }
-    
-    // Filter by date range if start or end date is provided
-    if (filters.startDate || filters.endDate) {
-        vouchers = vouchers.filter(v => {
-            if (!v.date) return false;
-            const voucherTimestamp = new Date(v.date).getTime();
-            return voucherTimestamp >= startTimestamp && voucherTimestamp < endTimestamp;
-        });
-    }
-    
     if (filters.name) {
         vouchers = vouchers.filter(v => v.name === filters.name);
     }
     
-    return vouchers;
+    // Handle date filtering
+    if (filters.startDate || filters.endDate) {
+        vouchers = vouchers.filter(v => {
+            if (!v.date) return false;
+            
+            // If only one date is provided, match that exact day
+            if (filters.startDate && !filters.endDate) {
+                const start = new Date(filters.startDate);
+                const itemDate = new Date(v.date);
+                return itemDate.getFullYear() === start.getFullYear() &&
+                       itemDate.getMonth() === start.getMonth() &&
+                       itemDate.getDate() === start.getDate();
+            }
+            if (!filters.startDate && filters.endDate) {
+                 const end = new Date(filters.endDate);
+                 const itemDate = new Date(v.date);
+                 return itemDate.getFullYear() === end.getFullYear() &&
+                        itemDate.getMonth() === end.getMonth() &&
+                        itemDate.getDate() === end.getDate();
+            }
+
+            // If both dates are provided, check the range
+            if(filters.startDate && filters.endDate) {
+                const startDate = new Date(filters.startDate);
+                startDate.setHours(0,0,0,0);
+                
+                const endDate = new Date(filters.endDate);
+                endDate.setHours(23,59,59,999);
+                
+                const voucherTimestamp = new Date(v.date).getTime();
+                
+                return voucherTimestamp >= startDate.getTime() && voucherTimestamp <= endDate.getTime();
+            }
+            return true; // Should not happen, but for safety
+        });
+    }
+
+    return vouchers.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export async function getInventoryItem(username: string, name: string) {
@@ -498,14 +508,14 @@ export async function getInventoryItem(username: string, name: string) {
 
 export async function getVoucherItemNames(username: string): Promise<string[]> {
     const vouchers = await readVouchers(username);
-    // An item is considered a raw material if it was purchased (positive qty and not from production)
-    // OR if it's a scrape item. This excludes finished goods from the dropdown.
-    const relevantVouchers = vouchers.filter(v => 
-        (v.quantities > 0 && !v.remarks?.startsWith("PRODUCED FROM")) || v.remarks?.startsWith("SCRAPE FROM")
+    const relevantVouchers = vouchers.filter(v =>
+        !v.remarks?.startsWith("PRODUCED FROM") &&
+        (!v.remarks?.startsWith("SOLD TO") || v.remarks?.startsWith("SCRAPE FROM"))
     );
     const names = new Set(relevantVouchers.map(v => v.name));
     return Array.from(names).sort();
 }
+
 
 export interface ProcessDetails {
   processName: string;
@@ -533,33 +543,47 @@ export async function getProcessDetails(username: string, name: string): Promise
 export async function getProcesses(username: string, filters: { name?: string, startDate?: Date, endDate?: Date }): Promise<any[]> {
     let processes = await readProcesses(username);
 
-    // Default timestamps that will include all dates
-    let startTimestamp = 0; // The beginning of time
-    let endTimestamp = Infinity; // The far future
-
-    if (filters.startDate) {
-        const date = new Date(filters.startDate);
-        const startOfDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-        startTimestamp = startOfDay.getTime();
-    }
-
-    if (filters.endDate) {
-        const date = new Date(filters.endDate);
-        const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
-        endTimestamp = startOfNextDay.getTime();
-    }
-    
-    if (filters.startDate || filters.endDate) {
-        processes = processes.filter(p => {
-            if (!p.date) return false;
-            const processTimestamp = new Date(p.date).getTime();
-            return processTimestamp >= startTimestamp && processTimestamp < endTimestamp;
-        });
-    }
-
     if (filters.name) {
         processes = processes.filter(p => p.processName === filters.name);
     }
+    
+     // Handle date filtering
+    if (filters.startDate || filters.endDate) {
+        processes = processes.filter(p => {
+            if (!p.date) return false;
+            
+            // If only one date is provided, match that exact day
+            if (filters.startDate && !filters.endDate) {
+                const start = new Date(filters.startDate);
+                const itemDate = new Date(p.date);
+                return itemDate.getFullYear() === start.getFullYear() &&
+                       itemDate.getMonth() === start.getMonth() &&
+                       itemDate.getDate() === start.getDate();
+            }
+             if (!filters.startDate && filters.endDate) {
+                 const end = new Date(filters.endDate);
+                 const itemDate = new Date(p.date);
+                 return itemDate.getFullYear() === end.getFullYear() &&
+                        itemDate.getMonth() === end.getMonth() &&
+                        itemDate.getDate() === end.getDate();
+            }
+
+            // If both dates are provided, check the range
+            if(filters.startDate && filters.endDate) {
+                const startDate = new Date(filters.startDate);
+                startDate.setHours(0,0,0,0);
+
+                const endDate = new Date(filters.endDate);
+                endDate.setHours(23,59,59,999);
+                
+                const processTimestamp = new Date(p.date).getTime();
+                
+                return processTimestamp >= startDate.getTime() && processTimestamp <= endDate.getTime();
+            }
+             return true; // Should not happen, but for safety
+        });
+    }
+
 
     return processes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
@@ -629,34 +653,48 @@ export async function getOutputLedger(username: string, filters: { name?: string
         });
     });
     
-    // Default timestamps that will include all dates
-    let startTimestamp = 0;
-    let endTimestamp = Infinity;
-
-    if (filters.startDate) {
-        const date = new Date(filters.startDate);
-        const startOfDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-        startTimestamp = startOfDay.getTime();
-    }
-
-    if (filters.endDate) {
-        const date = new Date(filters.endDate);
-        const startOfNextDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1));
-        endTimestamp = startOfNextDay.getTime();
-    }
-
-    if (filters.startDate || filters.endDate) {
-        ledger = ledger.filter(entry => {
-            const entryTimestamp = new Date(entry.date).getTime();
-            return entryTimestamp >= startTimestamp && entryTimestamp < endTimestamp;
-        });
-    }
-
     // Name filter
     if (filters.name) {
         ledger = ledger.filter(o => o.productName === filters.name);
     }
     
+    // Handle date filtering
+    if (filters.startDate || filters.endDate) {
+        ledger = ledger.filter(entry => {
+            if (!entry.date) return false;
+            
+            // If only one date is provided, match that exact day
+            if (filters.startDate && !filters.endDate) {
+                const start = new Date(filters.startDate);
+                const itemDate = new Date(entry.date);
+                return itemDate.getFullYear() === start.getFullYear() &&
+                       itemDate.getMonth() === start.getMonth() &&
+                       itemDate.getDate() === start.getDate();
+            }
+             if (!filters.startDate && filters.endDate) {
+                 const end = new Date(filters.endDate);
+                 const itemDate = new Date(entry.date);
+                 return itemDate.getFullYear() === end.getFullYear() &&
+                        itemDate.getMonth() === end.getMonth() &&
+                        itemDate.getDate() === end.getDate();
+            }
+
+            // If both dates are provided, check the range
+            if(filters.startDate && filters.endDate) {
+                const startDate = new Date(filters.startDate);
+                startDate.setHours(0,0,0,0);
+                
+                const endDate = new Date(filters.endDate);
+                endDate.setHours(23,59,59,999);
+
+                const entryTimestamp = new Date(entry.date).getTime();
+                
+                return entryTimestamp >= startDate.getTime() && entryTimestamp <= endDate.getTime();
+            }
+             return true; // Should not happen, but for safety
+        });
+    }
+
     // Sort by date chronologically
     ledger.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -779,7 +817,8 @@ export async function updateProcess(username: string, values: z.infer<typeof pro
         // Then, apply the new process's inventory consumption
         for (const material of updatedData.rawMaterials) {
             const inventory = await getInventoryItem(username, material.name);
-            if (inventory.availableStock + (originalProcess.rawMaterials.find(rm => rm.name === material.name)?.quantity || 0) < material.quantity) {
+            const stockBeforeThisTxn = inventory.availableStock + (originalProcess.rawMaterials.find(rm => rm.name === material.name)?.quantity || 0)
+            if (stockBeforeThisTxn < material.quantity) {
                  return {
                     success: false,
                     message: `Insufficient stock for ${material.name}.`,
@@ -1071,3 +1110,6 @@ export async function updateSale(username: string, values: z.infer<typeof saleSc
     }
 }
 
+
+
+    
