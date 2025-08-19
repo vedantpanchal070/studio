@@ -47,6 +47,7 @@ export function EditVoucherDialog({ isOpen, onOpenChange, voucher, onVoucherUpda
   const { toast } = useToast()
   const { user } = useAuth()
   const nameRef = useRef<HTMLInputElement>(null)
+  const [totalPrice, setTotalPrice] = useState(0)
 
   
   const form = useForm<VoucherFormValues>({
@@ -62,10 +63,12 @@ export function EditVoucherDialog({ isOpen, onOpenChange, voucher, onVoucherUpda
       ...voucher,
       date: new Date(voucher.date),
     }) // Reset form when a new voucher is selected
+    setTotalPrice(voucher.totalPrice || 0)
   }, [voucher, form])
 
   useEffect(() => {
     const total = (quantities || 0) * (pricePerNo || 0)
+    setTotalPrice(total)
     form.setValue("totalPrice", total)
   }, [quantities, pricePerNo, form])
 
@@ -146,7 +149,7 @@ export function EditVoucherDialog({ isOpen, onOpenChange, voucher, onVoucherUpda
             />
             <FormItem>
                 <FormLabel>Total Price</FormLabel>
-                <FormControl><ReadOnlyInput value={form.getValues("totalPrice").toFixed(2)} /></FormControl>
+                <FormControl><ReadOnlyInput value={totalPrice.toFixed(2)} /></FormControl>
             </FormItem>
             <FormField
                 control={form.control}
@@ -167,5 +170,3 @@ export function EditVoucherDialog({ isOpen, onOpenChange, voucher, onVoucherUpda
     </Dialog>
   )
 }
-
-    
