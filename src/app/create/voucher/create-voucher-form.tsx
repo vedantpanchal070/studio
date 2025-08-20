@@ -29,6 +29,16 @@ type VoucherFormValues = z.infer<typeof voucherSchema>
 export function CreateVoucherForm() {
   const { toast } = useToast()
   const { user } = useAuth()
+
+  // Refs for "Wire Focus On Enter" functionality
+  const nameRef = useRef<HTMLInputElement>(null)
+  const codeRef = useRef<HTMLInputElement>(null)
+  const quantitiesRef = useRef<HTMLInputElement>(null)
+  const quantityTypeRef = useRef<HTMLInputElement>(null)
+  const pricePerNoRef = useRef<HTMLInputElement>(null)
+  const remarksRef = useRef<HTMLTextAreaElement>(null)
+  const saveButtonRef = useRef<HTMLButtonElement>(null)
+
   const form = useForm<VoucherFormValues>({
     resolver: zodResolver(voucherSchema),
     defaultValues: {
@@ -64,8 +74,18 @@ export function CreateVoucherForm() {
         title: "Success!",
         description: "Voucher has been saved.",
       })
-      form.reset()
+      form.reset({
+        date: form.getValues().date, // Keep the date
+        name: "",
+        code: "",
+        quantities: 0,
+        quantityType: "",
+        pricePerNo: 0,
+        totalPrice: 0,
+        remarks: "",
+      })
       setTotalPrice(0)
+      nameRef.current?.focus() // Set focus back to the name field
     } else {
       toast({
         title: "Error",
@@ -75,14 +95,6 @@ export function CreateVoucherForm() {
     }
   }
 
-  // Refs for "Wire Focus On Enter" functionality
-  const nameRef = useRef<HTMLInputElement>(null)
-  const codeRef = useRef<HTMLInputElement>(null)
-  const quantitiesRef = useRef<HTMLInputElement>(null)
-  const quantityTypeRef = useRef<HTMLInputElement>(null)
-  const pricePerNoRef = useRef<HTMLInputElement>(null)
-  const remarksRef = useRef<HTMLTextAreaElement>(null)
-  const saveButtonRef = useRef<HTMLButtonElement>(null)
 
   const handleKeyDown = (
     e: React.KeyboardEvent,
@@ -232,5 +244,3 @@ export function CreateVoucherForm() {
     </Form>
   )
 }
-
-    

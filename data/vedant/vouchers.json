@@ -1,1 +1,35 @@
-[]
+[
+  {
+    "date": "2025-08-18T18:30:00.000Z",
+    "name": "MILK",
+    "code": "2501",
+    "quantities": 500,
+    "quantityType": "LIT",
+    "pricePerNo": 30,
+    "totalPrice": 15000,
+    "remarks": "",
+    "id": "2025-08-20T12:01:24.956Z25hslzbca"
+  },
+  {
+    "date": "2025-08-20T12:00:59.404Z",
+    "name": "SUGAR",
+    "code": "2502",
+    "quantities": 500,
+    "quantityType": "KG",
+    "pricePerNo": 20,
+    "totalPrice": 10000,
+    "remarks": "",
+    "id": "2025-08-20T12:01:48.313Zm9qaa444f"
+  },
+  {
+    "date": "2025-08-20T12:00:59.404Z",
+    "name": "BATEKA",
+    "code": "2503",
+    "quantities": 500,
+    "quantityType": "KG",
+    "pricePerNo": 10,
+    "totalPrice": 5000,
+    "remarks": "",
+    "id": "2025-08-20T12:02:20.724Z5t35vhxs9"
+  }
+]
