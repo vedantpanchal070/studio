@@ -227,3 +227,5 @@ export function EditSaleDialog({ isOpen, onOpenChange, sale, onSaleUpdated }: Ed
     </Dialog>
   )
 }
+
+    
