@@ -43,10 +43,9 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { EditVoucherDialog } from "./edit-voucher-dialog"
 import { Combobox } from "@/components/ui/combobox"
-import { DatePicker } from "@/components/date-picker"
+import { DatePicker } from "@/components/ui/date-picker"
 
 const searchSchema = z.object({
-  name: z.string().optional(),
   startDate: z.date().optional(),
   endDate: z.date().optional(),
 })
@@ -59,7 +58,6 @@ export function ViewVouchersClient() {
   const { toast } = useToast()
   const { user } = useAuth()
   const [vouchers, setVouchers] = useState<Voucher[]>([])
-  const [itemNames, setItemNames] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null)
@@ -67,14 +65,12 @@ export function ViewVouchersClient() {
     key: SortKey
     direction: SortDirection
   } | null>(null)
-  const [averagePrice, setAveragePrice] = useState(0);
 
   const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchSchema),
   })
   
   const watchedFilters = useWatch({ control: form.control });
-  const selectedName = watchedFilters.name;
 
   useEffect(() => {
     if (!user) return;
@@ -86,31 +82,6 @@ export function ViewVouchersClient() {
     }
     fetchVouchers();
   }, [watchedFilters, user]);
-
-
-  // Fetch all unique item names for the dropdown
-  useEffect(() => {
-    if (!user) return;
-    const fetchItemNames = async () => {
-      const names = await getVoucherItemNames(user.username);
-      setItemNames(names);
-    };
-    fetchItemNames();
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-    const fetchAveragePrice = async () => {
-        if (selectedName) {
-            const inventoryData = await getInventoryItem(user.username, selectedName);
-            setAveragePrice(inventoryData.averagePrice);
-        } else {
-            setAveragePrice(0);
-        }
-    };
-    fetchAveragePrice();
-  }, [selectedName, vouchers, user]);
-
 
   const sortedVouchers = useMemo(() => {
     let sortableItems = [...vouchers];
@@ -140,8 +111,7 @@ export function ViewVouchersClient() {
   }
 
   const handleClear = () => {
-    form.reset({ name: "", startDate: undefined, endDate: undefined })
-    setAveragePrice(0);
+    form.reset({ startDate: undefined, endDate: undefined })
     setSortConfig(null)
   }
 
@@ -173,30 +143,18 @@ export function ViewVouchersClient() {
 
     const availableQty = totalInputQty + totalOutputQty
 
-    return { totalInputQty, totalOutputQty, availableQty }
+    const totalInputValue = vouchers.filter(v => v.quantities > 0).reduce((sum, v) => sum + v.totalPrice, 0)
+    const averagePrice = totalInputQty > 0 ? totalInputValue / totalInputQty : 0;
+
+
+    return { totalInputQty, totalOutputQty, availableQty, averagePrice }
   }, [vouchers])
 
   return (
     <div className="space-y-6">
       <Form {...form}>
         <form className="rounded-lg border p-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-             <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Voucher Name</FormLabel>
-                   <Combobox
-                      options={itemNames.map(name => ({ value: name, label: name }))}
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder="Select an item"
-                      searchPlaceholder="Search items..."
-                    />
-                </FormItem>
-              )}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <FormField
               control={form.control}
               name="startDate"
@@ -300,13 +258,13 @@ export function ViewVouchersClient() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Summary for {selectedName || "All Items"}</CardTitle>
+          <CardTitle>Summary for All Items</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="p-4 rounded-lg bg-muted"><p className="text-sm text-muted-foreground">Total Input Qty</p><p className="text-2xl font-bold">{summary.totalInputQty.toFixed(2)}</p></div>
           <div className="p-4 rounded-lg bg-muted"><p className="text-sm text-muted-foreground">Total Output Qty</p><p className="text-2xl font-bold">{Math.abs(summary.totalOutputQty).toFixed(2)}</p></div>
           <div className="p-4 rounded-lg bg-muted"><p className="text-sm text-muted-foreground">Available Qty</p><p className="text-2xl font-bold">{summary.availableQty.toFixed(2)}</p></div>
-          {selectedName && (<div className="p-4 rounded-lg bg-muted"><p className="text-sm text-muted-foreground">Average Price</p><p className="text-2xl font-bold">{averagePrice.toFixed(2)}</p></div>)}
+          <div className="p-4 rounded-lg bg-muted"><p className="text-sm text-muted-foreground">Average Price</p><p className="text-2xl font-bold">{summary.averagePrice.toFixed(2)}</p></div>
         </CardContent>
       </Card>
 
