@@ -67,7 +67,12 @@ export function CreateOutputForm() {
     },
   })
 
-  const watchedValues = useWatch({ control: form.control });
+  const watchedScrape = useWatch({ control: form.control, name: 'scrape' });
+  const watchedScrapeUnit = useWatch({ control: form.control, name: 'scrapeUnit' });
+  const watchedReduction = useWatch({ control: form.control, name: 'reduction' });
+  const watchedReductionUnit = useWatch({ control: form.control, name: 'reductionUnit' });
+  const watchedProcessCharge = useWatch({ control: form.control, name: 'processCharge' });
+
 
   useEffect(() => {
     if (!selectedProcess) {
@@ -77,8 +82,11 @@ export function CreateOutputForm() {
     }
 
     const { totalCost, totalProcessOutput } = selectedProcess;
-    const { scrape = 0, scrapeUnit = 'kg', reduction = 0, reductionUnit = 'kg' } = watchedValues;
-    const processCharge = Number(watchedValues.processCharge) || 0;
+    const scrape = Number(watchedScrape) || 0;
+    const scrapeUnit = watchedScrapeUnit || 'kg';
+    const reduction = Number(watchedReduction) || 0;
+    const reductionUnit = watchedReductionUnit || 'kg';
+    const processCharge = Number(watchedProcessCharge) || 0;
 
     let scrapeQty = 0;
     if (scrapeUnit === '%') {
@@ -104,7 +112,7 @@ export function CreateOutputForm() {
     } else {
       setFinalAvgPrice(0);
     }
-  }, [watchedValues, selectedProcess]);
+  }, [selectedProcess, watchedScrape, watchedScrapeUnit, watchedReduction, watchedReductionUnit, watchedProcessCharge]);
 
 
   const handleProcessChange = (processName: string) => {
@@ -210,7 +218,7 @@ export function CreateOutputForm() {
                       <FormItem className="flex-grow">
                           <FormLabel>Scrape</FormLabel>
                           <FormControl>
-                          <Input type="number" {...field} />
+                          <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />
                           </FormControl>
                       </FormItem>
                       )}
@@ -243,7 +251,7 @@ export function CreateOutputForm() {
                       <FormItem className="flex-grow">
                           <FormLabel>Reduction</FormLabel>
                           <FormControl>
-                          <Input type="number" {...field} />
+                          <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />
                           </FormControl>
                       </FormItem>
                       )}
@@ -277,7 +285,7 @@ export function CreateOutputForm() {
               <FormItem>
                 <FormLabel>Process Charge (per kg)</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} />
+                  <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
