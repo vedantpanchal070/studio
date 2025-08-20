@@ -426,14 +426,7 @@ export async function getVouchers(username: string, filters: { name?: string, st
     let allVouchers = await readVouchers(username);
 
     if (name) {
-        allVouchers = allVouchers.filter(v => v.name === name);
-    } else {
-        // If no name is specified, show only purchase and scrape vouchers on the main page.
-        allVouchers = allVouchers.filter(v => {
-            const isPurchase = v.quantities > 0 && !v.remarks?.startsWith("PRODUCED FROM");
-            const isScrape = v.remarks?.startsWith("SCRAPE FROM");
-            return isPurchase || isScrape;
-        });
+        allVouchers = allVouchers.filter(v => v.name === name || v.name === `${name} - SCRAPE`);
     }
     
     if (startDate) {
@@ -906,6 +899,65 @@ export async function deleteSale(username: string, saleId: string) {
     }
 }
 
+export async function updateSale(username: string, values: z.infer<typeof saleSchema>) {
+    const validatedFields = saleSchema.safeParse(values);
+
+    if (!validatedFields.success) {
+        return { success: false, message: "Invalid sale data." };
+    }
+
+    try {
+        const { id, ...updatedData } = validatedFields.data;
+        if (!id) return { success: false, message: "Sale ID is missing." };
+
+        let allSales = await readSales(username);
+        let allVouchers = await readVouchers(username);
+
+        const saleIndex = allSales.findIndex(s => s.id === id);
+        if (saleIndex === -1) return { success: false, message: "Sale not found." };
+        
+        const originalSale = allSales[saleIndex];
+        
+        // Find the associated inventory voucher to update
+        const voucherIndex = allVouchers.findIndex(v => v.id === id);
+        if (voucherIndex === -1) return { success: false, message: "Corresponding inventory transaction not found." };
+
+        const inventory = await getInventoryItem(username, updatedData.productName);
+        const stockBeforeThisTxn = inventory.availableStock + originalSale.saleQty;
+
+        if (stockBeforeThisTxn < updatedData.saleQty) {
+            return { success: false, message: `Insufficient stock for ${updatedData.productName}. Available: ${stockBeforeThisTxn.toFixed(2)}` };
+        }
+
+        // Update the sale record
+        allSales[saleIndex] = { ...originalSale, ...updatedData };
+        
+        // Update the inventory voucher
+        const updatedVoucher = allVouchers[voucherIndex];
+        updatedVoucher.date = updatedData.date;
+        updatedVoucher.productName = updatedData.productName;
+        updatedVoucher.clientCode = updatedData.clientCode;
+        updatedVoucher.quantities = -updatedData.saleQty;
+        // Note: The cost price in the voucher should remain the average cost at the time of sale, not the sale price
+        updatedVoucher.totalPrice = updatedData.saleQty * updatedVoucher.pricePerNo; 
+        updatedVoucher.remarks = `SOLD TO ${updatedData.clientCode}`;
+
+        await writeSales(username, allSales);
+        await writeVouchers(username, allVouchers);
+
+        revalidatePath("/view/outputs");
+        revalidatePath("/view/vouchers");
+        revalidatePath("/view/inventory");
+
+        return { success: true, message: "Sale updated successfully." };
+
+    } catch (error) {
+        console.error("Failed to update sale:", error);
+        return { success: false, message: "Failed to update sale." };
+    }
+}
+
+
 export async function getOutput(username: string, id: string): Promise<Output | undefined> {
     const outputs = await readOutputs(username);
     return outputs.find(o => o.id === id);
@@ -1019,5 +1071,3 @@ export async function updateOutput(username: string, values: z.infer<typeof outp
         return { success: false, message: "Failed to update output." };
     }
 }
-
-    

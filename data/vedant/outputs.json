@@ -25,5 +25,19 @@
     "finalAveragePrice": 89.28571428571429,
     "notes": "",
     "id": "2025-08-19T07:56:59.854Zvrpdyvuxz"
+  },
+  {
+    "date": "2025-08-20T10:31:32.548Z",
+    "productName": "SAK",
+    "processUsed": "SAK",
+    "scrape": 20,
+    "scrapeUnit": "kg",
+    "reduction": 0,
+    "reductionUnit": "kg",
+    "processCharge": 0,
+    "quantityProduced": 180,
+    "finalAveragePrice": 55.55555555555556,
+    "notes": "",
+    "id": "2025-08-20T10:32:03.702Zyofewzy8c"
   }
 ]
