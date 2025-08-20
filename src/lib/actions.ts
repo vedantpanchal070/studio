@@ -469,16 +469,13 @@ export async function getVouchers(username: string, filters: { name?: string, st
     const { name, startDate, endDate } = filters;
     let allVouchers = await readVouchers(username);
     
-    // Base filter: Always exclude direct production and sales from voucher view
     let baseFilteredVouchers = allVouchers.filter(v => {
         const remarks = v.remarks?.toUpperCase() || "";
         return !remarks.startsWith("PRODUCED FROM") &&
                !remarks.startsWith("SOLD TO");
     });
-
+    
     if (name) {
-        // If a name is specified, only show vouchers for that name.
-        // This includes purchases, consumption, and scrape for that specific item.
         baseFilteredVouchers = baseFilteredVouchers.filter(v => v.name === name || v.name === `${name} - SCRAPE`);
     }
     
@@ -508,6 +505,7 @@ export async function getVouchers(username: string, filters: { name?: string, st
 
     return baseFilteredVouchers.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
+
 
 export async function getInventoryItem(username: string, name: string) {
     if (!name) {
@@ -554,6 +552,20 @@ export async function getVoucherItemNames(username: string): Promise<string[]> {
     const relevantVouchers = vouchers.filter(v => {
         const isPurchase = v.quantities > 0;
         return isPurchase && !v.remarks?.toUpperCase().startsWith("PRODUCED FROM") && !v.name.toUpperCase().includes("SCRAPE");
+    });
+    const names = new Set(relevantVouchers.map(v => v.name));
+    return Array.from(names).sort();
+}
+
+/**
+ * Gets all unique item names for the voucher view filter, including raw materials and scrape.
+ */
+export async function getAllVoucherItemNames(username: string): Promise<string[]> {
+    const vouchers = await readVouchers(username);
+    const relevantVouchers = vouchers.filter(v => {
+        const remarks = v.remarks?.toUpperCase() || "";
+        // Exclude only finished goods production and sales vouchers. Include purchases, consumption, and scrape.
+        return !remarks.startsWith("PRODUCED FROM") && !remarks.startsWith("SOLD TO");
     });
     const names = new Set(relevantVouchers.map(v => v.name));
     return Array.from(names).sort();

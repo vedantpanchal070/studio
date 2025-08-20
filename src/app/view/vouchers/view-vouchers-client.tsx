@@ -9,7 +9,7 @@ import { ArrowUpDown, Search, Edit, Trash2 } from "lucide-react"
 import { format } from 'date-fns'
 
 import type { Voucher } from "@/lib/schemas"
-import { getVouchers, getVoucherItemNames, deleteVoucher } from "@/lib/actions"
+import { getVouchers, getAllVoucherItemNames, deleteVoucher } from "@/lib/actions"
 import { useAuth } from "@/hooks/use-auth"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -80,7 +80,7 @@ export function ViewVouchersClient() {
       setIsLoading(true);
       const [voucherResults, names] = await Promise.all([
         getVouchers(user.username, watchedFilters),
-        getVoucherItemNames(user.username)
+        getAllVoucherItemNames(user.username)
       ]);
       setVouchers(voucherResults);
       setItemNames(names);
