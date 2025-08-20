@@ -48,10 +48,10 @@
     "date": "2025-08-20T12:04:08.708Z",
     "name": "MILK",
     "code": "2501",
-    "quantities": -30,
+    "quantities": -25,
     "quantityType": "LIT",
     "pricePerNo": 30,
-    "totalPrice": 900,
+    "totalPrice": 750,
     "remarks": "USED IN SAK"
   },
   {
@@ -59,10 +59,10 @@
     "date": "2025-08-20T12:04:08.708Z",
     "name": "SUGAR",
     "code": "2502",
-    "quantities": -20,
+    "quantities": -25,
     "quantityType": "KG",
     "pricePerNo": 20,
-    "totalPrice": 400,
+    "totalPrice": 500,
     "remarks": "USED IN SAK"
   }
 ]

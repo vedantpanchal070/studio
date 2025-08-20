@@ -17,16 +17,16 @@
         "name": "MILK",
         "code": "2501",
         "quantityType": "LIT",
-        "quantity": 30,
-        "ratio": 30,
+        "quantity": 25,
+        "ratio": 25,
         "rate": 30
       },
       {
         "name": "SUGAR",
         "code": "2502",
         "quantityType": "KG",
-        "quantity": 20,
-        "ratio": 20,
+        "quantity": 25,
+        "ratio": 25,
         "rate": 20
       }
     ],

@@ -297,9 +297,18 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
                             </TableCell>
                             <TableCell><ReadOnlyInput value={material?.output?.toFixed(2) || '0.00'} /></TableCell>
                             <TableCell>
-                                <ReadOnlyInput value={material?.rate?.toFixed(2) || '0.00'} />
+                                <FormField
+                                    control={form.control}
+                                    name={`rawMaterials.${index}.rate`}
+                                    render={({ field }) => (
+                                        <>
+                                            <ReadOnlyInput value={material?.rate?.toFixed(2) || '0.00'} />
+                                            <Input type="hidden" {...field} />
+                                        </>
+                                    )}
+                                />
                             </TableCell>
-                            <TableCell>{material?.amount?.toFixed(2) || '0.00'}</TableCell>
+                            <TableCell><ReadOnlyInput value={material?.amount?.toFixed(2) || '0.00'} /></TableCell>
                             <TableCell>
                                 <Button
                                 type="button"

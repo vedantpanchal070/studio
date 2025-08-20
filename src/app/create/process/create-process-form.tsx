@@ -258,9 +258,24 @@ export function CreateProcessForm() {
                             render={({ field }) => <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />}
                         />
                       </TableCell>
-                      <TableCell>{material?.output?.toFixed(2) || '0.00'}</TableCell>
-                      <TableCell>{material?.rate?.toFixed(2) || '0.00'}</TableCell>
-                      <TableCell>{material?.amount?.toFixed(2) || '0.00'}</TableCell>
+                      <TableCell>
+                          <ReadOnlyInput value={material?.output?.toFixed(2) || '0.00'} />
+                      </TableCell>
+                      <TableCell>
+                           <FormField
+                              control={form.control}
+                              name={`rawMaterials.${index}.rate`}
+                              render={({ field }) => (
+                                  <>
+                                      <ReadOnlyInput value={material?.rate?.toFixed(2) || '0.00'} />
+                                      <Input type="hidden" {...field} />
+                                  </>
+                              )}
+                          />
+                      </TableCell>
+                      <TableCell>
+                        <ReadOnlyInput value={material?.amount?.toFixed(2) || '0.00'} />
+                      </TableCell>
                       <TableCell>
                         <Button
                           type="button"
@@ -318,5 +333,3 @@ export function CreateProcessForm() {
     </Form>
   )
 }
-
-    
