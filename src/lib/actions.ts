@@ -425,17 +425,15 @@ export async function getVouchers(username: string, filters: { name?: string, st
     const { name, startDate, endDate } = filters;
     let allVouchers = await readVouchers(username);
 
-    // Filter to only show original purchase vouchers and scrape vouchers
-    let vouchers = allVouchers.filter(v => {
-        const isPurchase = v.quantities > 0;
-        const isScrape = v.remarks?.startsWith("SCRAPE FROM");
-        // An entry is a purchase if it's positive and NOT produced from a process.
-        // It's also included if it's a scrape entry.
-        return (isPurchase && !v.remarks?.startsWith("PRODUCED FROM")) || isScrape;
-    });
-
     if (name) {
-        vouchers = vouchers.filter(v => v.name === name);
+        allVouchers = allVouchers.filter(v => v.name === name);
+    } else {
+        // If no name is specified, show only purchase and scrape vouchers on the main page.
+        allVouchers = allVouchers.filter(v => {
+            const isPurchase = v.quantities > 0 && !v.remarks?.startsWith("PRODUCED FROM");
+            const isScrape = v.remarks?.startsWith("SCRAPE FROM");
+            return isPurchase || isScrape;
+        });
     }
     
     if (startDate) {
@@ -455,14 +453,14 @@ export async function getVouchers(username: string, filters: { name?: string, st
             endTimestamp = endOfDay.getTime();
         }
 
-        vouchers = vouchers.filter(v => {
+        allVouchers = allVouchers.filter(v => {
             if (!v.date) return false;
             const voucherTimestamp = new Date(v.date).getTime();
             return voucherTimestamp >= startTimestamp && voucherTimestamp <= endTimestamp;
         });
     }
 
-    return vouchers.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return allVouchers.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export async function getInventoryItem(username: string, name: string) {
@@ -1019,67 +1017,6 @@ export async function updateOutput(username: string, values: z.infer<typeof outp
     } catch (error) {
         console.error("Failed to update output:", error);
         return { success: false, message: "Failed to update output." };
-    }
-}
-
-export async function updateSale(username: string, values: z.infer<typeof saleSchema>) {
-    const validatedFields = saleSchema.safeParse(values)
-
-    if (!validatedFields.success) {
-        return { success: false, message: "Invalid sale data." }
-    }
-
-    try {
-        const { id, ...updatedData } = validatedFields.data;
-        if (!id) return { success: false, message: "Sale ID is missing." };
-        
-        let allSales = await readSales(username);
-        let allVouchers = await readVouchers(username);
-        
-        const saleIndex = allSales.findIndex(s => s.id === id);
-        if (saleIndex === -1) return { success: false, message: "Sale not found." };
-        
-        const originalSale = allSales[saleIndex];
-        
-        // Server-side stock check
-        const currentStock = await getInventoryItem(username, updatedData.productName);
-        const stockBeforeThisSale = currentStock.availableStock + (originalSale.productName === updatedData.productName ? originalSale.saleQty : 0);
-        if (updatedData.saleQty > stockBeforeThisSale) {
-            return { success: false, message: `Not enough stock. Available before this sale: ${stockBeforeThisSale}` };
-        }
-
-        // Find and update the associated inventory voucher (has same ID as sale)
-        const saleVoucherIndex = allVouchers.findIndex(v => v.id === id);
-        if (saleVoucherIndex === -1) {
-            return { success: false, message: "Could not find the original inventory transaction for this sale." };
-        }
-        
-        // Update Sale Record
-        allSales[saleIndex] = { ...originalSale, ...updatedData, id: originalSale.id };
-        
-        // Update Voucher Record
-        const inventoryDetails = await getInventoryItem(username, updatedData.productName);
-        allVouchers[saleVoucherIndex].date = updatedData.date;
-        allVouchers[saleVoucherIndex].name = updatedData.productName;
-        allVouchers[saleVoucherIndex].code = inventoryDetails.code;
-        allVouchers[saleVoucherIndex].quantities = -updatedData.saleQty;
-        allVouchers[saleVoucherIndex].remarks = `SOLD TO ${updatedData.clientCode}`;
-        // Note: Inventory cost price is used for the voucher, not the sale price
-        allVouchers[saleVoucherIndex].pricePerNo = inventoryDetails.averagePrice;
-        allVouchers[saleVoucherIndex].totalPrice = updatedData.saleQty * inventoryDetails.averagePrice;
-        
-        await writeSales(username, allSales);
-        await writeVouchers(username, allVouchers);
-        
-        revalidatePath("/view/outputs");
-        revalidatePath("/view/vouchers");
-        revalidatePath("/view/inventory");
-
-        return { success: true, message: "Sale updated successfully." };
-
-    } catch (error) {
-        console.error("Failed to update sale:", error);
-        return { success: false, message: "Failed to update sale." };
     }
 }
 
