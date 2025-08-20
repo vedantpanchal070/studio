@@ -1,1 +1,36 @@
-[]
+[
+  {
+    "date": "2025-08-20T12:04:08.708Z",
+    "processName": "SAK",
+    "totalProcessOutput": 100,
+    "outputUnit": "KG",
+    "rawMaterials": [
+      {
+        "name": "BATEKA",
+        "code": "2503",
+        "quantityType": "KG",
+        "quantity": 50,
+        "ratio": 50,
+        "rate": 10
+      },
+      {
+        "name": "MILK",
+        "code": "2501",
+        "quantityType": "LIT",
+        "quantity": 30,
+        "ratio": 30,
+        "rate": 30
+      },
+      {
+        "name": "SUGAR",
+        "code": "2502",
+        "quantityType": "KG",
+        "quantity": 20,
+        "ratio": 20,
+        "rate": 20
+      }
+    ],
+    "notes": "",
+    "id": "2025-08-20T12:05:12.390Z05itknm7c"
+  }
+]

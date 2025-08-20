@@ -31,5 +31,38 @@
     "totalPrice": 5000,
     "remarks": "",
     "id": "2025-08-20T12:02:20.724Z5t35vhxs9"
+  },
+  {
+    "id": "2025-08-20T12:05:12.390Z05itknm7cBATEKA",
+    "date": "2025-08-20T12:04:08.708Z",
+    "name": "BATEKA",
+    "code": "2503",
+    "quantities": -50,
+    "quantityType": "KG",
+    "pricePerNo": 10,
+    "totalPrice": 500,
+    "remarks": "USED IN SAK"
+  },
+  {
+    "id": "2025-08-20T12:05:12.390Z05itknm7cMILK",
+    "date": "2025-08-20T12:04:08.708Z",
+    "name": "MILK",
+    "code": "2501",
+    "quantities": -30,
+    "quantityType": "LIT",
+    "pricePerNo": 30,
+    "totalPrice": 900,
+    "remarks": "USED IN SAK"
+  },
+  {
+    "id": "2025-08-20T12:05:12.390Z05itknm7cSUGAR",
+    "date": "2025-08-20T12:04:08.708Z",
+    "name": "SUGAR",
+    "code": "2502",
+    "quantities": -20,
+    "quantityType": "KG",
+    "pricePerNo": 20,
+    "totalPrice": 400,
+    "remarks": "USED IN SAK"
   }
 ]
