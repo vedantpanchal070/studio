@@ -1072,3 +1072,26 @@ export async function updateSale(username: string, values: z.infer<typeof saleSc
         return { success: false, message: "Failed to update sale." };
     }
 }
+
+export async function clearUserData(username: string): Promise<{ success: boolean, message: string }> {
+    try {
+        // Clear all transactional data for the user
+        await writeVouchers(username, []);
+        await writeProcesses(username, []);
+        await writeOutputs(username, []);
+        await writeSales(username, []);
+
+        // Revalidate all paths that might show this data
+        revalidatePath("/view/vouchers");
+        revalidatePath("/view/processes");
+        revalidatePath("/view/outputs");
+        revalidatePath("/view/inventory");
+        revalidatePath("/create/process");
+        revalidatePath("/create/output");
+
+        return { success: true, message: "All transaction data has been cleared." };
+    } catch (error) {
+        console.error(`Failed to clear data for user ${username}:`, error);
+        return { success: false, message: "An error occurred while clearing your data." };
+    }
+}
