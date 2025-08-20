@@ -43,7 +43,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { EditVoucherDialog } from "./edit-voucher-dialog"
 import { Combobox } from "@/components/ui/combobox"
-import { DatePicker } from "@/components/ui/date-picker"
+import { DatePicker } from "@/components/date-picker"
 
 const searchSchema = z.object({
   startDate: z.date().optional(),
