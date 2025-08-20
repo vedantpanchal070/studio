@@ -462,13 +462,17 @@ export async function recordSale(username: string, values: z.infer<typeof saleSc
   }
 }
 
-export async function getVouchers(username: string, filters: { name?: string, startDate?: Date, endDate?: Date }): Promise<any[]> {
-    const { name, startDate, endDate } = filters;
+export async function getVouchers(username: string, filters: { startDate?: Date, endDate?: Date }): Promise<any[]> {
+    const { startDate, endDate } = filters;
     let allVouchers = await readVouchers(username);
 
-    if (name) {
-        allVouchers = allVouchers.filter(v => v.name === name || v.name === `${name} - SCRAPE`);
-    }
+    // Filter out finished goods production, sales, and scrape
+    allVouchers = allVouchers.filter(v => {
+        const remarks = v.remarks?.toUpperCase() || "";
+        return !remarks.startsWith("PRODUCED FROM") &&
+               !remarks.startsWith("SCRAPE FROM") &&
+               !remarks.startsWith("SOLD TO");
+    });
     
     if (startDate) {
         const startOfDay = new Date(startDate);
@@ -1136,3 +1140,5 @@ export async function clearUserData(username: string): Promise<{ success: boolea
         return { success: false, message: "An error occurred while clearing your data." };
     }
 }
+
+    
