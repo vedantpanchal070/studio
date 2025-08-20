@@ -986,6 +986,8 @@ export async function updateOutput(username: string, values: z.infer<typeof outp
                 allVouchers[scrapeVoucherIndex].date = finalUpdatedData.date;
                 allVouchers[scrapeVoucherIndex].name = `${finalUpdatedData.productName} - SCRAPE`;
                 allVouchers[scrapeVoucherIndex].quantities = scrapeQty;
+                allVouchers[scrapeVoucherIndex].pricePerNo = finalUpdatedData.finalAveragePrice;
+                allVouchers[scrapeVoucherIndex].totalPrice = scrapeQty * finalUpdatedData.finalAveragePrice;
                 allVouchers[scrapeVoucherIndex].remarks = `SCRAPE FROM ${finalUpdatedData.processUsed}`;
              } else {
                 allVouchers.splice(scrapeVoucherIndex, 1); // Remove scrape voucher if scrape is 0
@@ -998,8 +1000,8 @@ export async function updateOutput(username: string, values: z.infer<typeof outp
                 code: `SCRAPE-${finalUpdatedData.productName}`,
                 quantities: scrapeQty,
                 quantityType: 'KG',
-                pricePerNo: 0,
-                totalPrice: 0,
+                pricePerNo: finalUpdatedData.finalAveragePrice,
+                totalPrice: scrapeQty * finalUpdatedData.finalAveragePrice,
                 remarks: `SCRAPE FROM ${finalUpdatedData.processUsed}`,
             };
             allVouchers.push(scrapeVoucher);
