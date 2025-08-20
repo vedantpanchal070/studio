@@ -365,11 +365,14 @@ export async function createOutput(username: string, values: z.infer<typeof outp
     let scrapeQty = 0;
     if (scrape && scrape > 0) {
         const processDetails = await getProcessDetails(username, validatedFields.data.processUsed);
-        if (scrapeUnit === '%') {
-            scrapeQty = (processDetails?.totalProcessOutput || 0) * (scrape / 100);
-        } else {
-            scrapeQty = scrape;
+        if (processDetails) {
+            if (scrapeUnit === '%') {
+                scrapeQty = processDetails.totalProcessOutput * (scrape / 100);
+            } else {
+                scrapeQty = scrape;
+            }
         }
+
 
         if (scrapeQty > 0) {
             const scrapeVoucher: Voucher = {
@@ -379,7 +382,7 @@ export async function createOutput(username: string, values: z.infer<typeof outp
                 code: `SCRAPE-${productName}`,
                 quantities: scrapeQty,
                 quantityType: 'KG',
-                pricePerNo: finalAveragePrice,
+                pricePerNo: finalAveragePrice, // Use final average price for scrape value
                 totalPrice: scrapeQty * finalAveragePrice,
                 remarks: `SCRAPE FROM ${validatedFields.data.processUsed}`,
             };
@@ -465,16 +468,18 @@ export async function recordSale(username: string, values: z.infer<typeof saleSc
 export async function getVouchers(username: string, filters: { name?: string, startDate?: Date, endDate?: Date }): Promise<any[]> {
     const { name, startDate, endDate } = filters;
     let allVouchers = await readVouchers(username);
-
-    // Filter out finished goods production and sales
-    allVouchers = allVouchers.filter(v => {
+    
+    // Base filter: Always exclude direct production and sales from voucher view
+    let baseFilteredVouchers = allVouchers.filter(v => {
         const remarks = v.remarks?.toUpperCase() || "";
         return !remarks.startsWith("PRODUCED FROM") &&
                !remarks.startsWith("SOLD TO");
     });
-    
+
     if (name) {
-        allVouchers = allVouchers.filter(v => v.name === name || v.name.endsWith("- SCRAPE"));
+        // If a name is specified, only show vouchers for that name.
+        // This includes purchases, consumption, and scrape for that specific item.
+        baseFilteredVouchers = baseFilteredVouchers.filter(v => v.name === name || v.name === `${name} - SCRAPE`);
     }
     
     if (startDate) {
@@ -494,14 +499,14 @@ export async function getVouchers(username: string, filters: { name?: string, st
             endTimestamp = endOfDay.getTime();
         }
 
-        allVouchers = allVouchers.filter(v => {
+        baseFilteredVouchers = baseFilteredVouchers.filter(v => {
             if (!v.date) return false;
             const voucherTimestamp = new Date(v.date).getTime();
             return voucherTimestamp >= startTimestamp && voucherTimestamp <= endTimestamp;
         });
     }
 
-    return allVouchers.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return baseFilteredVouchers.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export async function getInventoryItem(username: string, name: string) {
@@ -544,9 +549,11 @@ export async function getInventoryItem(username: string, name: string) {
 
 export async function getVoucherItemNames(username: string): Promise<string[]> {
     const vouchers = await readVouchers(username);
+    // This list should only contain raw materials that can be used in processes.
+    // Exclude scrape and finished goods.
     const relevantVouchers = vouchers.filter(v => {
         const isPurchase = v.quantities > 0;
-        return isPurchase && !v.remarks?.startsWith("PRODUCED FROM");
+        return isPurchase && !v.remarks?.toUpperCase().startsWith("PRODUCED FROM") && !v.name.toUpperCase().includes("SCRAPE");
     });
     const names = new Set(relevantVouchers.map(v => v.name));
     return Array.from(names).sort();

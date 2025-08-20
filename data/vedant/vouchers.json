@@ -97,5 +97,16 @@
     "pricePerNo": 39.44444444444444,
     "totalPrice": 1972.2222222222222,
     "remarks": "SOLD TO 3030"
+  },
+  {
+    "date": "2025-08-20T13:20:29.822Z",
+    "name": "MILK",
+    "code": "2501",
+    "quantities": 30,
+    "quantityType": "LIT",
+    "pricePerNo": 50,
+    "totalPrice": 1500,
+    "remarks": "",
+    "id": "2025-08-20T13:20:51.524Z7woozn3k1"
   }
 ]
