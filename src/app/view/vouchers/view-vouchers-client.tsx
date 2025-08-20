@@ -9,7 +9,7 @@ import { ArrowUpDown, Search, Edit, Trash2 } from "lucide-react"
 import { format } from 'date-fns'
 
 import type { Voucher } from "@/lib/schemas"
-import { getVouchers, getInventoryItem, deleteVoucher, getVoucherItemNames } from "@/lib/actions"
+import { getVouchers, getVoucherItemNames, deleteVoucher } from "@/lib/actions"
 import { useAuth } from "@/hooks/use-auth"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -46,6 +46,7 @@ import { Combobox } from "@/components/ui/combobox"
 import { DatePicker } from "@/components/date-picker"
 
 const searchSchema = z.object({
+  name: z.string().optional(),
   startDate: z.date().optional(),
   endDate: z.date().optional(),
 })
@@ -58,6 +59,7 @@ export function ViewVouchersClient() {
   const { toast } = useToast()
   const { user } = useAuth()
   const [vouchers, setVouchers] = useState<Voucher[]>([])
+  const [itemNames, setItemNames] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null)
@@ -74,13 +76,17 @@ export function ViewVouchersClient() {
 
   useEffect(() => {
     if (!user) return;
-    const fetchVouchers = async () => {
+    const fetchVoucherData = async () => {
       setIsLoading(true);
-      const results = await getVouchers(user.username, watchedFilters);
-      setVouchers(results);
+      const [voucherResults, names] = await Promise.all([
+        getVouchers(user.username, watchedFilters),
+        getVoucherItemNames(user.username)
+      ]);
+      setVouchers(voucherResults);
+      setItemNames(names);
       setIsLoading(false);
     }
-    fetchVouchers();
+    fetchVoucherData();
   }, [watchedFilters, user]);
 
   const sortedVouchers = useMemo(() => {
@@ -111,7 +117,7 @@ export function ViewVouchersClient() {
   }
 
   const handleClear = () => {
-    form.reset({ startDate: undefined, endDate: undefined })
+    form.reset({ name: "", startDate: undefined, endDate: undefined })
     setSortConfig(null)
   }
 
@@ -154,7 +160,23 @@ export function ViewVouchersClient() {
     <div className="space-y-6">
       <Form {...form}>
         <form className="rounded-lg border p-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Voucher Name</FormLabel>
+                   <Combobox
+                      options={itemNames.map(name => ({ value: name, label: name }))}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select an item"
+                      searchPlaceholder="Search items..."
+                    />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="startDate"
@@ -283,5 +305,3 @@ export function ViewVouchersClient() {
     </div>
   )
 }
-
-    
