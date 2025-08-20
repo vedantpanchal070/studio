@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { getUser, updateUser, createUser } from '@/lib/actions';
+import { getUser, updateUser, createUser, changeUsername as changeUsernameAction } from '@/lib/actions';
 import type { User } from '@/lib/schemas';
 
 interface AuthContextType {
@@ -12,6 +12,7 @@ interface AuthContextType {
   login: (username: string, pass: string) => Promise<boolean>;
   logout: () => void;
   changePassword: (currentPass: string, newPass: string) => Promise<boolean>;
+  changeUsername: (newUsername: string, currentPass: string) => Promise<{ success: boolean, message?: string, field?: string }>;
   signup: (username: string, pass: string) => Promise<{ success: boolean, message?: string }>;
 }
 
@@ -94,8 +95,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const changeUsername = useCallback(async (newUsername: string, currentPass: string) => {
+    if (!user) {
+      return { success: false, message: 'You must be logged in.' };
+    }
+    const result = await changeUsernameAction(user.username, newUsername, currentPass);
+    if (result.success) {
+      // Log the user out after a successful username change for security.
+      // They will need to log back in with their new username.
+      setTimeout(() => logout(), 1500); 
+    }
+    return result;
+  }, [user, logout]);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, changePassword, signup }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, changePassword, signup, changeUsername }}>
       {children}
     </AuthContext.Provider>
   );

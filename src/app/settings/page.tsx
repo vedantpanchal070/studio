@@ -13,6 +13,7 @@ import {
 import { ChangePasswordForm } from "./change-password-form"
 import { DangerZone } from "./danger-zone"
 import { Separator } from "@/components/ui/separator"
+import { ChangeUsernameForm } from "./change-username-form"
 
 export default function SettingsPage() {
   return (
@@ -30,7 +31,9 @@ export default function SettingsPage() {
               Manage your account and application data.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-8">
+            <ChangeUsernameForm />
+            <Separator />
             <ChangePasswordForm />
           </CardContent>
         </Card>

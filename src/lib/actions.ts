@@ -174,6 +174,47 @@ export async function updateUser(updatedUser: User): Promise<boolean> {
     }
 }
 
+export async function changeUsername(currentUsername: string, newUsername: string, password: string): Promise<{ success: boolean; message?: string, field?: string }> {
+    try {
+        let users = await readUsers();
+
+        // 1. Find the current user and verify their password
+        const userIndex = users.findIndex(u => u.username === currentUsername);
+        if (userIndex === -1) {
+            return { success: false, message: "Current user not found." };
+        }
+        const currentUser = users[userIndex];
+        if (currentUser.password !== password) {
+            return { success: false, message: "Incorrect password.", field: "currentPassword" };
+        }
+
+        // 2. Check if the new username is already taken
+        if (users.some(u => u.username === newUsername)) {
+            return { success: false, message: "This username is already taken.", field: "newUsername" };
+        }
+
+        // 3. Rename the user's data directory
+        const oldDir = getUserDataDir(currentUsername);
+        const newDir = getUserDataDir(newUsername);
+        try {
+            await fs.rename(oldDir, newDir);
+        } catch (error) {
+            console.error(`Failed to rename data directory for ${currentUsername}:`, error);
+            return { success: false, message: "Failed to update user data directory." };
+        }
+
+        // 4. Update the username in the users.json file
+        users[userIndex].username = newUsername;
+        await writeUsers(users);
+
+        return { success: true, message: "Username changed successfully." };
+
+    } catch (error) {
+        console.error("Error changing username:", error);
+        return { success: false, message: "An unexpected error occurred." };
+    }
+}
+
 
 // ============== VOUCHER / PROCESS / ETC. ACTIONS ==============
 
