@@ -466,16 +466,15 @@ export async function getVouchers(username: string, filters: { name?: string, st
     const { name, startDate, endDate } = filters;
     let allVouchers = await readVouchers(username);
 
-    // Filter out finished goods production, sales, and scrape
+    // Filter out finished goods production and sales
     allVouchers = allVouchers.filter(v => {
         const remarks = v.remarks?.toUpperCase() || "";
         return !remarks.startsWith("PRODUCED FROM") &&
-               !remarks.startsWith("SCRAPE FROM") &&
                !remarks.startsWith("SOLD TO");
     });
     
     if (name) {
-        allVouchers = allVouchers.filter(v => v.name === name);
+        allVouchers = allVouchers.filter(v => v.name === name || v.name.endsWith("- SCRAPE"));
     }
     
     if (startDate) {
