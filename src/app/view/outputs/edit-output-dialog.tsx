@@ -122,7 +122,7 @@ export function EditOutputDialog({ isOpen, onOpenChange, output, onOutputUpdated
 
     if (currentNetQty > 0) {
       const baseAvgPrice = totalCost / currentNetQty;
-      const finalPrice = baseAvgPrice + processCharge;
+      const finalPrice = parseFloat((baseAvgPrice + processCharge).toFixed(2));
       setFinalAvgPrice(finalPrice);
     } else {
       setFinalAvgPrice(0);
