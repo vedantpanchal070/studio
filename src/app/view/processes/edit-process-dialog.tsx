@@ -221,7 +221,7 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
                         <FormItem>
                             <FormLabel>Total Process Output</FormLabel>
                             <FormControl>
-                                <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)} />
+                                <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : +e.target.value)} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -292,7 +292,7 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
                                 <FormField
                                     control={form.control}
                                     name={`rawMaterials.${index}.ratio`}
-                                    render={({ field }) => <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)} />}
+                                    render={({ field }) => <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : +e.target.value)} />}
                                 />
                             </TableCell>
                             <TableCell><ReadOnlyInput value={material?.output?.toFixed(2) || '0.00'} /></TableCell>

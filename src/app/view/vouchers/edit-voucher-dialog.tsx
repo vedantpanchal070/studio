@@ -129,7 +129,7 @@ export function EditVoucherDialog({ isOpen, onOpenChange, voucher, onVoucherUpda
                     control={form.control}
                     name="quantities"
                     render={({ field }) => (
-                        <FormItem><FormLabel>Quantities</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Quantities</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : +e.target.value)} /></FormControl><FormMessage /></FormItem>
                     )}
                 />
                  <FormField
@@ -144,7 +144,7 @@ export function EditVoucherDialog({ isOpen, onOpenChange, voucher, onVoucherUpda
                 control={form.control}
                 name="pricePerNo"
                 render={({ field }) => (
-                    <FormItem><FormLabel>Price Per No.</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Price Per No.</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : +e.target.value)} /></FormControl><FormMessage /></FormItem>
                 )}
             />
             <FormItem>

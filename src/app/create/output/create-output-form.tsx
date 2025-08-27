@@ -218,7 +218,7 @@ export function CreateOutputForm() {
                       <FormItem className="flex-grow">
                           <FormLabel>Scrape</FormLabel>
                           <FormControl>
-                          <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)} />
+                          <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : +e.target.value)} />
                           </FormControl>
                       </FormItem>
                       )}
@@ -251,7 +251,7 @@ export function CreateOutputForm() {
                       <FormItem className="flex-grow">
                           <FormLabel>Reduction</FormLabel>
                           <FormControl>
-                          <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)} />
+                          <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : +e.target.value)} />
                           </FormControl>
                       </FormItem>
                       )}
@@ -285,7 +285,7 @@ export function CreateOutputForm() {
               <FormItem>
                 <FormLabel>Process Charge (per kg)</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)} />
+                  <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : +e.target.value)} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

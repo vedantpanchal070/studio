@@ -176,7 +176,7 @@ export function CreateVoucherForm() {
                   <Input
                     type="number"
                     {...field}
-                    onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)}
+                    onChange={e => field.onChange(e.target.value === '' ? '' : +e.target.value)}
                     ref={quantitiesRef}
                     onKeyDown={(e) => handleKeyDown(e, quantityTypeRef)}
                   />
@@ -213,7 +213,7 @@ export function CreateVoucherForm() {
                   <Input
                     type="number"
                     {...field}
-                    onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)}
+                    onChange={e => field.onChange(e.target.value === '' ? '' : +e.target.value)}
                     ref={pricePerNoRef}
                     onKeyDown={(e) => handleKeyDown(e, remarksRef)}
                   />
