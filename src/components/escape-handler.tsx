@@ -25,6 +25,7 @@ const parentRoutes: { [key: string]: string } = {
   "/view/inventory": "/",
   "/create": "/",
   "/view": "/",
+  "/settings": "/",
 };
 
 export function EscapeHandler() {
