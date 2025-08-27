@@ -184,7 +184,7 @@ export function CreateProcessForm() {
                 <FormItem>
                     <FormLabel>Total Process Output</FormLabel>
                     <FormControl>
-                    <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />
+                    <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)} />
                     </FormControl>
                     <FormMessage />
                 </FormItem>
@@ -255,7 +255,7 @@ export function CreateProcessForm() {
                         <FormField
                             control={form.control}
                             name={`rawMaterials.${index}.ratio`}
-                            render={({ field }) => <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />}
+                            render={({ field }) => <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)} />}
                         />
                       </TableCell>
                       <TableCell>

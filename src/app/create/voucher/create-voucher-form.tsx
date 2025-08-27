@@ -109,7 +109,9 @@ export function CreateVoucherForm() {
   // A ref for the date picker is not directly possible, but we can focus the next element
   // when the component mounts or resets.
   useEffect(() => {
-    nameRef.current?.focus();
+    if (form.formState.isSubmitSuccessful) {
+        nameRef.current?.focus();
+    }
   }, [form.formState.isSubmitSuccessful]);
 
 
@@ -174,6 +176,7 @@ export function CreateVoucherForm() {
                   <Input
                     type="number"
                     {...field}
+                    onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)}
                     ref={quantitiesRef}
                     onKeyDown={(e) => handleKeyDown(e, quantityTypeRef)}
                   />
@@ -210,6 +213,7 @@ export function CreateVoucherForm() {
                   <Input
                     type="number"
                     {...field}
+                    onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)}
                     ref={pricePerNoRef}
                     onKeyDown={(e) => handleKeyDown(e, remarksRef)}
                   />

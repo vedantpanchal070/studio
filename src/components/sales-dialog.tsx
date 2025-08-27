@@ -196,7 +196,7 @@ export function SalesDialog({ isOpen, onOpenChange, finishedGoods }: SalesDialog
                         <FormItem>
                         <FormLabel>Sale Qty (kg)</FormLabel>
                         <FormControl>
-                            <Input type="number" {...field} />
+                            <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -209,7 +209,7 @@ export function SalesDialog({ isOpen, onOpenChange, finishedGoods }: SalesDialog
                         <FormItem>
                         <FormLabel>Sale Price (Rs/kg)</FormLabel>
                         <FormControl>
-                            <Input type="number" {...field} />
+                            <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -237,5 +237,3 @@ export function SalesDialog({ isOpen, onOpenChange, finishedGoods }: SalesDialog
     </Dialog>
   )
 }
-
-    

@@ -186,7 +186,7 @@ export function EditSaleDialog({ isOpen, onOpenChange, sale, onSaleUpdated }: Ed
                   <FormItem>
                     <FormLabel>Sale Qty</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -199,7 +199,7 @@ export function EditSaleDialog({ isOpen, onOpenChange, sale, onSaleUpdated }: Ed
                   <FormItem>
                     <FormLabel>Sale Price</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -227,5 +227,3 @@ export function EditSaleDialog({ isOpen, onOpenChange, sale, onSaleUpdated }: Ed
     </Dialog>
   )
 }
-
-    
