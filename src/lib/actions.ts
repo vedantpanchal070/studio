@@ -595,35 +595,12 @@ export async function getProcessDetails(username: string, name: string): Promise
     return processes.find(p => p.processName === name) || null;
 }
 
-export async function getProcesses(username: string, filters: { name?: string, startDate?: Date, endDate?: Date }): Promise<any[]> {
-    const { name, startDate, endDate } = filters;
+export async function getProcesses(username: string, filters: { name?: string }): Promise<any[]> {
+    const { name } = filters;
     let processes = await readProcesses(username);
 
     if (name) {
         processes = processes.filter(p => p.processName === name);
-    }
-    
-    if (startDate) {
-        const startOfDay = new Date(startDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const startTimestamp = startOfDay.getTime();
-
-        let endTimestamp;
-        if (endDate) {
-            const endOfDay = new Date(endDate);
-            endOfDay.setHours(23, 59, 59, 999);
-            endTimestamp = endOfDay.getTime();
-        } else {
-            const endOfDay = new Date(startDate);
-            endOfDay.setHours(23, 59, 59, 999);
-            endTimestamp = endOfDay.getTime();
-        }
-        
-        processes = processes.filter(p => {
-            if (!p.date) return false;
-            const processTimestamp = new Date(p.date).getTime();
-            return processTimestamp >= startTimestamp && processTimestamp <= endTimestamp;
-        });
     }
 
     return processes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -664,8 +641,8 @@ export interface LedgerEntry {
   id: string;
 }
 
-export async function getOutputLedger(username: string, filters: { name?: string, startDate?: Date, endDate?: Date }): Promise<LedgerEntry[]> {
-    const { name, startDate, endDate } = filters;
+export async function getOutputLedger(username: string, filters: { name?: string }): Promise<LedgerEntry[]> {
+    const { name } = filters;
     let allOutputs = await readOutputs(username);
     let allSales = await readSales(username);
     let ledger: LedgerEntry[] = [];
@@ -695,35 +672,11 @@ export async function getOutputLedger(username: string, filters: { name?: string
         });
     });
     
-    // Name filter
+    // Filter by product name if provided
     if (name) {
         ledger = ledger.filter(o => o.productName === name);
     }
     
-    // Date filter
-    if (startDate) {
-        const startOfDay = new Date(startDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const startTimestamp = startOfDay.getTime();
-
-        let endTimestamp;
-        if (endDate) {
-            const endOfDay = new Date(endDate);
-            endOfDay.setHours(23, 59, 59, 999);
-            endTimestamp = endOfDay.getTime();
-        } else {
-            const endOfDay = new Date(startDate);
-            endOfDay.setHours(23, 59, 59, 999);
-            endTimestamp = endOfDay.getTime();
-        }
-        
-        ledger = ledger.filter(entry => {
-            if (!entry.date) return false;
-            const entryTimestamp = new Date(entry.date).getTime();
-            return entryTimestamp >= startTimestamp && entryTimestamp <= endTimestamp;
-        });
-    }
-
     // Sort by date chronologically
     ledger.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -1162,3 +1115,5 @@ export async function clearUserData(username: string): Promise<{ success: boolea
         return { success: false, message: "An error occurred while clearing your data." };
     }
 }
+
+    

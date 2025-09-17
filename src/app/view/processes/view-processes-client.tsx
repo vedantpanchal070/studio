@@ -42,12 +42,10 @@ import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { EditProcessDialog } from "./edit-process-dialog"
 import { Combobox } from "@/components/ui/combobox"
-import { DatePicker } from "@/components/date-picker"
+import { Input } from "@/components/ui/input"
 
 const searchSchema = z.object({
   name: z.string().optional(),
-  startDate: z.date().optional(),
-  endDate: z.date().optional(),
 })
 
 type SearchFormValues = z.infer<typeof searchSchema>
@@ -166,7 +164,7 @@ export function ViewProcessesClient() {
 
 
   const handleClear = () => {
-    form.reset({ name: "", startDate: undefined, endDate: undefined })
+    form.reset({ name: "" })
   }
   
   const handleDelete = async (process: Process) => {
@@ -190,7 +188,7 @@ export function ViewProcessesClient() {
     <div className="space-y-6">
       <Form {...form}>
         <form className="rounded-lg border p-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
              <FormField
               control={form.control}
               name="name"
@@ -204,38 +202,6 @@ export function ViewProcessesClient() {
                       placeholder="Select a process"
                       searchPlaceholder="Search processes..."
                     />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="startDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Start Date</FormLabel>
-                  <FormControl>
-                     <DatePicker 
-                      value={field.value} 
-                      onChange={(date) => {
-                        field.onChange(date);
-                        if (date) {
-                          form.setValue("endDate", date);
-                        }
-                      }} 
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="endDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>End Date</FormLabel>
-                  <FormControl>
-                    <DatePicker value={field.value} onChange={field.onChange} />
-                  </FormControl>
                 </FormItem>
               )}
             />
