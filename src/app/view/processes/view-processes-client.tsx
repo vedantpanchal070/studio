@@ -1,11 +1,11 @@
 
 "use client"
 
-import React, { useState, useRef, useEffect } from "react"
+import React, { useState, useRef, useEffect, useMemo } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Search, Trash2, ChevronDown, Edit } from "lucide-react"
+import { Search, Trash2, ChevronDown, Edit, ArrowUpDown } from "lucide-react"
 import { format } from 'date-fns'
 
 import type { Process } from "@/lib/schemas"
@@ -52,6 +52,8 @@ const searchSchema = z.object({
 })
 
 type SearchFormValues = z.infer<typeof searchSchema>
+type SortKey = keyof Process;
+type SortDirection = "asc" | "desc";
 
 
 function ProcessEntry({ process, onDelete, onEdit }: { process: Process, onDelete: (process: Process) => void, onEdit: (process: Process) => void }) {
@@ -141,6 +143,10 @@ export function ViewProcessesClient() {
   const [isLoading, setIsLoading] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null)
+  const [sortConfig, setSortConfig] = useState<{
+    key: SortKey;
+    direction: SortDirection;
+  } | null>(null);
   
 
   const form = useForm<SearchFormValues>({
@@ -164,6 +170,33 @@ export function ViewProcessesClient() {
 
     fetchProcesses();
   }, [watchedFilters, user]);
+
+  const sortedProcesses = useMemo(() => {
+    let sortableItems = [...processes];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+        
+        if (aValue instanceof Date && bValue instanceof Date) {
+            return (aValue.getTime() - bValue.getTime()) * (sortConfig.direction === "asc" ? 1 : -1);
+        }
+
+        if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1
+        if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1
+        return 0
+      })
+    }
+    return sortableItems
+  }, [processes, sortConfig]);
+
+  const requestSort = (key: SortKey) => {
+    let direction: SortDirection = "asc"
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc"
+    }
+    setSortConfig({ key, direction })
+  }
 
 
   const handleClear = () => {
@@ -253,7 +286,11 @@ export function ViewProcessesClient() {
         <Table height="24rem">
             <TableHeader className="sticky top-0 z-10 bg-background">
                 <TableRow>
-                    <TableHead className="w-[150px]">Date</TableHead>
+                    <TableHead className="w-[150px]" onClick={() => requestSort("date")}>
+                       <span className="flex items-center cursor-pointer">
+                            Date <ArrowUpDown className="ml-2 h-4 w-4 inline-block" />
+                        </span>
+                    </TableHead>
                     <TableHead>Process Name</TableHead>
                     <TableHead>Cost/Unit</TableHead>
                     <TableHead>Ingred. Qty</TableHead>
@@ -267,7 +304,7 @@ export function ViewProcessesClient() {
                         Loading...
                     </TableCell>
                 </TableRow>
-              ) : processes.length > 0 ? processes.map((process) => (
+              ) : sortedProcesses.length > 0 ? sortedProcesses.map((process) => (
                   <ProcessEntry key={process.id} process={process} onDelete={handleDelete} onEdit={handleEdit} />
               )) : (
                 <TableRow>
@@ -294,3 +331,5 @@ export function ViewProcessesClient() {
     </div>
   )
 }
+
+    

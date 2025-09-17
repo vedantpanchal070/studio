@@ -5,7 +5,7 @@ import React, { useState, useMemo, useRef, useEffect } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Search, Trash2, Edit } from "lucide-react"
+import { Search, Trash2, Edit, ArrowUpDown } from "lucide-react"
 import { format } from 'date-fns'
 
 import type { LedgerEntry, Output, Sale } from "@/lib/actions"
@@ -55,6 +55,10 @@ const searchSchema = z.object({
 
 type SearchFormValues = z.infer<typeof searchSchema>
 
+type SortKey = 'date';
+type SortDirection = "asc" | "desc"
+
+
 export function ViewOutputsClient() {
   const { toast } = useToast()
   const { user } = useAuth()
@@ -66,6 +70,10 @@ export function ViewOutputsClient() {
   const [isSaleDialogOpen, setIsSaleDialogOpen] = useState(false)
   const [selectedOutput, setSelectedOutput] = useState<Output | null>(null)
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
+  const [sortConfig, setSortConfig] = useState<{
+    key: SortKey
+    direction: SortDirection
+  } | null>({ key: 'date', direction: 'asc' });
 
 
   const form = useForm<SearchFormValues>({
@@ -89,6 +97,30 @@ export function ViewOutputsClient() {
     };
     fetchInitialData();
   }, [watchedFilters, user]);
+  
+  const sortedLedger = useMemo(() => {
+    let sortableItems = [...ledger];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+        
+        if (aValue instanceof Date && bValue instanceof Date) {
+            return (aValue.getTime() - bValue.getTime()) * (sortConfig.direction === "asc" ? 1 : -1);
+        }
+        return 0
+      })
+    }
+    return sortableItems
+  }, [ledger, sortConfig])
+  
+  const requestSort = (key: SortKey) => {
+    let direction: SortDirection = "asc"
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc"
+    }
+    setSortConfig({ key, direction })
+  }
 
 
   const handleClear = () => {
@@ -215,7 +247,11 @@ export function ViewOutputsClient() {
         <Table height="24rem">
             <TableHeader className="sticky top-0 z-10 bg-background">
                 <TableRow>
-                    <TableHead>Date</TableHead>
+                    <TableHead onClick={() => requestSort("date")}>
+                        <span className="flex items-center cursor-pointer">
+                            Date <ArrowUpDown className="ml-2 h-4 w-4 inline-block" />
+                        </span>
+                    </TableHead>
                     <TableHead>Product Name</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Client Code</TableHead>
@@ -227,7 +263,7 @@ export function ViewOutputsClient() {
             <TableBody>
                 {isLoading ? (
                     <TableRow><TableCell colSpan={7} className="h-24 text-center">Loading...</TableCell></TableRow>
-                ) : ledger.length > 0 ? ledger.map((entry) => (
+                ) : sortedLedger.length > 0 ? sortedLedger.map((entry) => (
                 <TableRow
                     key={entry.id}
                     className={cn(
@@ -325,3 +361,5 @@ export function ViewOutputsClient() {
     </div>
   )
 }
+
+    
