@@ -220,13 +220,13 @@ export function ViewVouchersClient() {
             <Table>
             <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
-                <TableHead onClick={() => requestSort("date")}>Date <ArrowUpDown className="ml-2 h-4 w-4 inline-block" /></TableHead>
-                <TableHead>Name</TableHead>
+                <TableHead className="sticky left-0 bg-background" onClick={() => requestSort("date")}>Date <ArrowUpDown className="ml-2 h-4 w-4 inline-block" /></TableHead>
+                <TableHead className="sticky left-[120px] bg-background">Name</TableHead>
                 <TableHead>Qty</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Total Price</TableHead>
                 <TableHead>Remarks</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="sticky right-0 bg-background text-right">Actions</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -239,13 +239,13 @@ export function ViewVouchersClient() {
                     key={voucher.id}
                     className={cn(voucher.quantities > 0 ? "bg-green-100/50" : "bg-red-100/50")}
                 >
-                    <TableCell>{format(new Date(voucher.date), 'dd/MM/yyyy')}</TableCell>
-                    <TableCell>{voucher.name}</TableCell>
+                    <TableCell className="sticky left-0 bg-inherit">{format(new Date(voucher.date), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell className="sticky left-[120px] bg-inherit">{voucher.name}</TableCell>
                     <TableCell>{voucher.quantities}</TableCell>
                     <TableCell>{voucher.pricePerNo.toFixed(2)}</TableCell>
                     <TableCell>{voucher.totalPrice.toFixed(2)}</TableCell>
                     <TableCell>{voucher.remarks}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="sticky right-0 bg-inherit text-right">
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(voucher)}>
                            <Edit className="h-4 w-4" />
                         </Button>
