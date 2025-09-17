@@ -548,10 +548,10 @@ export async function getInventoryItem(username: string, name: string) {
 export async function getVoucherItemNames(username: string): Promise<string[]> {
     const vouchers = await readVouchers(username);
     // This list should only contain raw materials that can be used in processes.
-    // Exclude scrape and finished goods.
+    // Exclude finished goods.
     const relevantVouchers = vouchers.filter(v => {
         const isPurchase = v.quantities > 0;
-        return isPurchase && !v.remarks?.toUpperCase().startsWith("PRODUCED FROM") && !v.name.toUpperCase().includes("SCRAPE");
+        return isPurchase && !v.remarks?.toUpperCase().startsWith("PRODUCED FROM");
     });
     const names = new Set(relevantVouchers.map(v => v.name));
     return Array.from(names).sort();
@@ -627,7 +627,7 @@ export async function getProcesses(username: string, filters: { name?: string, s
     }
 
 
-    return processes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return processes;
 }
 
 export async function getUniqueProcessNames(username: string): Promise<string[]> {
