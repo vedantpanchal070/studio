@@ -135,11 +135,13 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
   }, [totalProcessOutput]);
 
   const handleRatioChange = (index: number, value: string) => {
-    const newRatio = parseFloat(value);
     if (value === '') {
-        form.setValue(`rawMaterials.${index}.quantity`, 0);
         form.setValue(`rawMaterials.${index}.ratio`, undefined);
-    } else if (!isNaN(newRatio)) {
+        form.setValue(`rawMaterials.${index}.quantity`, 0);
+        return;
+    }
+    const newRatio = parseFloat(value);
+    if (!isNaN(newRatio)) {
         const newQuantity = (newRatio / 100) * totalProcessOutput;
         form.setValue(`rawMaterials.${index}.quantity`, newQuantity, { shouldValidate: true });
         form.setValue(`rawMaterials.${index}.ratio`, newRatio);
@@ -147,11 +149,13 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
   };
   
   const handleQuantityChange = (index: number, value: string) => {
-      const newQuantity = parseFloat(value);
-      if (value === '') {
-          form.setValue(`rawMaterials.${index}.ratio`, 0);
-          form.setValue(`rawMaterials.${index}.quantity`, undefined);
-      } else if (!isNaN(newQuantity)) {
+    if (value === '') {
+        form.setValue(`rawMaterials.${index}.quantity`, undefined);
+        form.setValue(`rawMaterials.${index}.ratio`, 0);
+        return;
+    }
+    const newQuantity = parseFloat(value);
+    if (!isNaN(newQuantity)) {
         if (totalProcessOutput > 0) {
             const newRatio = (newQuantity / totalProcessOutput) * 100;
             form.setValue(`rawMaterials.${index}.ratio`, newRatio, { shouldValidate: true });
