@@ -1,0 +1,52 @@
+[
+  {
+    "date": "2025-09-07T18:30:00.000Z",
+    "processName": "POTATO VEGETABLE",
+    "totalProcessOutput": 25,
+    "outputUnit": "KG",
+    "rawMaterials": [
+      {
+        "name": "POTATO",
+        "code": "2501",
+        "quantityType": "KG",
+        "quantity": 18.75,
+        "ratio": 75,
+        "rate": 5.689655172413793
+      },
+      {
+        "name": "CHILLI POWDER",
+        "code": "2505",
+        "quantityType": "KG",
+        "quantity": 1.25,
+        "ratio": 5,
+        "rate": 75.71428571428571
+      },
+      {
+        "name": "MILK",
+        "code": "2503",
+        "quantityType": "LTR",
+        "quantity": 1.25,
+        "ratio": 5,
+        "rate": 59.09090909090909
+      },
+      {
+        "name": "PEANUT OIL",
+        "code": "2504",
+        "quantityType": "LTR",
+        "quantity": 1.25,
+        "ratio": 5,
+        "rate": 107.02702702702703
+      },
+      {
+        "name": "SUGAR",
+        "code": "2502",
+        "quantityType": "KG",
+        "quantity": 2.5,
+        "ratio": 10,
+        "rate": 28
+      }
+    ],
+    "notes": "",
+    "id": "2025-09-17T11:34:56.016Zvcoh02hmo"
+  }
+]

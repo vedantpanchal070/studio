@@ -108,5 +108,104 @@
     "totalPrice": 1600,
     "remarks": "",
     "id": "2025-09-17T11:19:40.522Ztx9ltbehb"
+  },
+  {
+    "date": "2025-09-08T18:30:00.000Z",
+    "name": "CHILLI POWDER",
+    "code": "2505",
+    "quantities": 15,
+    "quantityType": "KG",
+    "pricePerNo": 50,
+    "totalPrice": 750,
+    "remarks": "",
+    "id": "2025-09-17T11:38:22.300Zrd8buzg4m"
+  },
+  {
+    "id": "2025-09-17T12:28:17.252Z22dxc0u0t",
+    "date": "2025-09-09T18:30:00.000Z",
+    "name": "POTATO VEGETABLE",
+    "code": "FG-POTATO VEGETABLE",
+    "quantities": 20,
+    "quantityType": "KG",
+    "pricePerNo": 48.948565588651796,
+    "totalPrice": 978.971311773036,
+    "remarks": "PRODUCED FROM POTATO VEGETABLE"
+  },
+  {
+    "id": "2025-09-17T12:28:17.252Z22dxc0u0tscrape",
+    "date": "2025-09-09T18:30:00.000Z",
+    "name": "POTATO VEGETABLE - SCRAPE",
+    "code": "SCRAPE-POTATO VEGETABLE",
+    "quantities": 5,
+    "quantityType": "KG",
+    "pricePerNo": 48.948565588651796,
+    "totalPrice": 244.742827943259,
+    "remarks": "SCRAPE FROM POTATO VEGETABLE"
+  },
+  {
+    "id": "2025-09-17T11:34:56.016Zvcoh02hmoPOTATO",
+    "date": "2025-09-07T18:30:00.000Z",
+    "name": "POTATO",
+    "code": "2501",
+    "quantities": -18.75,
+    "quantityType": "KG",
+    "pricePerNo": 5.689655172413793,
+    "totalPrice": 106.68103448275862,
+    "remarks": "USED IN POTATO VEGETABLE"
+  },
+  {
+    "id": "2025-09-17T11:34:56.016Zvcoh02hmoCHILLIPOWDER",
+    "date": "2025-09-07T18:30:00.000Z",
+    "name": "CHILLI POWDER",
+    "code": "2505",
+    "quantities": -1.25,
+    "quantityType": "KG",
+    "pricePerNo": 75.71428571428571,
+    "totalPrice": 94.64285714285714,
+    "remarks": "USED IN POTATO VEGETABLE"
+  },
+  {
+    "id": "2025-09-17T11:34:56.016Zvcoh02hmoMILK",
+    "date": "2025-09-07T18:30:00.000Z",
+    "name": "MILK",
+    "code": "2503",
+    "quantities": -1.25,
+    "quantityType": "LTR",
+    "pricePerNo": 59.09090909090909,
+    "totalPrice": 73.86363636363637,
+    "remarks": "USED IN POTATO VEGETABLE"
+  },
+  {
+    "id": "2025-09-17T11:34:56.016Zvcoh02hmoPEANUTOIL",
+    "date": "2025-09-07T18:30:00.000Z",
+    "name": "PEANUT OIL",
+    "code": "2504",
+    "quantities": -1.25,
+    "quantityType": "LTR",
+    "pricePerNo": 107.02702702702703,
+    "totalPrice": 133.7837837837838,
+    "remarks": "USED IN POTATO VEGETABLE"
+  },
+  {
+    "id": "2025-09-17T11:34:56.016Zvcoh02hmoSUGAR",
+    "date": "2025-09-07T18:30:00.000Z",
+    "name": "SUGAR",
+    "code": "2502",
+    "quantities": -2.5,
+    "quantityType": "KG",
+    "pricePerNo": 28,
+    "totalPrice": 70,
+    "remarks": "USED IN POTATO VEGETABLE"
+  },
+  {
+    "id": "2025-09-17T12:44:41.253Zeu9683psw",
+    "date": "2025-09-17T12:43:37.292Z",
+    "name": "POTATO VEGETABLE",
+    "code": "FG-POTATO VEGETABLE",
+    "quantities": -15,
+    "quantityType": "KG",
+    "pricePerNo": 48.948565588651796,
+    "totalPrice": 734.2284838297769,
+    "remarks": "SOLD TO J.J.J.J"
   }
 ]
