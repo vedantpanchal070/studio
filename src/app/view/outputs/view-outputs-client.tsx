@@ -213,70 +213,68 @@ export function ViewOutputsClient() {
       </Form>
       
       <div className="rounded-md border">
-        <div className="h-96 overflow-auto">
-            <Table>
-                <TableHeader className="sticky top-0 z-10 bg-background">
-                    <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Product Name</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Client Code</TableHead>
-                        <TableHead>Quantity</TableHead>
-                        <TableHead>Price/kg</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {isLoading ? (
-                        <TableRow><TableCell colSpan={7} className="h-24 text-center">Loading...</TableCell></TableRow>
-                    ) : ledger.length > 0 ? ledger.map((entry) => (
-                    <TableRow
-                        key={entry.id}
-                        className={cn(
-                        entry.type === 'Production'
-                            ? "bg-green-100/50"
-                            : "bg-red-100/50"
-                        )}
-                    >
-                        <TableCell>{format(new Date(entry.date), 'dd/MM/yyyy')}</TableCell>
-                        <TableCell>{entry.productName}</TableCell>
-                        <TableCell>{entry.type}</TableCell>
-                        <TableCell>{entry.clientCode || 'N/A'}</TableCell>
-                        <TableCell>{entry.quantity.toFixed(2)}</TableCell>
-                        <TableCell>{entry.pricePerKg.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">
-                           <Button variant="ghost" size="icon" onClick={() => handleEdit(entry)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                  <AlertDialogDescription>This will delete the transaction and reverse its effect on inventory. This action cannot be undone.</AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(entry)}>Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                        </TableCell>
-                    </TableRow>
-                    )) : (
-                    <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center">
-                        No results found.
-                        </TableCell>
-                    </TableRow>
+        <Table height="24rem">
+            <TableHeader className="sticky top-0 z-10 bg-background">
+                <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Product Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Client Code</TableHead>
+                    <TableHead>Quantity</TableHead>
+                    <TableHead>Price/kg</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {isLoading ? (
+                    <TableRow><TableCell colSpan={7} className="h-24 text-center">Loading...</TableCell></TableRow>
+                ) : ledger.length > 0 ? ledger.map((entry) => (
+                <TableRow
+                    key={entry.id}
+                    className={cn(
+                    entry.type === 'Production'
+                        ? "bg-green-100/50"
+                        : "bg-red-100/50"
                     )}
-                </TableBody>
-            </Table>
-        </div>
+                >
+                    <TableCell>{format(new Date(entry.date), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell>{entry.productName}</TableCell>
+                    <TableCell>{entry.type}</TableCell>
+                    <TableCell>{entry.clientCode || 'N/A'}</TableCell>
+                    <TableCell>{entry.quantity.toFixed(2)}</TableCell>
+                    <TableCell>{entry.pricePerKg.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(entry)}>
+                            <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>This will delete the transaction and reverse its effect on inventory. This action cannot be undone.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(entry)}>Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </TableCell>
+                </TableRow>
+                )) : (
+                <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center">
+                    No results found.
+                    </TableCell>
+                </TableRow>
+                )}
+            </TableBody>
+        </Table>
       </div>
 
        <Card>

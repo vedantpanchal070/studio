@@ -105,42 +105,40 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
 
 
       <div className="rounded-md border">
-        <div className="h-96 overflow-auto">
-          <Table>
-            <TableHeader className="sticky top-0 z-10 bg-background">
-              <TableRow>
-                <TableHead>Product Name</TableHead>
-                <TableHead>Code</TableHead>
-                <TableHead>Available Qty</TableHead>
-                <TableHead>Cost Price</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
-                      Loading...
-                    </TableCell>
-                  </TableRow>
-                ) : inventory.length > 0 ? (
-                inventory.map((item) => (
-                  <TableRow key={item.name}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{item.code}</TableCell>
-                    <TableCell>{`${item.availableStock.toFixed(2)} ${item.quantityType}`}</TableCell>
-                    <TableCell>{item.averagePrice.toFixed(2)}</TableCell>
-                  </TableRow>
-                ))
-              ) : (
+        <Table height="24rem">
+          <TableHeader className="sticky top-0 z-10 bg-background">
+            <TableRow>
+              <TableHead>Product Name</TableHead>
+              <TableHead>Code</TableHead>
+              <TableHead>Available Qty</TableHead>
+              <TableHead>Cost Price</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={4} className="h-24 text-center">
-                    No finished goods in stock.
+                    Loading...
                   </TableCell>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+              ) : inventory.length > 0 ? (
+              inventory.map((item) => (
+                <TableRow key={item.name}>
+                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell>{item.code}</TableCell>
+                  <TableCell>{`${item.availableStock.toFixed(2)} ${item.quantityType}`}</TableCell>
+                  <TableCell>{item.averagePrice.toFixed(2)}</TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={4} className="h-24 text-center">
+                  No finished goods in stock.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
     </div>
   )

@@ -251,36 +251,34 @@ export function ViewProcessesClient() {
       </Form>
 
       <div className="rounded-md border">
-        <div className="h-96 overflow-auto">
-            <Table>
-                <TableHeader className="sticky top-0 z-10 bg-background">
-                    <TableRow>
-                        <TableHead className="w-[150px]">Date</TableHead>
-                        <TableHead>Process Name</TableHead>
-                        <TableHead>Cost/Unit</TableHead>
-                        <TableHead>Ingred. Qty</TableHead>
-                        <TableHead className="text-right w-[150px]">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                     <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center">
-                            Loading...
-                        </TableCell>
-                    </TableRow>
-                  ) : processes.length > 0 ? processes.map((process) => (
-                      <ProcessEntry key={process.id} process={process} onDelete={handleDelete} onEdit={handleEdit} />
-                  )) : (
-                    <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center">
-                            No process history found for the selected criteria.
-                        </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-            </Table>
-        </div>
+        <Table height="24rem">
+            <TableHeader className="sticky top-0 z-10 bg-background">
+                <TableRow>
+                    <TableHead className="w-[150px]">Date</TableHead>
+                    <TableHead>Process Name</TableHead>
+                    <TableHead>Cost/Unit</TableHead>
+                    <TableHead>Ingred. Qty</TableHead>
+                    <TableHead className="text-right w-[150px]">Actions</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                        Loading...
+                    </TableCell>
+                </TableRow>
+              ) : processes.length > 0 ? processes.map((process) => (
+                  <ProcessEntry key={process.id} process={process} onDelete={handleDelete} onEdit={handleEdit} />
+              )) : (
+                <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                        No process history found for the selected criteria.
+                    </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+        </Table>
       </div>
       {selectedProcess && (
         <EditProcessDialog
