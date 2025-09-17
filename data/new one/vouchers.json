@@ -143,6 +143,17 @@
     "remarks": "SCRAPE FROM POTATO VEGETABLE"
   },
   {
+    "id": "2025-09-17T12:44:41.253Zeu9683psw",
+    "date": "2025-09-17T12:43:37.292Z",
+    "name": "POTATO VEGETABLE",
+    "code": "FG-POTATO VEGETABLE",
+    "quantities": -15,
+    "quantityType": "KG",
+    "pricePerNo": 48.948565588651796,
+    "totalPrice": 734.2284838297769,
+    "remarks": "SOLD TO J.J.J.J"
+  },
+  {
     "id": "2025-09-17T11:34:56.016Zvcoh02hmoPOTATO",
     "date": "2025-09-07T18:30:00.000Z",
     "name": "POTATO",
@@ -196,16 +207,5 @@
     "pricePerNo": 28,
     "totalPrice": 70,
     "remarks": "USED IN POTATO VEGETABLE"
-  },
-  {
-    "id": "2025-09-17T12:44:41.253Zeu9683psw",
-    "date": "2025-09-17T12:43:37.292Z",
-    "name": "POTATO VEGETABLE",
-    "code": "FG-POTATO VEGETABLE",
-    "quantities": -15,
-    "quantityType": "KG",
-    "pricePerNo": 48.948565588651796,
-    "totalPrice": 734.2284838297769,
-    "remarks": "SOLD TO J.J.J.J"
   }
 ]
