@@ -565,10 +565,13 @@ export async function getVoucherItemNames(username: string): Promise<{value: str
     
     uniqueItems.sort((a, b) => a.code.localeCompare(b.code));
     
-    return uniqueItems.map(item => ({
-        value: item.name,
-        label: `${item.name} - ${item.code}`
-    }));
+    return uniqueItems.map(item => {
+        const isScrape = item.name.toUpperCase().includes("SCRAPE");
+        return {
+            value: item.name,
+            label: isScrape ? item.name : `${item.name} - ${item.code}`
+        };
+    });
 }
 
 /**
@@ -641,7 +644,7 @@ export async function getProcesses(username: string, filters: { name?: string, s
     }
 
 
-    return processes;
+    return processes.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
 export async function getUniqueProcessNames(username: string): Promise<string[]> {
