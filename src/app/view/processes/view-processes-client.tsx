@@ -253,7 +253,7 @@ export function ViewProcessesClient() {
       <div className="rounded-md border">
         <div className="h-96 overflow-auto">
             <Table>
-                <TableHeader className="sticky top-0 bg-background z-10">
+                <TableHeader className="sticky top-0 z-10 bg-background">
                     <TableRow>
                         <TableHead className="w-[150px]">Date</TableHead>
                         <TableHead>Process Name</TableHead>

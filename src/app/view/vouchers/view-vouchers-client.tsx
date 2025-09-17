@@ -218,7 +218,7 @@ export function ViewVouchersClient() {
       <div className="rounded-md border">
         <div className="h-96 overflow-auto">
             <Table>
-            <TableHeader className="sticky top-0 bg-background z-10">
+            <TableHeader className="sticky top-0 z-10 bg-background">
                 <TableRow>
                 <TableHead onClick={() => requestSort("date")}>Date <ArrowUpDown className="ml-2 h-4 w-4 inline-block" /></TableHead>
                 <TableHead>Name</TableHead>

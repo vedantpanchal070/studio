@@ -107,7 +107,7 @@ export function InventoryClient({ initialData }: InventoryClientProps) {
       <div className="rounded-md border">
         <div className="h-96 overflow-auto">
           <Table>
-            <TableHeader className="sticky top-0 bg-background z-10">
+            <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
                 <TableHead>Product Name</TableHead>
                 <TableHead>Code</TableHead>
