@@ -1,0 +1,112 @@
+[
+  {
+    "date": "2025-08-31T18:30:00.000Z",
+    "name": "POTATO",
+    "code": "2501",
+    "quantities": 4,
+    "quantityType": "KG",
+    "pricePerNo": 10,
+    "totalPrice": 40,
+    "remarks": "",
+    "id": "2025-09-17T11:12:42.851Zulqxgow1f"
+  },
+  {
+    "date": "2025-08-31T18:30:00.000Z",
+    "name": "SUGAR",
+    "code": "2502",
+    "quantities": 10,
+    "quantityType": "KG",
+    "pricePerNo": 40,
+    "totalPrice": 400,
+    "remarks": "",
+    "id": "2025-09-17T11:13:07.043Zo2i8njpja"
+  },
+  {
+    "date": "2025-08-31T18:30:00.000Z",
+    "name": "MILK",
+    "code": "2503",
+    "quantities": 10,
+    "quantityType": "LTR",
+    "pricePerNo": 70,
+    "totalPrice": 700,
+    "remarks": "",
+    "id": "2025-09-17T11:13:40.178Z21iagk4cr"
+  },
+  {
+    "date": "2025-08-31T18:30:00.000Z",
+    "name": "PEANUT OIL",
+    "code": "2504",
+    "quantities": 25,
+    "quantityType": "LTR",
+    "pricePerNo": 120,
+    "totalPrice": 3000,
+    "remarks": "",
+    "id": "2025-09-17T11:14:25.128Z81torr4as"
+  },
+  {
+    "date": "2025-08-31T18:30:00.000Z",
+    "name": "CHILLI POWDER",
+    "code": "2505",
+    "quantities": 15,
+    "quantityType": "KG",
+    "pricePerNo": 70,
+    "totalPrice": 1050,
+    "remarks": "",
+    "id": "2025-09-17T11:14:58.968Zjl0hoi24q"
+  },
+  {
+    "date": "2025-09-02T18:30:00.000Z",
+    "name": "POTATO",
+    "code": "2501",
+    "quantities": 25,
+    "quantityType": "KG",
+    "pricePerNo": 5,
+    "totalPrice": 125,
+    "remarks": "",
+    "id": "2025-09-17T11:18:11.323Z5q0on8xdu"
+  },
+  {
+    "date": "2025-09-02T18:30:00.000Z",
+    "name": "SUGAR",
+    "code": "2502",
+    "quantities": 15,
+    "quantityType": "KG",
+    "pricePerNo": 20,
+    "totalPrice": 300,
+    "remarks": "",
+    "id": "2025-09-17T11:18:29.297Zofn3jpn5h"
+  },
+  {
+    "date": "2025-09-02T18:30:00.000Z",
+    "name": "MILK",
+    "code": "2503",
+    "quantities": 12,
+    "quantityType": "LTR",
+    "pricePerNo": 50,
+    "totalPrice": 600,
+    "remarks": "",
+    "id": "2025-09-17T11:18:48.516Z3w2ssou0e"
+  },
+  {
+    "date": "2025-09-02T18:30:00.000Z",
+    "name": "PEANUT OIL",
+    "code": "2504",
+    "quantities": 12,
+    "quantityType": "LTR",
+    "pricePerNo": 80,
+    "totalPrice": 960,
+    "remarks": "",
+    "id": "2025-09-17T11:19:10.744Zlutntl8o8"
+  },
+  {
+    "date": "2025-09-02T18:30:00.000Z",
+    "name": "CHILLI POWDER",
+    "code": "2505",
+    "quantities": 20,
+    "quantityType": "KG",
+    "pricePerNo": 80,
+    "totalPrice": 1600,
+    "remarks": "",
+    "id": "2025-09-17T11:19:40.522Ztx9ltbehb"
+  }
+]

@@ -124,7 +124,7 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
 
   useEffect(() => {
     rawMaterials.forEach((material, index) => {
-        const output = (material.ratio ?? 0) * (totalProcessOutput ?? 0) / 100;
+        const output = (Number(material.ratio) || 0) * (Number(totalProcessOutput) || 0) / 100;
         if (form.getValues(`rawMaterials.${index}.quantity`) !== output) {
             form.setValue(`rawMaterials.${index}.quantity`, output, { shouldValidate: true });
         }
@@ -134,8 +134,8 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
   const calculatedMaterials = fields.map((field, index) => {
     const material = rawMaterials[index] || {};
     const data = materialData[material.name] || {};
-    const quantity = material.quantity ?? 0;
-    const rate = material.rate || data.rate || 0;
+    const quantity = Number(material.quantity) || 0;
+    const rate = Number(material.rate) || data.rate || 0;
     const amount = quantity * rate;
     const stockIsInsufficient = (data.availableStock ?? 0) < quantity;
 
@@ -149,9 +149,9 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
     };
   });
 
-  const totalRatio = calculatedMaterials.reduce((sum, mat) => sum + (mat.ratio ?? 0), 0);
+  const totalRatio = calculatedMaterials.reduce((sum, mat) => sum + (Number(mat.ratio) || 0), 0);
   const totalAmount = calculatedMaterials.reduce((sum, mat) => sum + mat.amount, 0);
-  const averageRate = (totalProcessOutput ?? 0) > 0 ? totalAmount / (totalProcessOutput ?? 0) : 0;
+  const averageRate = (Number(totalProcessOutput) || 0) > 0 ? totalAmount / (Number(totalProcessOutput) || 0) : 0;
 
 
   const onSubmit = async (values: ProcessFormValues) => {
@@ -221,7 +221,7 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
                         <FormItem>
                             <FormLabel>Total Process Output</FormLabel>
                             <FormControl>
-                                <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : +e.target.value)} />
+                                <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -292,7 +292,7 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
                                 <FormField
                                     control={form.control}
                                     name={`rawMaterials.${index}.ratio`}
-                                    render={({ field }) => <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : +e.target.value)} />}
+                                    render={({ field }) => <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />}
                                 />
                             </TableCell>
                             <TableCell><ReadOnlyInput value={material?.output?.toFixed(2) || '0.00'} /></TableCell>
