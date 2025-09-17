@@ -136,20 +136,30 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
 
   const handleRatioChange = (index: number, value: string) => {
     const newRatio = parseFloat(value);
-    if (!isNaN(newRatio) && totalProcessOutput > 0) {
+    if (value === '') {
+        form.setValue(`rawMaterials.${index}.quantity`, 0);
+        form.setValue(`rawMaterials.${index}.ratio`, undefined);
+    } else if (!isNaN(newRatio)) {
         const newQuantity = (newRatio / 100) * totalProcessOutput;
         form.setValue(`rawMaterials.${index}.quantity`, newQuantity, { shouldValidate: true });
+        form.setValue(`rawMaterials.${index}.ratio`, newRatio);
     }
-    form.setValue(`rawMaterials.${index}.ratio`, isNaN(newRatio) ? undefined : newRatio);
   };
   
   const handleQuantityChange = (index: number, value: string) => {
-    const newQuantity = parseFloat(value);
-    if (!isNaN(newQuantity) && totalProcessOutput > 0) {
-        const newRatio = (newQuantity / totalProcessOutput) * 100;
-        form.setValue(`rawMaterials.${index}.ratio`, newRatio, { shouldValidate: true });
+      const newQuantity = parseFloat(value);
+      if (value === '') {
+          form.setValue(`rawMaterials.${index}.ratio`, 0);
+          form.setValue(`rawMaterials.${index}.quantity`, undefined);
+      } else if (!isNaN(newQuantity)) {
+        if (totalProcessOutput > 0) {
+            const newRatio = (newQuantity / totalProcessOutput) * 100;
+            form.setValue(`rawMaterials.${index}.ratio`, newRatio, { shouldValidate: true });
+        } else {
+            form.setValue(`rawMaterials.${index}.ratio`, 0, { shouldValidate: true });
+        }
+        form.setValue(`rawMaterials.${index}.quantity`, newQuantity);
     }
-    form.setValue(`rawMaterials.${index}.quantity`, isNaN(newQuantity) ? undefined : newQuantity);
   };
 
   const calculatedMaterials = fields.map((field, index) => {
@@ -241,7 +251,7 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
                         <FormItem>
                             <FormLabel>Total Process Output</FormLabel>
                             <FormControl>
-                                <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
+                                <Input type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : +e.target.value)} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -312,14 +322,14 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
                                 <FormField
                                     control={form.control}
                                     name={`rawMaterials.${index}.ratio`}
-                                    render={({ field }) => <Input type="number" {...field} onChange={e => handleRatioChange(index, e.target.value)} />}
+                                    render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} onChange={e => handleRatioChange(index, e.target.value)} />}
                                 />
                             </TableCell>
                             <TableCell>
                                 <FormField
                                     control={form.control}
                                     name={`rawMaterials.${index}.quantity`}
-                                    render={({ field }) => <Input type="number" {...field} onChange={e => handleQuantityChange(index, e.target.value)} />}
+                                    render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} onChange={e => handleQuantityChange(index, e.target.value)} />}
                                 />
                             </TableCell>
                             <TableCell>
