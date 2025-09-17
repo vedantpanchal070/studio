@@ -99,16 +99,25 @@ export function CreateProcessForm() {
         form.setValue(`rawMaterials.${index}.quantity`, newQuantity, { shouldValidate: true });
       });
     }
-  }, [totalProcessOutput, form, rawMaterials]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalProcessOutput]);
 
-  const handleRatioChange = (index: number, newRatio: number) => {
-    const output = totalProcessOutput > 0 ? (newRatio / 100) * totalProcessOutput : 0;
-    form.setValue(`rawMaterials.${index}.quantity`, output, { shouldValidate: true });
+  const handleRatioChange = (index: number, value: string) => {
+    const newRatio = parseFloat(value);
+    if (!isNaN(newRatio) && totalProcessOutput > 0) {
+        const newQuantity = (newRatio / 100) * totalProcessOutput;
+        form.setValue(`rawMaterials.${index}.quantity`, newQuantity, { shouldValidate: true });
+    }
+    form.setValue(`rawMaterials.${index}.ratio`, isNaN(newRatio) ? undefined : newRatio);
   };
-
-  const handleQuantityChange = (index: number, newQuantity: number) => {
-    const ratio = totalProcessOutput > 0 ? (newQuantity / totalProcessOutput) * 100 : 0;
-    form.setValue(`rawMaterials.${index}.ratio`, ratio, { shouldValidate: true });
+  
+  const handleQuantityChange = (index: number, value: string) => {
+    const newQuantity = parseFloat(value);
+    if (!isNaN(newQuantity) && totalProcessOutput > 0) {
+        const newRatio = (newQuantity / totalProcessOutput) * 100;
+        form.setValue(`rawMaterials.${index}.ratio`, newRatio, { shouldValidate: true });
+    }
+    form.setValue(`rawMaterials.${index}.quantity`, isNaN(newQuantity) ? undefined : newQuantity);
   };
 
   
@@ -267,11 +276,7 @@ export function CreateProcessForm() {
                         <FormField
                             control={form.control}
                             name={`rawMaterials.${index}.ratio`}
-                            render={({ field }) => <Input type="number" {...field} onChange={e => {
-                                const newRatio = e.target.valueAsNumber || 0;
-                                field.onChange(newRatio);
-                                handleRatioChange(index, newRatio);
-                            }} />}
+                            render={({ field }) => <Input type="number" {...field} onChange={e => handleRatioChange(index, e.target.value)} />}
                         />
                       </TableCell>
                       <TableCell>
@@ -279,11 +284,7 @@ export function CreateProcessForm() {
                               control={form.control}
                               name={`rawMaterials.${index}.quantity`}
                               render={({ field }) => (
-                                  <Input type="number" {...field} onChange={e => {
-                                      const newQuantity = e.target.valueAsNumber || 0;
-                                      field.onChange(newQuantity);
-                                      handleQuantityChange(index, newQuantity);
-                                  }} />
+                                  <Input type="number" {...field} onChange={e => handleQuantityChange(index, e.target.value)} />
                               )}
                           />
                       </TableCell>
@@ -294,7 +295,6 @@ export function CreateProcessForm() {
                               render={({ field }) => (
                                 <>
                                   <ReadOnlyInput value={field.value?.toFixed(2) || '0.00'} />
-                                  {/* Hidden input to ensure value is submitted */}
                                   <input type="hidden" {...field} />
                                 </>
                               )}
@@ -360,5 +360,3 @@ export function CreateProcessForm() {
     </Form>
   )
 }
-
-    
