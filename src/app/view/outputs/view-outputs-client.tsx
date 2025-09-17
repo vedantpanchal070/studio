@@ -217,13 +217,13 @@ export function ViewOutputsClient() {
             <Table>
                 <TableHeader className="sticky top-0 bg-background z-10">
                     <TableRow>
-                        <TableHead className="sticky left-0 bg-background">Date</TableHead>
-                        <TableHead className="sticky left-[110px] bg-background">Product Name</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Product Name</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead>Client Code</TableHead>
                         <TableHead>Quantity</TableHead>
                         <TableHead>Price/kg</TableHead>
-                        <TableHead className="sticky right-0 bg-background text-right">Actions</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -238,13 +238,13 @@ export function ViewOutputsClient() {
                             : "bg-red-100/50"
                         )}
                     >
-                        <TableCell className="sticky left-0 bg-inherit">{format(new Date(entry.date), 'dd/MM/yyyy')}</TableCell>
-                        <TableCell className="sticky left-[110px] bg-inherit">{entry.productName}</TableCell>
+                        <TableCell>{format(new Date(entry.date), 'dd/MM/yyyy')}</TableCell>
+                        <TableCell>{entry.productName}</TableCell>
                         <TableCell>{entry.type}</TableCell>
                         <TableCell>{entry.clientCode || 'N/A'}</TableCell>
                         <TableCell>{entry.quantity.toFixed(2)}</TableCell>
                         <TableCell>{entry.pricePerKg.toFixed(2)}</TableCell>
-                        <TableCell className="sticky right-0 bg-inherit text-right">
+                        <TableCell className="text-right">
                            <Button variant="ghost" size="icon" onClick={() => handleEdit(entry)}>
                               <Edit className="h-4 w-4" />
                             </Button>
