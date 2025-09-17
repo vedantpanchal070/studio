@@ -58,7 +58,7 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
   const { toast } = useToast()
   const { user } = useAuth()
   const [materialData, setMaterialData] = useState<Record<string, MaterialData>>({});
-  const [itemNames, setItemNames] = useState<string[]>([]);
+  const [itemOptions, setItemOptions] = useState<{value: string, label: string}[]>([]);
   const processNameRef = useRef<HTMLInputElement>(null)
 
   const form = useForm<ProcessFormValues>({
@@ -76,8 +76,8 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
   useEffect(() => {
     if (!user) return;
     const fetchInitialData = async () => {
-      const names = await getVoucherItemNames(user.username);
-      setItemNames(names);
+      const options = await getVoucherItemNames(user.username);
+      setItemOptions(options);
       
       const initialMaterialData: Record<string, MaterialData> = {};
       for (const mat of process.rawMaterials) {
@@ -285,7 +285,7 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
                     <Table>
                         <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[200px]">Ingredient</TableHead>
+                            <TableHead className="w-[300px]">Ingredient</TableHead>
                             <TableHead>Avail. Stock</TableHead>
                             <TableHead>% Ratio</TableHead>
                             <TableHead>Output</TableHead>
@@ -305,7 +305,7 @@ export function EditProcessDialog({ isOpen, onOpenChange, process, onProcessUpda
                                     name={`rawMaterials.${index}.name`}
                                     render={({ field }) => (
                                         <Combobox
-                                            options={itemNames.map(name => ({ value: name, label: name }))}
+                                            options={itemOptions}
                                             value={field.value}
                                             onChange={(value) => {
                                                 field.onChange(value);

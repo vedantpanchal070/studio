@@ -545,16 +545,30 @@ export async function getInventoryItem(username: string, name: string) {
     };
 }
 
-export async function getVoucherItemNames(username: string): Promise<string[]> {
+export async function getVoucherItemNames(username: string): Promise<{value: string, label: string}[]> {
     const vouchers = await readVouchers(username);
-    // This list should only contain raw materials that can be used in processes.
-    // Exclude finished goods.
     const relevantVouchers = vouchers.filter(v => {
         const isPurchase = v.quantities > 0;
-        return isPurchase && !v.remarks?.toUpperCase().startsWith("PRODUCED FROM");
+        const remarks = v.remarks?.toUpperCase() || "";
+        // Include purchases AND scrape. Exclude finished goods production and sales vouchers.
+        return (isPurchase && !remarks.startsWith("PRODUCED FROM")) || remarks.includes("SCRAPE");
     });
-    const names = new Set(relevantVouchers.map(v => v.name));
-    return Array.from(names).sort();
+
+    const itemMap = new Map<string, { name: string; code: string }>();
+    relevantVouchers.forEach(v => {
+        if (!itemMap.has(v.name)) {
+            itemMap.set(v.name, { name: v.name, code: v.code });
+        }
+    });
+
+    const uniqueItems = Array.from(itemMap.values());
+    
+    uniqueItems.sort((a, b) => a.code.localeCompare(b.code));
+    
+    return uniqueItems.map(item => ({
+        value: item.name,
+        label: `${item.name} - ${item.code}`
+    }));
 }
 
 /**
@@ -595,7 +609,7 @@ export async function getProcessDetails(username: string, name: string): Promise
     return processes.find(p => p.processName === name) || null;
 }
 
-export async function getProcesses(username: string, filters: { name?: string, startDate?: Date, endDate?: Date }): Promise<any[]> {
+export async function getProcesses(username: string, filters: { name?: string, startDate?: Date, endDate?: Date }): Promise<Process[]> {
     const { name, startDate, endDate } = filters;
     let processes = await readProcesses(username);
 

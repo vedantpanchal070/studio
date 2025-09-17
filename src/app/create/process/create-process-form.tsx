@@ -43,15 +43,15 @@ export function CreateProcessForm() {
   const { toast } = useToast()
   const { user } = useAuth()
   const [materialData, setMaterialData] = useState<Record<string, MaterialData>>({});
-  const [itemNames, setItemNames] = useState<string[]>([]);
+  const [itemOptions, setItemOptions] = useState<{value: string, label: string}[]>([]);
   const processNameRef = useRef<HTMLInputElement>(null)
 
 
   useEffect(() => {
     if (!user) return;
     const fetchItemNames = async () => {
-      const names = await getVoucherItemNames(user.username);
-      setItemNames(names);
+      const options = await getVoucherItemNames(user.username);
+      setItemOptions(options);
     };
     fetchItemNames();
   }, [user]);
@@ -235,7 +235,7 @@ export function CreateProcessForm() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[200px]">Ingredient</TableHead>
+                    <TableHead className="w-[300px]">Ingredient</TableHead>
                     <TableHead>Avail. Stock</TableHead>
                     <TableHead>% Ratio</TableHead>
                     <TableHead>Output</TableHead>
@@ -255,7 +255,7 @@ export function CreateProcessForm() {
                             name={`rawMaterials.${index}.name`}
                             render={({ field }) => (
                                 <Combobox
-                                    options={itemNames.map(name => ({ value: name, label: name }))}
+                                    options={itemOptions}
                                     value={field.value}
                                     onChange={(value) => {
                                         field.onChange(value);
