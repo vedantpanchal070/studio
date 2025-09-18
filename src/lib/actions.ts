@@ -375,6 +375,7 @@ export async function createOutput(username: string, values: z.infer<typeof outp
 
 
         if (scrapeQty > 0) {
+            const scrapePrice = finalAveragePrice / 2;
             const scrapeVoucher: Voucher = {
                 id: outputId + "scrape",
                 date,
@@ -382,8 +383,8 @@ export async function createOutput(username: string, values: z.infer<typeof outp
                 code: `SCRAPE-${productName}`,
                 quantities: scrapeQty,
                 quantityType: 'KG',
-                pricePerNo: finalAveragePrice, // Use final average price for scrape value
-                totalPrice: scrapeQty * finalAveragePrice,
+                pricePerNo: scrapePrice,
+                totalPrice: scrapeQty * scrapePrice,
                 remarks: `SCRAPE FROM ${validatedFields.data.processUsed}`,
             };
             allVouchers.push(scrapeVoucher);
@@ -561,9 +562,20 @@ export async function getVoucherItemNames(username: string): Promise<{value: str
         }
     });
 
-    const uniqueItems = Array.from(itemMap.values());
+    let uniqueItems = Array.from(itemMap.values());
+
+    // Separate items with code and scrape items
+    const itemsWithCode = uniqueItems.filter(item => !item.name.toUpperCase().includes("SCRAPE"));
+    const scrapeItems = uniqueItems.filter(item => item.name.toUpperCase().includes("SCRAPE"));
+
+    // Sort items with code by code
+    itemsWithCode.sort((a, b) => a.code.localeCompare(b.code));
+
+    // Sort scrape items by name
+    scrapeItems.sort((a, b) => a.name.localeCompare(b.name));
     
-    uniqueItems.sort((a, b) => a.code.localeCompare(b.code));
+    // Combine the sorted lists
+    uniqueItems = [...itemsWithCode, ...scrapeItems];
     
     return uniqueItems.map(item => {
         const isScrape = item.name.toUpperCase().includes("SCRAPE");
@@ -1058,16 +1070,18 @@ export async function updateOutput(username: string, values: z.infer<typeof outp
         const scrapeVoucherIndex = allVouchers.findIndex(v => v.id === id + "scrape");
         if (scrapeVoucherIndex !== -1) {
              if (scrapeQty > 0) {
+                const scrapePrice = finalUpdatedData.finalAveragePrice / 2;
                 allVouchers[scrapeVoucherIndex].date = finalUpdatedData.date;
                 allVouchers[scrapeVoucherIndex].name = `${finalUpdatedData.productName} - SCRAPE`;
                 allVouchers[scrapeVoucherIndex].quantities = scrapeQty;
-                allVouchers[scrapeVoucherIndex].pricePerNo = finalUpdatedData.finalAveragePrice;
-                allVouchers[scrapeVoucherIndex].totalPrice = scrapeQty * finalUpdatedData.finalAveragePrice;
+                allVouchers[scrapeVoucherIndex].pricePerNo = scrapePrice;
+                allVouchers[scrapeVoucherIndex].totalPrice = scrapeQty * scrapePrice;
                 allVouchers[scrapeVoucherIndex].remarks = `SCRAPE FROM ${finalUpdatedData.processUsed}`;
              } else {
                 allVouchers.splice(scrapeVoucherIndex, 1); // Remove scrape voucher if scrape is 0
              }
         } else if (scrapeQty > 0) { // Add new scrape voucher if it didn't exist before
+             const scrapePrice = finalUpdatedData.finalAveragePrice / 2;
              const scrapeVoucher: Voucher = {
                 id: id + "scrape",
                 date: finalUpdatedData.date,
@@ -1075,8 +1089,8 @@ export async function updateOutput(username: string, values: z.infer<typeof outp
                 code: `SCRAPE-${finalUpdatedData.productName}`,
                 quantities: scrapeQty,
                 quantityType: 'KG',
-                pricePerNo: finalUpdatedData.finalAveragePrice,
-                totalPrice: scrapeQty * finalUpdatedData.finalAveragePrice,
+                pricePerNo: scrapePrice,
+                totalPrice: scrapeQty * scrapePrice,
                 remarks: `SCRAPE FROM ${finalUpdatedData.processUsed}`,
             };
             allVouchers.push(scrapeVoucher);
@@ -1179,5 +1193,3 @@ export async function clearUserData(username: string): Promise<{ success: boolea
         return { success: false, message: "An error occurred while clearing your data." };
     }
 }
-
-    
