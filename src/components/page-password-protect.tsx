@@ -24,11 +24,11 @@ interface PagePasswordProtectProps {
 }
 
 export function PagePasswordProtect({ children, pageName }: PagePasswordProtectProps) {
-  const [isVerified, setIsVerified] = useState(false);
+  const { user, login } = useAuth();
+  const [isVerified, setIsVerified] = useState(user?.disableViewPassword || false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const { user, login } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
 

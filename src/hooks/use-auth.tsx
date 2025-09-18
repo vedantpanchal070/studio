@@ -14,6 +14,7 @@ interface AuthContextType {
   changePassword: (currentPass: string, newPass: string) => Promise<boolean>;
   changeUsername: (newUsername: string, currentPass: string) => Promise<{ success: boolean, message?: string, field?: string }>;
   signup: (username: string, pass: string) => Promise<{ success: boolean, message?: string }>;
+  updateUserPreferences: (preferences: Partial<User>) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -53,9 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (foundUser.password === pass) {
-      const userToStore = { username: foundUser.username, password: foundUser.password };
-      setUser(userToStore); 
-      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(userToStore));
+      setUser(foundUser); 
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(foundUser));
       return true;
     }
     return false;
@@ -108,8 +108,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return result;
   }, [user, logout]);
 
+  const updateUserPreferences = useCallback(async (preferences: Partial<User>) => {
+    if (!user) return false;
+    
+    const updatedUser = { ...user, ...preferences };
+    const success = await updateUser(updatedUser);
+    
+    if (success) {
+      setUser(updatedUser);
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedUser));
+    }
+    return success;
+  }, [user]);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, changePassword, signup, changeUsername }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, changePassword, signup, changeUsername, updateUserPreferences }}>
       {children}
     </AuthContext.Provider>
   );
